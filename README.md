@@ -122,4 +122,4 @@ The API validates:
 - password required and minimum 8 characters
 - JSON request body
 
-For this learning project, registration is intentionally kept as an API validation exercise. It does not persist users to a database and it does not return or store the submitted password.
+
