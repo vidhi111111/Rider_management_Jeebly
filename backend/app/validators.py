@@ -24,13 +24,12 @@ def validate_registration(data: dict) -> dict:
             errors["email"] = "Please provide a valid email address."
 
     if not mobile:
-        errors["mobile"] = "Mobile number is required."
-    elif not re.fullmatch(r"[0-9]{10,15}", mobile):
-        errors["mobile"] = "Mobile number must contain 10–15 digits."
+        errors["mobile"] = "Mobile number is req."
+    elif not re.fullmatch(r"[0-9]{10}", mobile):
+        errors["mobile"] = "Mobile number must contain exactly 10 digits."
 
     if not password:
-        errors["password"] = "Password is required."
+        errors["password"] = "Password is req."
     elif len(password) < 8:
         errors["password"] = "Password must contain at least 8 characters."
-
     return errors

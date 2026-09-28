@@ -109,16 +109,10 @@ Open:
 
 `POST http://localhost:5000/register`
 
-Example JSON:
 
-```json
-{
-  "name": "Kabir Kiran",
-  "email": "kabir@example.com",
-  "mobile": "9876543210",
-  "password": "Password@123"
-}
-```
+
+
+
 
 The API validates:
 

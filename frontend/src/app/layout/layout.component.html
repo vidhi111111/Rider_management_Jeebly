@@ -1,0 +1,91 @@
+<div class="layout">
+
+  <header class="header">
+
+    <div class="brand">
+      <h2>Jeebly</h2>
+    </div>
+
+    <div class="header-right">
+
+      <span class="welcome-text" *ngIf="currentUser">
+        Welcome, {{ currentUser.name }}
+      </span>
+
+      <button
+        type="button"
+        class="theme-button"
+        (click)="toggleTheme()"
+      >
+        {{ isDarkMode ? 'Light Theme' : 'Dark Theme' }}
+      </button>
+
+      <button
+        type="button"
+        class="logout-button"
+        (click)="logout()"
+      >
+        Logout
+      </button>
+
+    </div>
+
+  </header>
+
+  <div class="body-container">
+
+    <aside class="sidebar">
+
+      <div class="sidebar-heading">
+        MENU
+      </div>
+
+      <nav class="sidebar-menu">
+
+        <a
+          routerLink="/dashboard"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
+          <span>Dashboard</span>
+        </a>
+
+        <a
+          routerLink="/riders"
+          routerLinkActive="active"
+        >
+          <span>Riders</span>
+        </a>
+
+        <a
+          routerLink="/orders"
+          routerLinkActive="active"
+        >
+          <span>Orders</span>
+        </a>
+
+        <a
+          routerLink="/profile"
+          routerLinkActive="active"
+        >
+          <span>Profile</span>
+        </a>
+
+        <a
+          routerLink="/settings"
+          routerLinkActive="active"
+        >
+          <span>Settings</span>
+        </a>
+
+      </nav>
+
+    </aside>
+
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+
+  </div>
+
+</div>
