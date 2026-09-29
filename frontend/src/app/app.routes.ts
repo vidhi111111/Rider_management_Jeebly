@@ -3,69 +3,70 @@ import { Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
 import { LayoutComponent } from './layout/layout.component';
 
-import { LoginComponent } from './pages/login/login.component';
-import { RegisterComponent } from './pages/register/register.component';
-import { DashboardComponent } from './pages/dashboard/dashboard.component';
-import { RidersComponent } from './pages/riders/riders.component';
-import { OrdersComponent } from './pages/orders/orders.component';
-import { ProfileComponent } from './pages/profile/profile.component';
-import { SettingsComponent } from './pages/settings/settings.component';
-
 export const routes: Routes = [
-
   {
     path: '',
     redirectTo: 'login',
     pathMatch: 'full'
   },
-
   {
     path: 'login',
-    component: LoginComponent
+    loadComponent: () =>
+      import('./pages/login/login.component').then(
+        m => m.LoginComponent
+      )
   },
-
   {
     path: 'register',
-    component: RegisterComponent
+    loadComponent: () =>
+      import('./pages/register/register.component').then(
+        m => m.RegisterComponent
+      )
   },
-
   {
     path: '',
     component: LayoutComponent,
     canActivate: [AuthGuard],
     children: [
-
       {
         path: 'dashboard',
-        component: DashboardComponent
+        loadComponent: () =>
+          import('./pages/dashboard/dashboard.component').then(
+            m => m.DashboardComponent
+          )
       },
-
       {
         path: 'riders',
-        component: RidersComponent
+        loadComponent: () =>
+          import('./pages/riders/riders.component').then(
+            m => m.RidersComponent
+          )
       },
-
       {
         path: 'orders',
-        component: OrdersComponent
+        loadComponent: () =>
+          import('./pages/orders/orders.component').then(
+            m => m.OrdersComponent
+          )
       },
-
       {
         path: 'profile',
-        component: ProfileComponent
+        loadComponent: () =>
+          import('./pages/profile/profile.component').then(
+            m => m.ProfileComponent
+          )
       },
-
       {
         path: 'settings',
-        component: SettingsComponent
+        loadComponent: () =>
+          import('./pages/settings/settings.component').then(
+            m => m.SettingsComponent
+          )
       }
-
     ]
   },
-
   {
     path: '**',
     redirectTo: 'login'
   }
-
 ];

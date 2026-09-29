@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
-
+import { BreadcrumbComponent } from '../shared/breadcrumb/breadcrumb.component';
 import { AuthService } from '../core/services/auth.service';
 
 @Component({
@@ -9,7 +9,8 @@ import { AuthService } from '../core/services/auth.service';
   standalone: true,
   imports: [
     CommonModule,
-    RouterModule
+    RouterModule,
+    BreadcrumbComponent
   ],
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.css']

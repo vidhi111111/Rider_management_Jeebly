@@ -1,18 +1,14 @@
-# Python
 backend/.venv/
 backend/**/__pycache__/
 backend/**/*.pyc
 
-# Database
+
 backend/instance/*.db
 
-# Angular
 frontend/node_modules/
 frontend/.angular/cache/
 
-# Environment files
 .env
 *.env
 
-# VS Code
 .vscode/

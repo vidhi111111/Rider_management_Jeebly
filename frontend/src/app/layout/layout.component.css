@@ -88,6 +88,7 @@
   left: 0;
   padding: 30px 15px;
   z-index: 900;
+  overflow-y: auto;
 }
 
 .sidebar-heading {
@@ -139,15 +140,28 @@
   transition: background-color 0.25s ease;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
+  .header {
+    padding: 0 20px;
+  }
 
   .sidebar {
-    width: 200px;
+    width: 210px;
   }
 
   .content {
-    margin-left: 200px;
-    width: calc(100% - 200px);
+    margin-left: 210px;
+    width: calc(100% - 210px);
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 15px;
+  }
+
+  .brand h2 {
+    font-size: 21px;
   }
 
   .welcome-text {
@@ -155,6 +169,110 @@
   }
 
   .header-right {
-    gap: 10px;
+    gap: 8px;
+  }
+
+  .theme-button,
+  .logout-button {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .sidebar {
+    width: 180px;
+    padding: 25px 10px;
+  }
+
+  .sidebar-menu a {
+    padding: 11px 12px;
+    font-size: 14px;
+  }
+
+  .content {
+    margin-left: 180px;
+    width: calc(100% - 180px);
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    height: 60px;
+  }
+
+  .body-container {
+    padding-top: 60px;
+  }
+
+  .sidebar {
+    width: 140px;
+    top: 60px;
+    padding: 20px 8px;
+  }
+
+  .sidebar-heading {
+    padding: 0 8px 15px;
+    font-size: 11px;
+  }
+
+  .sidebar-menu {
+    gap: 5px;
+    margin-top: 15px;
+  }
+
+  .sidebar-menu a {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .content {
+    margin-left: 140px;
+    width: calc(100% - 140px);
+    min-height: calc(100vh - 60px);
+  }
+
+  .theme-button,
+  .logout-button {
+    padding: 7px 9px;
+    font-size: 11px;
+  }
+}
+@media (max-width: 768px) {
+  .dashboard-page {
+    padding: 25px 20px;
+  }
+
+  .dashboard-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+  }
+
+  .dashboard-card {
+    padding: 18px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 26px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-page {
+    padding: 20px 15px;
+  }
+
+  .dashboard-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-card {
+    padding: 18px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 24px;
+  }
+
+  .dashboard-header p {
+    font-size: 14px;
   }
 }

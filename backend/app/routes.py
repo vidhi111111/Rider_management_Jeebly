@@ -7,7 +7,7 @@ from .models import User
 from .validators import validate_registration
 from .Middleware import auth_required
 from .responses import success_response
-
+from sqlalchemy.exc import SQLAlchemyError
 
 routes = Blueprint("routes", __name__)
 
@@ -79,19 +79,26 @@ def register():
         password=hashed_password
     )
 
-    db.session.add(user)
-    db.session.commit()
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+    return jsonify({
+        "success": False,
+        "message": "Database error occurred."
+    }), 500
 
     return jsonify({
-        "success": True,
-        "message": "Registration successful.",
-        "data": {
-            "id": user.id,
-            "name": user.name,
-            "email": user.email,
-            "mobile": user.mobile
-        }
-    }), 201
+    "success": True,
+    "message": "Registration successful.",
+    "data": {
+        "id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "mobile": user.mobile
+    }
+}), 201
 
 
 @routes.post("/login")
@@ -162,5 +169,61 @@ def dashboard():
         "Dashboard data retrieved successfully.",
         {
             "user_id": request.user_id
+        }
+    )
+@routes.get("/profile")
+@auth_required
+def profile():
+    user = User.query.get(request.user_id)
+
+    if not user:
+        return {
+            "success": False,
+            "message": "User not found."
+        }, 404
+
+    return success_response(
+        "Profile retrieved successfully.",
+        {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "mobile": user.mobile
+        }
+    )
+
+@routes.get("/riders")
+@auth_required
+def riders():
+    return success_response(
+        "Riders data retrieved successfully.",
+        {
+            "user_id": request.user_id,
+            "riders": []
+        }
+    )
+
+
+@routes.get("/orders")
+@auth_required
+def orders():
+    return success_response(
+        "Orders data retrieved successfully.",
+        {
+            "user_id": request.user_id,
+            "orders": []
+        }
+    )    
+@routes.get("/settings")
+@auth_required
+def settings():
+    return success_response(
+        "Settings data retrieved successfully.",
+        {
+            "user_id": request.user_id,
+            "settings": {
+                "notifications": True,
+                "dark_mode": False
+            }
         }
     )
