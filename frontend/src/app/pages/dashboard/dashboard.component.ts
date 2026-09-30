@@ -51,7 +51,7 @@ export class DashboardComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.http.get<any>('http://localhost:5000/dashboard').subscribe({
+    this.http.get<any>('https://rider-management-jeebly-backend.onrender.com/dashboard').subscribe({
       next: (response) => {
         const data = response.data || {};
 

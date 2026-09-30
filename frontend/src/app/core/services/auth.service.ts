@@ -41,7 +41,7 @@ export interface LoginResponse {
 })
 export class AuthService {
 
-  private readonly apiUrl = 'http://localhost:5000';
+  private readonly apiUrl = 'https://rider-management-jeebly-backend.onrender.com';
 
   constructor(private readonly http: HttpClient) {}
 
@@ -58,18 +58,15 @@ export class AuthService {
       payload
     );
   }
-
   isLoggedIn(): boolean {
     return !!localStorage.getItem('access_token');
   }
-
   getUser(): any {
     const user = localStorage.getItem('current_user');
 
     if (!user) {
       return null;
     }
-
     return JSON.parse(user);
   }
 
