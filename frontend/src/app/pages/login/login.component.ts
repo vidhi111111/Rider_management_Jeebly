@@ -6,7 +6,7 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 
 import { AuthService } from '../../core/services/auth.service';
 
@@ -15,12 +15,16 @@ import { AuthService } from '../../core/services/auth.service';
   standalone: true,
   imports: [
     CommonModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    RouterModule
   ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
 export class LoginComponent {
+
+  loginError = '';
+  isLoading = false;
 
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -43,23 +47,26 @@ export class LoginComponent {
   }
 
   submit(): void {
+    this.loginError = '';
 
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
       return;
     }
 
+    if (this.isLoading) {
+      return;
+    }
+
     const { email, password } = this.loginForm.value;
+
+    this.isLoading = true;
 
     this.authService.login({
       email,
       password
     }).subscribe({
-
       next: (response) => {
-
-        console.log('Login successful:', response);
-
         localStorage.setItem(
           'access_token',
           response.token
@@ -70,13 +77,18 @@ export class LoginComponent {
           JSON.stringify(response.user)
         );
 
+        this.isLoading = false;
         this.router.navigate(['/dashboard']);
       },
-
       error: (error) => {
-        console.error('Login failed:', error);
-      }
+        this.isLoading = false;
 
+        if (error.status === 401) {
+          this.loginError = 'Invalid email or password.';
+        } else {
+          this.loginError = 'Something went wrong. Please try again.';
+        }
+      }
     });
   }
 }

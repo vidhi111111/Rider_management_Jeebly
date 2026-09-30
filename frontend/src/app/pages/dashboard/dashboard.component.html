@@ -1,31 +1,198 @@
-<div class="dashboard">
-
-  <h1>Dashboard</h1>
-
-  <p>Welcome!!!</p>
-
-  <div class="dashboard-cards">
-
-    <div class="card">
-      <h3>Riders</h3>
-      <p>Manage riders</p>
+<div class="dashboard-page">
+  <div class="dashboard-page">
+  <div *ngIf="errorMessage" class="dashboard-error">
+    {{ errorMessage }}
+  </div>
+  <div class="dashboard-header">
+    <div>
+      <h1>Analytic Overview</h1>
+      <p>Dashboard overview and delivery summary</p>
     </div>
-
-    <div class="card">
-      <h3>Orders</h3>
-      <p>Manage orders</p>
-    </div>
-
-    <div class="card">
-      <h3>Profile</h3>
-      <p>View your profile</p>
-    </div>
-
-    <div class="card">
-      <h3>Settings</h3>
-      <p>Manage application settings</p>
-    </div>
-
   </div>
 
+  <section class="summary-cards">
+    <div class="summary-card blue-card">
+      <div>
+        <span class="summary-value">{{ totalOrders }}</span>
+        <span class="summary-label">Total Orders</span>
+      </div>
+      <div class="summary-circle">
+        {{ totalOrdersPercentage }}%
+      </div>
+    </div>
+
+    <div class="summary-card red-card">
+      <div>
+        <span class="summary-value">{{ deliveredOrders }}</span>
+        <span class="summary-label">Delivered Orders</span>
+      </div>
+      <div class="summary-circle">
+        {{ deliveredPercentage }}%
+      </div>
+    </div>
+
+    <div class="summary-card blue-card">
+      <div>
+        <span class="summary-value">{{ cancelledOrders }}</span>
+        <span class="summary-label">Cancelled Orders</span>
+      </div>
+      <div class="summary-circle">
+        {{ cancelledPercentage }}%
+      </div>
+    </div>
+
+    <div class="summary-card red-card">
+      <div>
+        <span class="summary-value">{{ inProgressOrders }}</span>
+        <span class="summary-label">In Progress Orders</span>
+      </div>
+      <div class="summary-circle">
+        {{ inProgressPercentage }}%
+      </div>
+    </div>
+  </section>
+
+  <section class="dashboard-grid">
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Rider Summary</h2>
+      </div>
+
+      <div class="rider-summary-grid">
+        <div class="rider-stat">
+          <div class="stat-icon available-icon">✓</div>
+          <div>
+            <span class="stat-value">{{ availableRiders }}</span>
+            <span class="stat-label">Available</span>
+          </div>
+        </div>
+
+        <div class="rider-stat">
+          <div class="stat-icon order-icon">●</div>
+          <div>
+            <span class="stat-value">{{ onOrderRiders }}</span>
+            <span class="stat-label">On Order</span>
+          </div>
+        </div>
+
+        <div class="rider-stat">
+          <div class="stat-icon break-icon">−</div>
+          <div>
+            <span class="stat-value">{{ scheduledBreakRiders }}</span>
+            <span class="stat-label">Scheduled Break</span>
+          </div>
+        </div>
+
+        <div class="rider-stat">
+          <div class="stat-icon absent-icon">×</div>
+          <div>
+            <span class="stat-value">{{ absentRiders }}</span>
+            <span class="stat-label">On Leave / Absent</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Order Status</h2>
+      </div>
+
+      <div class="status-chart">
+        <div
+          class="chart-bar delivered-bar"
+          [style.height.%]="deliveredPercentage || 5"
+        >
+          <span>{{ deliveredOrders }}</span>
+        </div>
+
+        <div
+          class="chart-bar progress-bar"
+          [style.height.%]="inProgressPercentage || 5"
+        >
+          <span>{{ inProgressOrders }}</span>
+        </div>
+
+        <div
+          class="chart-bar cancelled-bar"
+          [style.height.%]="cancelledPercentage || 5"
+        >
+          <span>{{ cancelledOrders }}</span>
+        </div>
+      </div>
+
+      <div class="chart-labels">
+        <span>Delivered</span>
+        <span>In Progress</span>
+        <span>Cancelled</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="dashboard-grid lower-grid">
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Recent Orders</h2>
+      </div>
+
+      <div *ngIf="recentOrders.length > 0" class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Status</th>
+              <th>Customer</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let order of recentOrders">
+              <td>{{ order.id }}</td>
+              <td>
+                <span class="status-badge">{{ order.status }}</span>
+              </td>
+              <td>{{ order.customer }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="recentOrders.length === 0" class="empty-state">
+        No recent orders available.
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Available Riders</h2>
+      </div>
+
+      <div *ngIf="availableRiderList.length > 0" class="rider-list">
+        <div
+          class="rider-row"
+          *ngFor="let rider of availableRiderList"
+        >
+          <div class="rider-avatar">
+            {{ rider.name.charAt(0) }}
+          </div>
+
+          <div class="rider-info">
+            <span class="rider-name">{{ rider.name }}</span>
+            <span class="rider-status">Available</span>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="availableRiderList.length === 0" class="empty-state">
+        No riders available.
+      </div>
+    </div>
+  </section>
+
+  <div *ngIf="isLoading" class="dashboard-message">
+    Loading dashboard...
+  </div>
+
+  <!-- <div *ngIf="errorMessage" class="dashboard-error">
+    {{ errorMessage }}
+  </div> -->
 </div>

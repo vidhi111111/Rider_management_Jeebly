@@ -1,16 +1,15 @@
 from flask import Flask, Blueprint, jsonify, request, current_app
 import jwt
 from datetime import datetime, timedelta, timezone
+from sqlalchemy.exc import SQLAlchemyError
 
 from .extensions import db, bcrypt
-from .models import User
+from .models import User, Rider, Order
 from .validators import validate_registration
 from .Middleware import auth_required
 from .responses import success_response
-from sqlalchemy.exc import SQLAlchemyError
 
 routes = Blueprint("routes", __name__)
-
 
 def register_routes(app: Flask) -> None:
     app.register_blueprint(routes)
@@ -82,23 +81,24 @@ def register():
     try:
         db.session.add(user)
         db.session.commit()
-    except SQLAlchemyError:
+    except SQLAlchemyError as error:
+        print(error)
         db.session.rollback()
-    return jsonify({
-        "success": False,
-        "message": "Database error occurred."
-    }), 500
+        return jsonify({
+            "success": False,
+            "message": "Database error occurred."
+        }), 500
 
     return jsonify({
-    "success": True,
-    "message": "Registration successful.",
-    "data": {
-        "id": user.id,
-        "name": user.name,
-        "email": user.email,
-        "mobile": user.mobile
-    }
-}), 201
+        "success": True,
+        "message": "Registration successful.",
+        "data": {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "mobile": user.mobile
+        }
+    }), 201
 
 
 @routes.post("/login")
@@ -165,22 +165,77 @@ def login():
 @routes.get("/dashboard")
 @auth_required
 def dashboard():
+    total_orders = Order.query.count()
+    delivered_orders = Order.query.filter_by(status="delivered").count()
+    cancelled_orders = Order.query.filter_by(status="cancelled").count()
+    in_progress_orders = Order.query.filter_by(status="in_progress").count()
+
+    available_riders = Rider.query.filter_by(status="available").count()
+    on_order_riders = Rider.query.filter_by(status="on_order").count()
+    scheduled_break_riders = Rider.query.filter_by(status="scheduled_break").count()
+    absent_riders = Rider.query.filter_by(status="absent").count()
+
+    recent_orders = (
+        Order.query
+        .order_by(Order.created_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    available_rider_list = (
+        Rider.query
+        .filter_by(status="available")
+        .limit(10)
+        .all()
+    )
+
+    data = {
+        "summary": {
+            "total_orders": total_orders,
+            "delivered_orders": delivered_orders,
+            "cancelled_orders": cancelled_orders,
+            "in_progress_orders": in_progress_orders
+        },
+        "rider_summary": {
+            "available": available_riders,
+            "on_order": on_order_riders,
+            "scheduled_break": scheduled_break_riders,
+            "absent": absent_riders
+        },
+        "recent_orders": [
+            {
+                "id": order.id,
+                "status": order.status,
+                "customer": order.customer_name
+            }
+            for order in recent_orders
+        ],
+        "available_riders": [
+            {
+                "id": rider.id,
+                "name": rider.name,
+                "status": rider.status
+            }
+            for rider in available_rider_list
+        ]
+    }
+
     return success_response(
         "Dashboard data retrieved successfully.",
-        {
-            "user_id": request.user_id
-        }
+        data
     )
+
+
 @routes.get("/profile")
 @auth_required
 def profile():
     user = User.query.get(request.user_id)
 
     if not user:
-        return {
+        return jsonify({
             "success": False,
             "message": "User not found."
-        }, 404
+        }), 404
 
     return success_response(
         "Profile retrieved successfully.",
@@ -191,6 +246,7 @@ def profile():
             "mobile": user.mobile
         }
     )
+
 
 @routes.get("/riders")
 @auth_required
@@ -213,7 +269,9 @@ def orders():
             "user_id": request.user_id,
             "orders": []
         }
-    )    
+    )
+
+
 @routes.get("/settings")
 @auth_required
 def settings():

@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -8,10 +8,8 @@ import {
   ValidationErrors,
   Validators
 } from '@angular/forms';
-
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-import { Router } from '@angular/router';
-
 
 function passwordsMatch(control: AbstractControl): ValidationErrors | null {
   const password = control.get('password')?.value;
@@ -26,16 +24,18 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
     : { passwordMismatch: true };
 }
 
-
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterModule
+  ],
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.css']
 })
 export class RegisterComponent {
-
   isSubmitting = false;
   successMessage = '';
   errorMessage = '';
@@ -43,22 +43,18 @@ export class RegisterComponent {
   registerForm: FormGroup = this.fb.group(
     {
       name: ['', [Validators.required, Validators.minLength(2)]],
-
       email: ['', [
         Validators.required,
         Validators.email
       ]],
-
       mobile: ['', [
         Validators.required,
         Validators.pattern(/^[0-9]{10}$/)
       ]],
-
       password: ['', [
         Validators.required,
         Validators.minLength(8)
       ]],
-
       confirmPassword: ['', [
         Validators.required
       ]]
@@ -68,13 +64,11 @@ export class RegisterComponent {
     }
   );
 
-
   constructor(
     private readonly fb: FormBuilder,
     private readonly authService: AuthService,
     private readonly router: Router
   ) {}
-
 
   get name() {
     return this.registerForm.get('name');
@@ -96,7 +90,6 @@ export class RegisterComponent {
     return this.registerForm.get('confirmPassword');
   }
 
-
   isInvalid(controlName: string): boolean {
     const control = this.registerForm.get(controlName);
 
@@ -105,9 +98,7 @@ export class RegisterComponent {
       (control.dirty || control.touched);
   }
 
-
   submit(): void {
-
     this.successMessage = '';
     this.errorMessage = '';
 
@@ -125,35 +116,24 @@ export class RegisterComponent {
       password
     } = this.registerForm.value;
 
-
     this.authService.register({
       name,
       email,
       mobile,
       password
     }).subscribe({
-
       next: (response) => {
-
         this.isSubmitting = false;
-
         this.successMessage = response.message;
-
         this.registerForm.reset();
-
         this.router.navigate(['/login']);
       },
-
-
       error: (error) => {
-
         this.isSubmitting = false;
-
         this.errorMessage =
           error?.error?.message ||
           'Unable to register';
       }
-
     });
   }
 }

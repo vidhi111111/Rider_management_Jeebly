@@ -16,8 +16,8 @@ import { AuthService } from '../core/services/auth.service';
   styleUrls: ['./layout.component.css']
 })
 export class LayoutComponent implements OnInit {
-
   isDarkMode = false;
+  isSidebarOpen = false;
 
   constructor(
     private readonly authService: AuthService,
@@ -35,6 +35,14 @@ export class LayoutComponent implements OnInit {
 
   get currentUser() {
     return this.authService.getUser();
+  }
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+  closeSidebar(): void {
+    this.isSidebarOpen = false;
   }
 
   toggleTheme(): void {

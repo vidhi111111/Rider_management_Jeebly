@@ -1,13 +1,23 @@
 <div class="layout">
-
   <header class="header">
+    <div class="header-left">
+      <button
+        type="button"
+        class="menu-button"
+        (click)="toggleSidebar()"
+        aria-label="Toggle menu"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
 
-    <div class="brand">
-      <h2>Jeebly</h2>
+      <div class="brand">
+        <h2>Jeebly</h2>
+      </div>
     </div>
 
     <div class="header-right">
-
       <span class="welcome-text" *ngIf="currentUser">
         Welcome, {{ currentUser.name }}
       </span>
@@ -27,25 +37,30 @@
       >
         Logout
       </button>
-
     </div>
-
   </header>
 
+  <div
+    class="sidebar-overlay"
+    [class.show]="isSidebarOpen"
+    (click)="closeSidebar()"
+  ></div>
+
   <div class="body-container">
-
-    <aside class="sidebar">
-
+    <aside
+      class="sidebar"
+      [class.sidebar-open]="isSidebarOpen"
+    >
       <div class="sidebar-heading">
         MENU
       </div>
 
       <nav class="sidebar-menu">
-
         <a
           routerLink="/dashboard"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: true }"
+          (click)="closeSidebar()"
         >
           <span>Dashboard</span>
         </a>
@@ -53,6 +68,7 @@
         <a
           routerLink="/riders"
           routerLinkActive="active"
+          (click)="closeSidebar()"
         >
           <span>Riders</span>
         </a>
@@ -60,6 +76,7 @@
         <a
           routerLink="/orders"
           routerLinkActive="active"
+          (click)="closeSidebar()"
         >
           <span>Orders</span>
         </a>
@@ -67,6 +84,7 @@
         <a
           routerLink="/profile"
           routerLinkActive="active"
+          (click)="closeSidebar()"
         >
           <span>Profile</span>
         </a>
@@ -74,19 +92,16 @@
         <a
           routerLink="/settings"
           routerLinkActive="active"
+          (click)="closeSidebar()"
         >
           <span>Settings</span>
         </a>
-
       </nav>
-
     </aside>
 
     <main class="content">
-    <app-breadcrumb></app-breadcrumb>
-    <router-outlet></router-outlet>
+      <app-breadcrumb></app-breadcrumb>
+      <router-outlet></router-outlet>
     </main>
-
   </div>
-
 </div>
