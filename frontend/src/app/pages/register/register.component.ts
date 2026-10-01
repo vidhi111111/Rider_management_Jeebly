@@ -19,19 +19,45 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
     return null;
   }
 
-  return password === confirmPassword
-    ? null
-    : { passwordMismatch: true };
+  return password === confirmPassword ? null : { passwordMismatch: true };
+}
+
+function passwordValidator(control: AbstractControl): ValidationErrors | null {
+  const password = control.value;
+
+  if (!password) {
+    return null;
+  }
+
+  const errors: ValidationErrors = {};
+
+  if (!/[A-Z]/.test(password)) {
+    errors['uppercase'] = true;
+  }
+
+  if (!/[a-z]/.test(password)) {
+    errors['lowercase'] = true;
+  }
+
+  if (!/[0-9]/.test(password)) {
+    errors['number'] = true;
+  }
+
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    errors['special'] = true;
+  }
+
+  if (/\s/.test(password)) {
+    errors['space'] = true;
+  }
+
+  return Object.keys(errors).length ? errors : null;
 }
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    RouterModule
-  ],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.css']
 })
@@ -39,25 +65,20 @@ export class RegisterComponent {
   isSubmitting = false;
   successMessage = '';
   errorMessage = '';
+  showPassword = false;
+  showConfirmPassword = false;
 
   registerForm: FormGroup = this.fb.group(
     {
       name: ['', [Validators.required, Validators.minLength(2)]],
-      email: ['', [
-        Validators.required,
-        Validators.email
-      ]],
-      mobile: ['', [
-        Validators.required,
-        Validators.pattern(/^[0-9]{10}$/)
-      ]],
+      email: ['', [Validators.required, Validators.email]],
+      mobile: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
       password: ['', [
         Validators.required,
-        Validators.minLength(8)
+        Validators.minLength(8),
+        passwordValidator
       ]],
-      confirmPassword: ['', [
-        Validators.required
-      ]]
+      confirmPassword: ['', [Validators.required]]
     },
     {
       validators: passwordsMatch
@@ -93,9 +114,7 @@ export class RegisterComponent {
   isInvalid(controlName: string): boolean {
     const control = this.registerForm.get(controlName);
 
-    return !!control &&
-      control.invalid &&
-      (control.dirty || control.touched);
+    return !!control && control.invalid && (control.dirty || control.touched);
   }
 
   submit(): void {
@@ -109,12 +128,7 @@ export class RegisterComponent {
 
     this.isSubmitting = true;
 
-    const {
-      name,
-      email,
-      mobile,
-      password
-    } = this.registerForm.value;
+    const { name, email, mobile, password } = this.registerForm.value;
 
     this.authService.register({
       name,
@@ -130,9 +144,7 @@ export class RegisterComponent {
       },
       error: (error) => {
         this.isSubmitting = false;
-        this.errorMessage =
-          error?.error?.message ||
-          'Unable to register';
+        this.errorMessage = error?.error?.message || 'Unable to register';
       }
     });
   }

@@ -5,21 +5,15 @@
         <div class="card register-card border-0 shadow-sm">
           <div class="card-body p-4 p-md-5">
             <div class="text-center mb-4">
-            
               <h1 class="h3 fw-bold mt-3 mb-2">Create your account</h1>
-              <p class="text-secondary mb-0">
-              Register Here!
-              </p>
+              <p class="text-secondary mb-0">Register Here!</p>
             </div>
-
             <div *ngIf="successMessage" class="alert alert-success" role="alert">
               {{ successMessage }}
             </div>
-
             <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
               {{ errorMessage }}
             </div>
-
             <form [formGroup]="registerForm" (ngSubmit)="submit()" novalidate>
               <div class="mb-3">
                 <label for="name" class="form-label fw-semibold">Full Name</label>
@@ -28,7 +22,7 @@
                   type="text"
                   class="form-control"
                   formControlName="name"
-                  placeholder="full name"
+                  placeholder="Full name"
                   [class.is-invalid]="isInvalid('name')"
                 />
                 <div class="invalid-feedback" *ngIf="name?.hasError('required')">
@@ -38,7 +32,6 @@
                   Full name must contain at least 2 characters.
                 </div>
               </div>
-
               <div class="mb-3">
                 <label for="email" class="form-label fw-semibold">Email</label>
                 <input
@@ -56,7 +49,6 @@
                   Please enter a valid email address.
                 </div>
               </div>
-
               <div class="mb-3">
                 <label for="mobile" class="form-label fw-semibold">Mobile Number</label>
                 <input
@@ -65,69 +57,84 @@
                   inputmode="numeric"
                   class="form-control"
                   formControlName="mobile"
+                  placeholder="Enter Mobile Number"
                   [class.is-invalid]="isInvalid('mobile')"
                 />
                 <div class="invalid-feedback" *ngIf="mobile?.hasError('required')">
                   Mobile number is required.
                 </div>
-             <div class="invalid-feedback" *ngIf="mobile?.hasError('pattern')">
-                   Mobile number must contain exactly 10 digits.
-              </div> 
+                <div class="invalid-feedback" *ngIf="mobile?.hasError('pattern')">
+                  Mobile number must contain exactly 10 digits.
+                </div>
               </div>
-
               <div class="mb-3">
                 <label for="password" class="form-label fw-semibold">Password</label>
-                <input
-                  id="password"
-                  type="password"
-                  class="form-control"
-                  formControlName="password"
-                  placeholder="Minimum 8 characters"
-                  [class.is-invalid]="isInvalid('password')"
-                />
-                <div class="invalid-feedback" *ngIf="password?.hasError('required')">
-                  Password is required.
+                <div class="password-wrapper">
+                  <input
+                    id="password"
+                    [type]="showPassword ? 'text' : 'password'"
+                    class="form-control"
+                    formControlName="password"
+                    placeholder="Minimum 8 characters"
+                    [class.is-invalid]="isInvalid('password')"
+                  />
+                  <button
+                    type="button"
+                    class="password-toggle"
+                    (click)="showPassword = !showPassword"
+                    [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+                  >
+                    {{ showPassword ? 'Hide' : 'Show' }}
+                  </button>
                 </div>
-                <div class="invalid-feedback" *ngIf="password?.hasError('minlength')">
-                  Password must contain at least 8 characters.
+                <div class="text-danger small mt-2" *ngIf="password?.touched && password?.invalid">
+                  <div *ngIf="password?.hasError('required')">Password is required.</div>
+                  <div *ngIf="password?.hasError('minlength')">Password must contain at least 8 characters.</div>
+                  <div *ngIf="password?.hasError('uppercase')">Password must contain at least 1 uppercase letter.</div>
+                  <div *ngIf="password?.hasError('lowercase')">Password must contain at least 1 lowercase letter.</div>
+                  <div *ngIf="password?.hasError('number')">Password must contain at least 1 number.</div>
+                  <div *ngIf="password?.hasError('special')">Password must contain at least 1 special character.</div>
+                  <div *ngIf="password?.hasError('space')">Password must not contain spaces.</div>
                 </div>
               </div>
-
               <div class="mb-4">
-                <label for="confirmPassword" class="form-label fw-semibold">
-                  Confirm Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  class="form-control"
-                  formControlName="confirmPassword"
-                  placeholder="re enter password"
-                  [class.is-invalid]="isInvalid('confirmPassword') || (registerForm.hasError('passwordMismatch') && (confirmPassword?.dirty || confirmPassword?.touched))"
-                />
+                <label for="confirmPassword" class="form-label fw-semibold">Confirm Password</label>
+                <div class="password-wrapper">
+                  <input
+                    id="confirmPassword"
+                    [type]="showConfirmPassword ? 'text' : 'password'"
+                    class="form-control"
+                    formControlName="confirmPassword"
+                    placeholder="Re-enter password"
+                    [class.is-invalid]="isInvalid('confirmPassword') || (registerForm.hasError('passwordMismatch') && (confirmPassword?.dirty || confirmPassword?.touched))"
+                  />
+                  <button
+                    type="button"
+                    class="password-toggle"
+                    (click)="showConfirmPassword = !showConfirmPassword"
+                    [attr.aria-label]="showConfirmPassword ? 'Hide password' : 'Show password'"
+                  >
+                    {{ showConfirmPassword ? 'Hide' : 'Show' }}
+                  </button>
+                </div>
                 <div class="invalid-feedback" *ngIf="confirmPassword?.hasError('required')">
                   Please confirm your password.
                 </div>
                 <div
-                  class="invalid-feedback"
-                  *ngIf="registerForm.hasError('passwordMismatch') && !confirmPassword?.hasError('required')"
+                  class="text-danger small mt-1"
+                  *ngIf="registerForm.hasError('passwordMismatch') && !confirmPassword?.hasError('required') && (confirmPassword?.dirty || confirmPassword?.touched)"
                 >
                   Passwords do not match.
                 </div>
               </div>
-
-              <button
-                type="submit"
-                class="btn btn-primary w-100 fw-semibold"
-                [disabled]="isSubmitting"
-              >
-                <span
-                  *ngIf="isSubmitting"
-                  class="spinner-border spinner-border-sm me-2"
-                  aria-hidden="true"
-                ></span>
+              <button type="submit" class="btn btn-primary w-100 fw-semibold" [disabled]="isSubmitting">
+                <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
                 {{ isSubmitting ? 'Creating Account...' : 'Create Account' }}
               </button>
+              <div class="login-link text-center mt-3">
+                Already have an account?
+                <a routerLink="/login">Login</a>
+              </div>
             </form>
           </div>
         </div>

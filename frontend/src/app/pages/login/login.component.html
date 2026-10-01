@@ -4,64 +4,50 @@
       <div class="col-md-6 col-lg-5">
         <div class="card login-card shadow-sm border-0">
           <div class="card-body p-4 p-md-5">
-
             <div class="text-center mb-4">
               <h2 class="mt-3 mb-1">Welcome Back</h2>
-              <p class="text-muted">
-                Login
-              </p>
+              <p class="text-muted">Login to your account</p>
             </div>
-
-            <form [formGroup]="loginForm" (ngSubmit)="submit()">
-
+            <form [formGroup]="loginForm" (ngSubmit)="submit()" novalidate>
               <div class="mb-3">
-                <label for="email" class="form-label">
-                  Email
-                </label>
-
+                <label for="email" class="form-label">Email</label>
                 <input
                   id="email"
                   type="email"
                   class="form-control"
                   formControlName="email"
                   placeholder="Enter your email"
+                  [class.is-invalid]="email?.invalid && email?.touched"
                 />
-
-                <div
-                  class="text-danger small mt-1"
-                  *ngIf="email?.invalid && email?.touched"
-                >
-                  <span *ngIf="email?.errors?.['required']">
-                    Email is required.
-                  </span>
-
-                  <span *ngIf="email?.errors?.['email']">
-                    Please enter a valid email address.
-                  </span>
+                <div class="text-danger small mt-1" *ngIf="email?.invalid && email?.touched">
+                  <span *ngIf="email?.errors?.['required']">Email is required.</span>
+                  <span *ngIf="email?.errors?.['email']">Please enter a valid email address.</span>
                 </div>
               </div>
-
               <div class="mb-3">
-                <label for="password" class="form-label">
-                  Password
-                </label>
-
-                <input
-                  id="password"
-                  type="password"
-                  class="form-control"
-                  formControlName="password"
-                  placeholder="Enter your password"
-                />
-
-                <div
-                  class="text-danger small mt-1"
-                  *ngIf="password?.invalid && password?.touched"
-                >
-                  Password is required.
+                <label for="password" class="form-label">Password</label>
+                <div class="password-wrapper">
+                  <input
+                    id="password"
+                    [type]="showPassword ? 'text' : 'password'"
+                    class="form-control"
+                    formControlName="password"
+                    placeholder="Enter your password"
+                    [class.is-invalid]="password?.invalid && password?.touched"
+                  />
+                  <button
+                    type="button"
+                    class="password-toggle"
+                    (click)="showPassword = !showPassword"
+                    [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+                  >
+                    {{ showPassword ? 'Hide' : 'Show' }}
+                  </button>
+                </div>
+                <div class="text-danger small mt-1" *ngIf="password?.invalid && password?.touched">
+                  <span *ngIf="password?.errors?.['required']">Password is required.</span>
                 </div>
               </div>
-
               <div class="d-flex justify-content-between align-items-center mb-4">
                 <div class="form-check">
                   <input
@@ -70,47 +56,52 @@
                     class="form-check-input"
                     formControlName="rememberMe"
                   />
-
-                  <label
-                    for="rememberMe"
-                    class="form-check-label"
-                  >
-                    Remember Me
-                  </label>
+                  <label for="rememberMe" class="form-check-label">Remember Me</label>
                 </div>
-
-                <a href="javascript:void(0)">
+                <a href="javascript:void(0)" (click)="showForgotPasswordPopup = true">
                   Forgot Password?
                 </a>
               </div>
-
-              <div
-                class="login-error"
-                *ngIf="loginError"
-              >
+              <div class="login-error" *ngIf="loginError">
                 {{ loginError }}
               </div>
-
-              <button
-                type="submit"
-                class="btn btn-primary w-100"
-                [disabled]="isLoading"
-              >
+              <button type="submit" class="btn btn-primary w-100" [disabled]="isLoading">
                 {{ isLoading ? 'Logging in...' : 'Login' }}
               </button>
-
-              <div class="register-link">
+              <div class="register-link text-center mt-3">
                 Don't have an account?
-                <a routerLink="/register">
-                  Register
-                </a>
+                <a routerLink="/register">Register</a>
               </div>
-
             </form>
-
           </div>
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<div
+  class="popup-overlay"
+  *ngIf="showForgotPasswordPopup"
+  (click)="showForgotPasswordPopup = false"
+>
+  <div class="popup-card" (click)="$event.stopPropagation()">
+    <button
+      type="button"
+      class="popup-close"
+      (click)="showForgotPasswordPopup = false"
+    >
+      ×
+    </button>
+    <div class="popup-icon">🔒</div>
+    <h3>Feature Coming Soon</h3>
+    <p>Forgot Password functionality will be available soon.</p>
+    <button
+      type="button"
+      class="btn btn-primary popup-button"
+      (click)="showForgotPasswordPopup = false"
+    >
+      Okay
+    </button>
   </div>
 </div>

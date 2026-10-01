@@ -7,24 +7,20 @@ import {
   Validators
 } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    RouterModule
-  ],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
 export class LoginComponent {
-
   loginError = '';
   isLoading = false;
+  showPassword = false;
+  showForgotPasswordPopup = false;
 
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -67,16 +63,8 @@ export class LoginComponent {
       password
     }).subscribe({
       next: (response) => {
-        localStorage.setItem(
-          'access_token',
-          response.token
-        );
-
-        localStorage.setItem(
-          'current_user',
-          JSON.stringify(response.user)
-        );
-
+        localStorage.setItem('access_token', response.token);
+        localStorage.setItem('current_user', JSON.stringify(response.user));
         this.isLoading = false;
         this.router.navigate(['/dashboard']);
       },
