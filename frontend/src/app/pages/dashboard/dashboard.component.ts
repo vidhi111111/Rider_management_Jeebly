@@ -95,7 +95,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         next: (response) => {
           if (!response.success) {
             this.isLoading = false;
-            this.errorMessage = response.message || 'Unable to load dashboard data.';
+            this.errorMessage =
+              response.message || 'Unable to load dashboard data.';
             return;
           }
 
@@ -121,7 +122,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Dashboard API error:', error);
-
           this.isLoading = false;
           this.errorMessage = 'Unable to load dashboard data.';
         }
