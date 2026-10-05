@@ -251,13 +251,48 @@ def profile():
 @routes.get("/riders")
 @auth_required
 def riders():
-    return success_response(
-        "Riders data retrieved successfully.",
-        {
-            "user_id": request.user_id,
-            "riders": []
-        }
-    )
+    try:
+        page = request.args.get("page", 1, type=int)
+        page_size = request.args.get("pageSize", 10, type=int)
+
+        if page < 1:
+            page = 1
+
+        if page_size < 1:
+            page_size = 10
+
+        pagination = Rider.query.paginate(
+            page=page,
+            per_page=page_size,
+            error_out=False
+        )
+
+        riders_data = [
+            {
+                "id": rider.id,
+                "name": rider.name,
+                "status": rider.status
+            }
+            for rider in pagination.items
+        ]
+
+        return success_response(
+            "Riders retrieved successfully.",
+            {
+                "riders": riders_data,
+                "page": pagination.page,
+                "pageSize": pagination.per_page,
+                "totalRecords": pagination.total,
+                "totalPages": pagination.pages
+            }
+        )
+
+    except Exception:
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "message": "Unable to retrieve riders."
+        }), 500
 
 
 @routes.get("/orders")
