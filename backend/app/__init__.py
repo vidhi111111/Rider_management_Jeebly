@@ -21,17 +21,17 @@ def create_app() -> Flask:
     )
 
     if database_url.startswith("postgres://"):
-         database_url = database_url.replace(
-        "postgres://",
-        "postgresql+psycopg2://",
-        1
-    )
+        database_url = database_url.replace(
+            "postgres://",
+            "postgresql+psycopg2://",
+            1
+        )
     elif database_url.startswith("postgresql://"):
         database_url = database_url.replace(
-        "postgresql://",
-        "postgresql+psycopg2://",
-        1
-    )
+            "postgresql://",
+            "postgresql+psycopg2://",
+            1
+        )
 
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -40,18 +40,22 @@ def create_app() -> Flask:
         "1542e59d3455bb7ccdf57c8372e7de9377cc78efb1af36a8532d571e6aac792d"
     )
 
+    allowed_origins = [
+        "http://localhost:4200",
+        frontend_url
+    ]
+
     CORS(
         app,
         resources={
             r"/*": {
-                "origins": frontend_url
+                "origins": allowed_origins
             }
         }
     )
 
     db.init_app(app)
     bcrypt.init_app(app)
-
     register_routes(app)
 
     @app.errorhandler(400)

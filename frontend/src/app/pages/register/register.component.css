@@ -39,7 +39,12 @@
 }
 
 .password-wrapper .form-control {
-  padding-right: 45px;
+  padding-right: 48px;
+}
+
+.password-hidden {
+  -webkit-text-security: disc;
+  text-security: disc;
 }
 
 .password-toggle {
@@ -47,16 +52,35 @@
   top: 50%;
   right: 10px;
   transform: translateY(-50%);
-  border: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
   background: transparent;
-  padding: 4px;
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   z-index: 2;
 }
 
+.password-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: #6c757d;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.password-toggle:hover svg {
+  stroke: #163758;
+}
+
 .password-toggle:focus {
   outline: none;
+  box-shadow: none;
 }
 
 .register-card .btn-primary {

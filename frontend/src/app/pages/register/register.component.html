@@ -8,13 +8,17 @@
               <h1 class="h3 fw-bold mt-3 mb-2">Create your account</h1>
               <p class="text-secondary mb-0">Register Here!</p>
             </div>
+
             <div *ngIf="successMessage" class="alert alert-success" role="alert">
               {{ successMessage }}
             </div>
+
             <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
               {{ errorMessage }}
             </div>
+
             <form [formGroup]="registerForm" (ngSubmit)="submit()" novalidate>
+
               <div class="mb-3">
                 <label for="name" class="form-label fw-semibold">Full Name</label>
                 <input
@@ -32,6 +36,7 @@
                   Full name must contain at least 2 characters.
                 </div>
               </div>
+
               <div class="mb-3">
                 <label for="email" class="form-label fw-semibold">Email</label>
                 <input
@@ -49,6 +54,7 @@
                   Please enter a valid email address.
                 </div>
               </div>
+
               <div class="mb-3">
                 <label for="mobile" class="form-label fw-semibold">Mobile Number</label>
                 <input
@@ -67,59 +73,126 @@
                   Mobile number must contain exactly 10 digits.
                 </div>
               </div>
+
               <div class="mb-3">
                 <label for="password" class="form-label fw-semibold">Password</label>
+
                 <div class="password-wrapper">
                   <input
                     id="password"
-                    [type]="showPassword ? 'text' : 'password'"
+                    type="text"
                     class="form-control"
                     formControlName="password"
                     placeholder="Minimum 8 characters"
+                    [class.password-hidden]="!showPassword"
                     [class.is-invalid]="isInvalid('password')"
                   />
+
                   <button
                     type="button"
                     class="password-toggle"
                     (click)="showPassword = !showPassword"
                     [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
                   >
-                    {{ showPassword ? 'Hide' : 'Show' }}
+                    <svg
+                      *ngIf="!showPassword"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+
+                    <svg
+                      *ngIf="showPassword"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 3l18 18"></path>
+                      <path d="M10.6 6.2A10.8 10.8 0 0 1 12 6c6.5 0 10 6 10 6a18.7 18.7 0 0 1-3.2 3.8"></path>
+                      <path d="M6.2 6.8C3.4 6.8 2 12 2 12s3.5 6 10 6c1.7 0 3.2-.4 4.5-1"></path>
+                    </svg>
                   </button>
                 </div>
-                <div class="text-danger small mt-2" *ngIf="password?.touched && password?.invalid">
-                  <div *ngIf="password?.hasError('required')">Password is required.</div>
-                  <div *ngIf="password?.hasError('minlength')">Password must contain at least 8 characters.</div>
-                  <div *ngIf="password?.hasError('uppercase')">Password must contain at least 1 uppercase letter.</div>
-                  <div *ngIf="password?.hasError('lowercase')">Password must contain at least 1 lowercase letter.</div>
-                  <div *ngIf="password?.hasError('number')">Password must contain at least 1 number.</div>
-                  <div *ngIf="password?.hasError('special')">Password must contain at least 1 special character.</div>
-                  <div *ngIf="password?.hasError('space')">Password must not contain spaces.</div>
+
+                <div
+                  class="text-danger small mt-2"
+                  *ngIf="password?.touched && password?.invalid"
+                >
+                  <div *ngIf="password?.hasError('required')">
+                    Password is required.
+                  </div>
+                  <div *ngIf="password?.hasError('minlength')">
+                    Password must contain at least 8 characters.
+                  </div>
+                  <div *ngIf="password?.hasError('uppercase')">
+                    Password must contain at least 1 uppercase letter.
+                  </div>
+                  <div *ngIf="password?.hasError('lowercase')">
+                    Password must contain at least 1 lowercase letter.
+                  </div>
+                  <div *ngIf="password?.hasError('number')">
+                    Password must contain at least 1 number.
+                  </div>
+                  <div *ngIf="password?.hasError('special')">
+                    Password must contain at least 1 special character.
+                  </div>
+                  <div *ngIf="password?.hasError('space')">
+                    Password must not contain spaces.
+                  </div>
                 </div>
               </div>
+
               <div class="mb-4">
-                <label for="confirmPassword" class="form-label fw-semibold">Confirm Password</label>
+                <label for="confirmPassword" class="form-label fw-semibold">
+                  Confirm Password
+                </label>
+
                 <div class="password-wrapper">
                   <input
                     id="confirmPassword"
-                    [type]="showConfirmPassword ? 'text' : 'password'"
+                    type="text"
                     class="form-control"
                     formControlName="confirmPassword"
                     placeholder="Re-enter password"
+                    [class.password-hidden]="!showConfirmPassword"
                     [class.is-invalid]="isInvalid('confirmPassword') || (registerForm.hasError('passwordMismatch') && (confirmPassword?.dirty || confirmPassword?.touched))"
                   />
+
                   <button
                     type="button"
                     class="password-toggle"
                     (click)="showConfirmPassword = !showConfirmPassword"
                     [attr.aria-label]="showConfirmPassword ? 'Hide password' : 'Show password'"
                   >
-                    {{ showConfirmPassword ? 'Hide' : 'Show' }}
+                    <svg
+                      *ngIf="!showConfirmPassword"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+
+                    <svg
+                      *ngIf="showConfirmPassword"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 3l18 18"></path>
+                      <path d="M10.6 6.2A10.8 10.8 0 0 1 12 6c6.5 0 10 6 10 6a18.7 18.7 0 0 1-3.2 3.8"></path>
+                      <path d="M6.2 6.8C3.4 6.8 2 12 2 12s3.5 6 10 6c1.7 0 3.2-.4 4.5-1"></path>
+                    </svg>
                   </button>
                 </div>
-                <div class="invalid-feedback" *ngIf="confirmPassword?.hasError('required')">
+
+                <div
+                  class="invalid-feedback"
+                  *ngIf="confirmPassword?.hasError('required')"
+                >
                   Please confirm your password.
                 </div>
+
                 <div
                   class="text-danger small mt-1"
                   *ngIf="registerForm.hasError('passwordMismatch') && !confirmPassword?.hasError('required') && (confirmPassword?.dirty || confirmPassword?.touched)"
@@ -127,14 +200,25 @@
                   Passwords do not match.
                 </div>
               </div>
-              <button type="submit" class="btn btn-primary w-100 fw-semibold" [disabled]="isSubmitting">
-                <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+
+              <button
+                type="submit"
+                class="btn btn-primary w-100 fw-semibold"
+                [disabled]="isSubmitting"
+              >
+                <span
+                  *ngIf="isSubmitting"
+                  class="spinner-border spinner-border-sm me-2"
+                  aria-hidden="true"
+                ></span>
                 {{ isSubmitting ? 'Creating Account...' : 'Create Account' }}
               </button>
+
               <div class="login-link text-center mt-3">
                 Already have an account?
                 <a routerLink="/login">Login</a>
               </div>
+
             </form>
           </div>
         </div>
