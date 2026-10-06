@@ -1,1 +1,177 @@
-<p>riders works!</p>
+<div class="riders-page">
+  <div class="riders-header">
+    <div>
+      <h1>Riders</h1>
+      <p>Rider list and details</p>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="message">
+    Loading riders...
+  </div>
+
+  <div *ngIf="errorMessage" class="error-message">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!isLoading && riders.length > 0" class="riders-card">
+    <div class="table-header">
+      <div>
+        <h2>Rider List</h2>
+        <span>{{ totalRecords }} riders found</span>
+      </div>
+
+      <div class="page-size">
+        <label for="pageSize">Show</label>
+
+        <select
+          id="pageSize"
+          [value]="pageSize"
+          (change)="changePageSize($event)"
+        >
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+
+        <span>per page</span>
+      </div>
+    </div>
+
+    <div class="riders-table-wrapper">
+      <table class="riders-table">
+        <thead>
+          <tr>
+            <th>RIDER ID</th>
+            <th>RIDER</th>
+            <th>STATUS</th>
+            <th>ACTION</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let rider of riders">
+            <td>
+              <span class="rider-id">#{{ rider.id }}</span>
+            </td>
+
+            <td>
+              <div class="rider-info">
+                <div class="rider-avatar">
+                  {{ rider.name.charAt(0) }}
+                </div>
+                <span>{{ rider.name }}</span>
+              </div>
+            </td>
+
+            <td>
+              <span
+                class="status-badge"
+                [ngClass]="rider.status"
+              >
+                {{ rider.status }}
+              </span>
+            </td>
+
+            <td>
+              <button
+                type="button"
+                class="action-button"
+                (click)="viewRider(rider)"
+              >
+                View
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <button
+        type="button"
+        class="pagination-button"
+        [disabled]="currentPage === 1"
+        (click)="previousPage()"
+      >
+        Previous
+      </button>
+
+      <div class="page-numbers">
+        <button
+          *ngFor="let page of pageNumbers"
+          type="button"
+          class="page-number"
+          [class.active]="page === currentPage"
+          (click)="goToPage(page)"
+        >
+          {{ page }}
+        </button>
+      </div>
+
+      <button
+        type="button"
+        class="pagination-button"
+        [disabled]="currentPage === totalPages"
+        (click)="nextPage()"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+
+  <div
+    *ngIf="!isLoading && !errorMessage && riders.length === 0"
+    class="empty-state"
+  >
+    <h2>OOPS!!</h2>
+    <p>No riders found.</p>
+  </div>
+</div>
+
+<div
+  *ngIf="selectedRider"
+  class="rider-modal-backdrop"
+  (click)="closeRiderDetails()"
+>
+  <div
+    class="rider-modal"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="rider-modal-header">
+      <h2>Rider Details</h2>
+
+      <button
+        type="button"
+        class="close-button"
+        (click)="closeRiderDetails()"
+      >
+        ×
+      </button>
+    </div>
+
+    <div class="rider-modal-body">
+      <div class="rider-detail-avatar">
+        {{ selectedRider.name.charAt(0) }}
+      </div>
+
+      <div class="rider-detail-info">
+        <div class="detail-row">
+          <span>Rider ID</span>
+          <strong>#{{ selectedRider.id }}</strong>
+        </div>
+
+        <div class="detail-row">
+          <span>Name</span>
+          <strong>{{ selectedRider.name }}</strong>
+        </div>
+
+        <div class="detail-row">
+          <span>Status</span>
+          <strong>{{ selectedRider.status }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

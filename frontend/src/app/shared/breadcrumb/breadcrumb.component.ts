@@ -36,7 +36,6 @@ export class BreadcrumbComponent {
   private generateBreadcrumbs(): void {
     const url = this.router.url.split('?')[0];
     const segments = url.split('/').filter(segment => segment);
-
     this.breadcrumbs = [];
     let currentUrl = '';
 
