@@ -1,28 +1,23 @@
 <div class="riders-page">
+
+  <!-- show rider page heading -->
   <div class="riders-header">
-    <div>
-      <h1>Riders</h1>
-      <p>Rider list and details</p>
-    </div>
+    <h1>Riders</h1>
+    <p>Manage and view all riders</p>
   </div>
 
-  <div *ngIf="isLoading" class="message">
-    Loading riders...
-  </div>
+  <div class="riders-card">
 
-  <div *ngIf="errorMessage" class="error-message">
-    {{ errorMessage }}
-  </div>
-
-  <div *ngIf="!isLoading && riders.length > 0" class="riders-card">
+    <!-- show rider list heading and page size -->
     <div class="table-header">
       <div>
         <h2>Rider List</h2>
-        <span>{{ totalRecords }} riders found</span>
+        <span>Total Riders: {{ totalRecords }}</span>
       </div>
 
       <div class="page-size">
-        <label for="pageSize">Show</label>
+        <label for="pageSize">Rows per page:</label>
+
         <select
           id="pageSize"
           [value]="pageSize"
@@ -33,20 +28,23 @@
           <option value="20">20</option>
           <option value="50">50</option>
         </select>
-        <span>per page</span>
       </div>
     </div>
 
+    <!-- add search and filter options -->
     <div class="filters-section">
+
+      <!-- search rider by name mobile or email -->
       <div class="filter-item search-filter">
         <label for="search">Search</label>
+
         <input
           id="search"
           type="text"
+          [formControl]="searchControl"
           placeholder="Search by name, mobile or email"
-          [(ngModel)]="search"
-          (keyup.enter)="onSearch()"
         />
+
         <button
           type="button"
           class="search-button"
@@ -56,8 +54,10 @@
         </button>
       </div>
 
+      <!-- filter rider by status -->
       <div class="filter-item">
         <label for="status">Status</label>
+
         <select
           id="status"
           [value]="selectedStatus"
@@ -71,8 +71,10 @@
         </select>
       </div>
 
+      <!-- filter rider by availability -->
       <div class="filter-item">
         <label for="availability">Availability</label>
+
         <select
           id="availability"
           [value]="selectedAvailability"
@@ -84,8 +86,10 @@
         </select>
       </div>
 
+      <!-- select field for sorting -->
       <div class="filter-item">
         <label for="sortBy">Sort By</label>
+
         <select
           id="sortBy"
           [value]="sortBy"
@@ -102,88 +106,135 @@
         </select>
       </div>
 
+      <!-- change sorting order -->
       <button
         type="button"
         class="sort-order-button"
         (click)="toggleSortOrder()"
       >
-        {{ sortOrder === 'asc' ? '↑ Ascending' : '↓ Descending' }}
+        {{ sortOrder === 'asc' ? 'Ascending ↑' : 'Descending ↓' }}
       </button>
 
+      <!-- clear all filters -->
       <button
         type="button"
         class="clear-filter-button"
         (click)="clearFilters()"
       >
-        Clear
+        Clear Filters
       </button>
+
     </div>
 
-    <div class="riders-table-wrapper">
+    <!-- show loading message -->
+    <div
+      class="message"
+      *ngIf="isLoading"
+    >
+      Loading riders...
+    </div>
+
+    <!-- show error message -->
+    <div
+      class="error-message"
+      *ngIf="!isLoading && errorMessage"
+    >
+      {{ errorMessage }}
+    </div>
+
+    <!-- show rider table -->
+    <div
+      class="riders-table-wrapper"
+      *ngIf="!isLoading && !errorMessage"
+    >
+
       <table class="riders-table">
+
         <thead>
           <tr>
-            <th>RIDER ID</th>
-            <th>RIDER</th>
-            <th>MOBILE</th>
-            <th>VEHICLE</th>
-            <th>STATUS</th>
-            <th>AVAILABILITY</th>
-            <th>DATE</th>
-            <th>ACTION</th>
+            <th>ID</th>
+            <th>Rider</th>
+            <th>Mobile</th>
+            <th>Email</th>
+            <th>Vehicle</th>
+            <th>Status</th>
+            <th>Availability</th>
+            <th>Date</th>
+            <th>Actions</th>
           </tr>
         </thead>
 
         <tbody>
+
+          <!-- display all riders -->
           <tr *ngFor="let rider of riders">
-            <td>
-              <span class="rider-id">#{{ rider.id }}</span>
+
+            <!-- show rider id -->
+            <td class="rider-id">
+              {{ rider.id }}
             </td>
 
+            <!-- show rider name and profile initial -->
             <td>
               <div class="rider-info">
+
                 <div class="rider-avatar">
                   {{ rider.name.charAt(0) }}
                 </div>
+
                 <div>
-                  <span>{{ rider.name }}</span>
-                  <small *ngIf="rider.email">
-                    {{ rider.email }}
+                  <span>
+                    {{ rider.name }}
+                  </span>
+
+                  <small>
+                    Rider #{{ rider.id }}
                   </small>
                 </div>
+
               </div>
             </td>
 
+      
             <td>
               {{ rider.mobile || 'Not Available' }}
             </td>
 
             <td>
+              {{ rider.email || 'Not Available' }}
+            </td>
+
+  
+            <td>
               {{ rider.vehicle || 'Not Assigned' }}
             </td>
 
+      
             <td>
               <span
                 class="status-badge"
                 [ngClass]="rider.status"
               >
-                {{ rider.status }}
+                {{ rider.status || 'Not Available' }}
               </span>
             </td>
 
+            <!-- show rider availability -->
             <td>
               <span
                 class="availability-badge"
                 [ngClass]="rider.availability"
               >
-                {{ rider.availability }}
+                {{ rider.availability || 'Not Available' }}
               </span>
             </td>
 
+   
             <td>
-              {{ rider.date }}
+              {{ rider.date || 'Not Available' }}
             </td>
 
+            <!-- view rider details -->
             <td>
               <button
                 type="button"
@@ -193,63 +244,101 @@
                 View
               </button>
             </td>
+
           </tr>
+
+          <!-- show message when no rider is found -->
+          <tr *ngIf="riders.length === 0">
+
+            <td
+              colspan="9"
+              class="empty-state"
+            >
+              <h2>No Riders Found</h2>
+
+              <p>
+                No riders match the selected search or filters.
+              </p>
+            </td>
+
+          </tr>
+
         </tbody>
+
       </table>
+
     </div>
 
-    <div class="pagination">
-      <button
-        type="button"
-        class="pagination-button"
-        [disabled]="currentPage === 1"
-        (click)="previousPage()"
-      >
-        Previous
-      </button>
+    <!-- show pagination -->
+    <div
+      class="pagination"
+      *ngIf="!isLoading && !errorMessage && totalRecords > 0"
+    >
 
+      <!-- show current page -->
+      <div class="page-size">
+        Page {{ currentPage }} of {{ totalPages }}
+      </div>
+
+      <!-- show pagination buttons -->
       <div class="page-numbers">
+
         <button
-          *ngFor="let page of pageNumbers"
+          type="button"
+          class="pagination-button"
+          (click)="previousPage()"
+          [disabled]="currentPage === 1"
+        >
+          Previous
+        </button>
+
+        <button
           type="button"
           class="page-number"
+          *ngFor="let page of pageNumbers"
           [class.active]="page === currentPage"
           (click)="goToPage(page)"
         >
           {{ page }}
         </button>
+
+        <button
+          type="button"
+          class="pagination-button"
+          (click)="nextPage()"
+          [disabled]="currentPage === totalPages"
+        >
+          Next
+        </button>
+
       </div>
 
-      <button
-        type="button"
-        class="pagination-button"
-        [disabled]="currentPage === totalPages"
-        (click)="nextPage()"
-      >
-        Next
-      </button>
+      <!-- show total rider count -->
+      <div class="page-size">
+        Total: {{ totalRecords }}
+      </div>
+
     </div>
+
   </div>
 
-  <div
-    *ngIf="!isLoading && !errorMessage && riders.length === 0"
-    class="empty-state"
-  >
-    <h2>OOPS!!</h2>
-    <p>No riders found.</p>
-  </div>
 </div>
 
+
+<!-- show selected rider details -->
 <div
+  class="modal-backdrop"
   *ngIf="selectedRider"
-  class="rider-modal-backdrop"
   (click)="closeRiderDetails()"
 >
+
   <div
     class="rider-modal"
     (click)="$event.stopPropagation()"
   >
+
     <div class="rider-modal-header">
+
       <h2>Rider Details</h2>
 
       <button
@@ -259,54 +348,84 @@
       >
         ×
       </button>
+
     </div>
 
+    <!-- show rider details -->
     <div class="rider-modal-body">
+
+      <!-- show rider profile initial -->
       <div class="rider-detail-avatar">
         {{ selectedRider.name.charAt(0) }}
       </div>
 
       <div class="rider-detail-info">
+
+        <!-- show rider id -->
         <div class="detail-row">
-          <span>Rider ID</span>
-          <strong>#{{ selectedRider.id }}</strong>
+          <span>ID</span>
+          <strong>
+            {{ selectedRider.id }}
+          </strong>
         </div>
 
+        <!-- show rider name -->
         <div class="detail-row">
           <span>Name</span>
-          <strong>{{ selectedRider.name }}</strong>
+          <strong>
+            {{ selectedRider.name }}
+          </strong>
         </div>
 
+        <!-- show rider mobile -->
         <div class="detail-row">
           <span>Mobile</span>
-          <strong>{{ selectedRider.mobile || 'Not Available' }}</strong>
+          <strong>
+            {{ selectedRider.mobile || 'Not Available' }}
+          </strong>
         </div>
+
 
         <div class="detail-row">
           <span>Email</span>
-          <strong>{{ selectedRider.email || 'Not Available' }}</strong>
+          <strong>
+            {{ selectedRider.email || 'Not Available' }}
+          </strong>
         </div>
-
         <div class="detail-row">
           <span>Vehicle</span>
-          <strong>{{ selectedRider.vehicle || 'Not Assigned' }}</strong>
+          <strong>
+            {{ selectedRider.vehicle || 'Not Assigned' }}
+          </strong>
         </div>
 
         <div class="detail-row">
           <span>Status</span>
-          <strong>{{ selectedRider.status }}</strong>
+          <strong>
+            {{ selectedRider.status || 'Not Available' }}
+          </strong>
         </div>
 
+    
         <div class="detail-row">
           <span>Availability</span>
-          <strong>{{ selectedRider.availability }}</strong>
+          <strong>
+            {{ selectedRider.availability || 'Not Available' }}
+          </strong>
         </div>
+
 
         <div class="detail-row">
           <span>Date</span>
-          <strong>{{ selectedRider.date }}</strong>
+          <strong>
+            {{ selectedRider.date || 'Not Available' }}
+          </strong>
         </div>
+
       </div>
+
     </div>
+
   </div>
+
 </div>

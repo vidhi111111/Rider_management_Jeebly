@@ -1,7 +1,20 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import {
+  FormControl,
+  FormsModule,
+  ReactiveFormsModule
+} from '@angular/forms';
+
+import { of } from 'rxjs';
+import {
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  finalize,
+  switchMap
+} from 'rxjs/operators';
 
 interface Rider {
   id: number;
@@ -30,7 +43,11 @@ interface RidersResponse {
 @Component({
   selector: 'app-riders',
   standalone: true,
-  imports: [CommonModule , FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule
+  ],
   templateUrl: './riders.component.html',
   styleUrls: ['./riders.component.css']
 })
@@ -47,6 +64,9 @@ export class RidersComponent implements OnInit {
   totalRecords = 0;
 
   search = '';
+
+  searchControl = new FormControl('');
+
   selectedStatus = '';
   selectedAvailability = '';
 
@@ -61,10 +81,28 @@ export class RidersComponent implements OnInit {
   constructor(private readonly http: HttpClient) {}
 
   ngOnInit(): void {
+
+    this.searchControl.valueChanges
+      .pipe(
+        debounceTime(300),
+
+        distinctUntilChanged(),
+
+        switchMap((value) => {
+          this.search = (value || '').trim();
+
+          this.currentPage = 1;
+
+          return this.loadRidersObservable();
+        })
+      )
+      .subscribe();
+      
     this.loadRiders();
   }
 
-  loadRiders(): void {
+  private loadRidersObservable() {
+
     this.isLoading = true;
     this.errorMessage = '';
 
@@ -75,13 +113,19 @@ export class RidersComponent implements OnInit {
       .set('sortOrder', this.sortOrder);
 
     if (this.search.trim()) {
-      params = params.set('search', this.search.trim());
+      params = params.set(
+        'search',
+        this.search.trim()
+      );
     }
 
     if (this.selectedStatus) {
-      params = params.set('status', this.selectedStatus);
+      params = params.set(
+        'status',
+        this.selectedStatus
+      );
     }
-    
+
     if (this.selectedAvailability) {
       params = params.set(
         'availability',
@@ -89,82 +133,140 @@ export class RidersComponent implements OnInit {
       );
     }
 
-    this.http.get<RidersResponse>(
-      this.apiUrl,
-      { params }
-    ).subscribe({
-      next: (response) => {
-        this.riders = response.data.riders || [];
+    return this.http
+      .get<RidersResponse>(
+        this.apiUrl,
+        { params }
+      )
+      .pipe(
 
-        this.currentPage = response.data.page;
-        this.pageSize = response.data.pageSize;
-        this.totalPages = response.data.totalPages;
-        this.totalRecords = response.data.totalRecords;
+        catchError(() => {
 
-        this.isLoading = false;
-      },
+          this.errorMessage =
+            'Unable to load riders.';
 
-      error: () => {
-        this.isLoading = false;
-        this.errorMessage = 'Unable to load riders.';
-      }
-    });
+          this.riders = [];
+          this.totalPages = 0;
+          this.totalRecords = 0;
+
+          return of(null);
+        }),
+
+        finalize(() => {
+          this.isLoading = false;
+        })
+      );
+  }
+
+  loadRiders(): void {
+
+    this.loadRidersObservable()
+      .subscribe({
+        next: (response) => {
+
+          if (!response) {
+            return;
+          }
+
+          this.riders =
+            response.data.riders || [];
+
+          this.currentPage =
+            response.data.page;
+
+          this.pageSize =
+            response.data.pageSize;
+
+          this.totalPages =
+            response.data.totalPages;
+
+          this.totalRecords =
+            response.data.totalRecords;
+        }
+      });
   }
 
   onSearch(): void {
+
     this.currentPage = 1;
-    this.loadRiders();
+
+    this.searchControl.setValue(
+      this.searchControl.value || ''
+    );
   }
 
   onStatusChange(event: Event): void {
-    const select = event.target as HTMLSelectElement;
 
-    this.selectedStatus = select.value;
+    const select =
+      event.target as HTMLSelectElement;
+
+    this.selectedStatus =
+      select.value;
+
     this.currentPage = 1;
 
     this.loadRiders();
   }
 
   onAvailabilityChange(event: Event): void {
-    const select = event.target as HTMLSelectElement;
 
-    this.selectedAvailability = select.value;
+    const select =
+      event.target as HTMLSelectElement;
+
+    this.selectedAvailability =
+      select.value;
+
     this.currentPage = 1;
 
     this.loadRiders();
   }
 
   onSortChange(event: Event): void {
-    const select = event.target as HTMLSelectElement;
 
-    this.sortBy = select.value;
+    const select =
+      event.target as HTMLSelectElement;
+
+    this.sortBy =
+      select.value;
+
     this.currentPage = 1;
 
     this.loadRiders();
   }
 
   toggleSortOrder(): void {
+
     this.sortOrder =
-      this.sortOrder === 'asc' ? 'desc' : 'asc';
+      this.sortOrder === 'asc'
+        ? 'desc'
+        : 'asc';
 
     this.currentPage = 1;
+
     this.loadRiders();
   }
 
   clearFilters(): void {
+
     this.search = '';
+
     this.selectedStatus = '';
+
     this.selectedAvailability = '';
 
     this.sortBy = 'id';
+
     this.sortOrder = 'asc';
 
     this.currentPage = 1;
 
+    this.searchControl.setValue('');
+    
     this.loadRiders();
   }
 
   goToPage(page: number): void {
+
     if (
       page < 1 ||
       page > this.totalPages ||
@@ -174,45 +276,64 @@ export class RidersComponent implements OnInit {
     }
 
     this.currentPage = page;
+
     this.loadRiders();
   }
 
   previousPage(): void {
+
     if (this.currentPage > 1) {
+
       this.currentPage--;
+
       this.loadRiders();
     }
   }
 
   nextPage(): void {
-    if (this.currentPage < this.totalPages) {
+
+    if (
+      this.currentPage < this.totalPages
+    ) {
+
       this.currentPage++;
+
       this.loadRiders();
     }
   }
 
   changePageSize(event: Event): void {
-    const select = event.target as HTMLSelectElement;
 
-    this.pageSize = Number(select.value);
+    const select =
+      event.target as HTMLSelectElement;
+
+    this.pageSize =
+      Number(select.value);
+
     this.currentPage = 1;
 
     this.loadRiders();
   }
 
   get pageNumbers(): number[] {
+
     return Array.from(
-      { length: this.totalPages },
+      {
+        length: this.totalPages
+      },
       (_, index) => index + 1
     );
   }
 
   viewRider(rider: Rider): void {
+
     console.log('rider', rider);
+
     this.selectedRider = rider;
   }
 
   closeRiderDetails(): void {
+
     this.selectedRider = null;
   }
 }
