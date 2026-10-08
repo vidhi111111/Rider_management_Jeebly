@@ -115,7 +115,7 @@
         {{ sortOrder === 'asc' ? 'Ascending ↑' : 'Descending ↓' }}
       </button>
 
-      <!-- clear all filters -->
+
       <button
         type="button"
         class="clear-filter-button"
@@ -126,7 +126,6 @@
 
     </div>
 
-    <!-- show loading message -->
     <div
       class="message"
       *ngIf="isLoading"
@@ -134,7 +133,7 @@
       Loading riders...
     </div>
 
-    <!-- show error message -->
+
     <div
       class="error-message"
       *ngIf="!isLoading && errorMessage"
@@ -142,7 +141,6 @@
       {{ errorMessage }}
     </div>
 
-    <!-- show rider table -->
     <div
       class="riders-table-wrapper"
       *ngIf="!isLoading && !errorMessage"
@@ -234,7 +232,7 @@
               {{ rider.date || 'Not Available' }}
             </td>
 
-            <!-- view rider details -->
+            <!-- to view the rider details -->
             <td>
               <button
                 type="button"
@@ -275,7 +273,7 @@
       *ngIf="!isLoading && !errorMessage && totalRecords > 0"
     >
 
-      <!-- show current page -->
+  
       <div class="page-size">
         Page {{ currentPage }} of {{ totalPages }}
       </div>
@@ -313,7 +311,7 @@
 
       </div>
 
-      <!-- show total rider count -->
+     
       <div class="page-size">
         Total: {{ totalRecords }}
       </div>
@@ -327,7 +325,7 @@
 
 <!-- show selected rider details -->
 <div
-  class="modal-backdrop"
+  class="rider-modal-backdrop"
   *ngIf="selectedRider"
   (click)="closeRiderDetails()"
 >
