@@ -1,428 +1,435 @@
-<div class="riders-page">
 
-  <!-- show rider page heading -->
-  <div class="riders-header">
-    <h1>Riders</h1>
-    <p>Manage and view all riders</p>
+<div class="container-fluid riders-page py-4">
+
+  <!-- Page heading -->
+  <div class="riders-header mb-4">
+    <h1 class="h3 fw-bold mb-1">Riders</h1>
+    <p class="text-secondary mb-0">Manage and view all riders</p>
   </div>
 
-  <div class="riders-card">
+  <div class="card shadow-sm border-0 riders-card">
 
-    <!-- show rider list heading and page size -->
-    <div class="table-header">
-      <div>
-        <h2>Rider List</h2>
-        <span>Total Riders: {{ totalRecords }}</span>
-      </div>
+    <!-- Rider list heading and page size -->
+    <div class="card-header bg-white p-3">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+          <h2 class="h5 fw-semibold mb-1">Rider List</h2>
+          <span class="text-secondary small">
+            Total Riders: {{ totalRecords }}
+          </span>
+        </div>
 
-      <div class="page-size">
-        <label for="pageSize">Rows per page:</label>
+        <div class="d-flex align-items-center gap-2">
+          <label for="pageSize" class="form-label mb-0 small">
+            Rows per page:
+          </label>
 
-        <select
-          id="pageSize"
-          [value]="pageSize"
-          (change)="changePageSize($event)"
-        >
-          <option value="5">5</option>
-          <option value="10">10</option>
-          <option value="20">20</option>
-          <option value="50">50</option>
-        </select>
+          <select
+            id="pageSize"
+            class="form-select form-select-sm"
+            style="width: auto;"
+            [value]="pageSize"
+            (change)="changePageSize($event)"
+          >
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
       </div>
     </div>
 
-    <div class="filters-section">
+    <div class="card-body p-3">
 
-      <!-- search rider by name mobile or email -->
-      <div class="filter-item search-filter">
-        <label for="search">Search</label>
-
-        <input
-          id="search"
-          type="text"
-          [formControl]="searchControl"
-          placeholder="Search by name, mobile or email"
-        />
+      <!-- Collapsible filters heading -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="h6 fw-semibold mb-0">Search &amp; Filters</h3>
 
         <button
           type="button"
-          class="search-button"
-          (click)="onSearch()"
+          class="btn btn-outline-secondary btn-sm"
+          (click)="filtersExpanded = !filtersExpanded"
+          [attr.aria-expanded]="filtersExpanded"
         >
-          Search
+          {{ filtersExpanded ? 'Hide Filters ▲' : 'Show Filters ▼' }}
         </button>
       </div>
 
-      <!-- filter rider by status -->
-      <div class="filter-item">
-        <label for="status">Status</label>
+      <!-- Search and filters -->
+      <div class="filters-section mb-4" *ngIf="filtersExpanded">
 
-        <select
-          id="status"
-          [value]="selectedStatus"
-          (change)="onStatusChange($event)"
-        >
-          <option value="">All Status</option>
-          <option value="available">Available</option>
-          <option value="on_order">On Order</option>
-          <option value="scheduled_break">Scheduled Break</option>
-          <option value="absent">Absent</option>
-        </select>
+        <div class="row g-3 align-items-end">
+
+          <!-- Search -->
+          <div class="col-12 col-md-6 col-xl-4">
+            <label for="search" class="form-label">Search</label>
+
+            <input
+              id="search"
+              type="text"
+              class="form-control"
+              [formControl]="searchControl"
+              placeholder="Search by name, mobile or email"
+            />
+
+            <button
+              type="button"
+              class="btn btn-primary btn-sm mt-2"
+              (click)="onSearch()"
+            >
+              Search
+            </button>
+          </div>
+
+          <!-- Status filter -->
+          <div class="col-12 col-sm-6 col-xl-2">
+            <label for="status" class="form-label">Status</label>
+
+            <select
+              id="status"
+              class="form-select"
+              [value]="selectedStatus"
+              (change)="onStatusChange($event)"
+            >
+              <option value="">All Status</option>
+              <option value="available">Available</option>
+              <option value="on_order">On Order</option>
+              <option value="scheduled_break">Scheduled Break</option>
+              <option value="absent">Absent</option>
+            </select>
+          </div>
+
+          <!-- Availability filter -->
+          <div class="col-12 col-sm-6 col-xl-2">
+            <label for="availability" class="form-label">
+              Availability
+            </label>
+
+            <select
+              id="availability"
+              class="form-select"
+              [value]="selectedAvailability"
+              (change)="onAvailabilityChange($event)"
+            >
+              <option value="">All Availability</option>
+              <option value="available">Available</option>
+              <option value="unavailable">Unavailable</option>
+            </select>
+          </div>
+
+          <!-- Sorting field -->
+          <div class="col-12 col-sm-6 col-xl-2">
+            <label for="sortBy" class="form-label">Sort By</label>
+
+            <select
+              id="sortBy"
+              class="form-select"
+              [value]="sortBy"
+              (change)="onSortChange($event)"
+            >
+              <option value="id">ID</option>
+              <option value="name">Name</option>
+              <option value="mobile">Mobile</option>
+              <option value="email">Email</option>
+              <option value="vehicle">Vehicle</option>
+              <option value="status">Status</option>
+              <option value="availability">Availability</option>
+              <option value="date">Date</option>
+            </select>
+          </div>
+
+          <!-- Sorting order -->
+          <div class="col-12 col-sm-6 col-xl-2">
+            <label class="form-label">Sort Order</label>
+
+            <button
+              type="button"
+              class="btn btn-outline-primary w-100"
+              (click)="toggleSortOrder()"
+            >
+              {{ sortOrder === 'asc' ? 'Ascending ↑' : 'Descending ↓' }}
+            </button>
+          </div>
+
+          <!-- Clear filters -->
+          <div class="col-12">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              (click)="clearFilters()"
+            >
+              Clear Filters
+            </button>
+          </div>
+
+        </div>
       </div>
 
-      <!-- filter rider by availability -->
-      <div class="filter-item">
-        <label for="availability">Availability</label>
-
-        <select
-          id="availability"
-          [value]="selectedAvailability"
-          (change)="onAvailabilityChange($event)"
-        >
-          <option value="">All Availability</option>
-          <option value="available">Available</option>
-          <option value="unavailable">Unavailable</option>
-        </select>
-      </div>
-
-      <!-- select field for sorting -->
-      <div class="filter-item">
-        <label for="sortBy">Sort By</label>
-
-        <select
-          id="sortBy"
-          [value]="sortBy"
-          (change)="onSortChange($event)"
-        >
-          <option value="id">ID</option>
-          <option value="name">Name</option>
-          <option value="mobile">Mobile</option>
-          <option value="email">Email</option>
-          <option value="vehicle">Vehicle</option>
-          <option value="status">Status</option>
-          <option value="availability">Availability</option>
-          <option value="date">Date</option>
-        </select>
-      </div>
-
-      <!-- change sorting order -->
-      <button
-        type="button"
-        class="sort-order-button"
-        (click)="toggleSortOrder()"
+      <!-- Loading state -->
+      <div
+        class="alert alert-info mb-3"
+        *ngIf="isLoading"
+        role="status"
       >
-        {{ sortOrder === 'asc' ? 'Ascending ↑' : 'Descending ↓' }}
-      </button>
+        Loading riders...
+      </div>
 
-
-      <button
-        type="button"
-        class="clear-filter-button"
-        (click)="clearFilters()"
+      <!-- Error state -->
+      <div
+        class="alert alert-danger mb-3"
+        *ngIf="!isLoading && errorMessage"
+        role="alert"
       >
-        Clear Filters
-      </button>
+        {{ errorMessage }}
+      </div>
 
-    </div>
+      <!-- Rider table -->
+      <div
+        class="table-responsive riders-table-wrapper"
+        *ngIf="!isLoading && !errorMessage"
+      >
+        <table class="table table-hover align-middle mb-0 riders-table">
 
-    <div
-      class="message"
-      *ngIf="isLoading"
-    >
-      Loading riders...
-    </div>
+          <thead class="table-light">
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Rider</th>
+              <th scope="col">Mobile</th>
+              <th scope="col">Email</th>
+              <th scope="col">Vehicle</th>
+              <th scope="col">Status</th>
+              <th scope="col">Availability</th>
+              <th scope="col">Date</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
 
+          <tbody>
 
-    <div
-      class="error-message"
-      *ngIf="!isLoading && errorMessage"
-    >
-      {{ errorMessage }}
-    </div>
+            <!-- Rider rows -->
+            <tr *ngFor="let rider of riders">
 
-    <div
-      class="riders-table-wrapper"
-      *ngIf="!isLoading && !errorMessage"
-    >
+              <td class="rider-id">{{ rider.id }}</td>
 
-      <table class="riders-table">
+              <td>
+                <div class="d-flex align-items-center gap-2 rider-info">
 
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Rider</th>
-            <th>Mobile</th>
-            <th>Email</th>
-            <th>Vehicle</th>
-            <th>Status</th>
-            <th>Availability</th>
-            <th>Date</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+                  <div class="rider-avatar">
+                    {{ rider.name ? rider.name.charAt(0).toUpperCase() : '?' }}
+                  </div>
 
-        <tbody>
+                  <div>
+                    <div class="fw-semibold">{{ rider.name }}</div>
+                    <small class="text-secondary">
+                      Rider #{{ rider.id }}
+                    </small>
+                  </div>
 
-          <!-- display all riders -->
-          <tr *ngFor="let rider of riders">
-
-            <!-- show rider id -->
-            <td class="rider-id">
-              {{ rider.id }}
-            </td>
-
-            <!-- show rider name and profile initial -->
-            <td>
-              <div class="rider-info">
-
-                <div class="rider-avatar">
-                  {{ rider.name.charAt(0) }}
                 </div>
+              </td>
 
-                <div>
-                  <span>
-                    {{ rider.name }}
-                  </span>
+              <td>{{ rider.mobile || 'Not Available' }}</td>
+              <td>{{ rider.email || 'Not Available' }}</td>
+              <td>{{ rider.vehicle || 'Not Assigned' }}</td>
 
-                  <small>
-                    Rider #{{ rider.id }}
-                  </small>
-                </div>
+              <!-- Formatted status -->
+              <td>
+                <span
+                  class="badge status-badge"
+                  [ngClass]="(rider.status || '').toLowerCase()"
+                >
+                  {{ (rider.status || 'Not Available').replace('_', ' ') | titlecase }}
+                </span>
+              </td>
 
-              </div>
-            </td>
+              <!-- Formatted availability -->
+              <td>
+                <span
+                  class="badge availability-badge"
+                  [ngClass]="(rider.availability || '').toLowerCase()"
+                >
+                  {{ (rider.availability || 'Not Available').replace('_', ' ') | titlecase }}
+                </span>
+              </td>
 
-      
-            <td>
-              {{ rider.mobile || 'Not Available' }}
-            </td>
+              <td>{{ rider.date || 'Not Available' }}</td>
 
-            <td>
-              {{ rider.email || 'Not Available' }}
-            </td>
+              <td>
+                <button
+                  type="button"
+                  class="btn btn-outline-primary btn-sm"
+                  (click)="viewRider(rider)"
+                >
+                  View
+                </button>
+              </td>
 
-  
-            <td>
-              {{ rider.vehicle || 'Not Assigned' }}
-            </td>
+            </tr>
 
-      
-            <td>
-              <span
-                class="status-badge"
-                [ngClass]="rider.status"
-              >
-                {{ rider.status || 'Not Available' }}
-              </span>
-            </td>
+            <!-- Empty state -->
+            <tr *ngIf="riders.length === 0">
+              <td colspan="9" class="text-center py-5 empty-state">
+                <h3 class="h6 fw-semibold">No Riders Found</h3>
+                <p class="text-secondary mb-0">
+                  No riders match the selected search or filters.
+                </p>
+              </td>
+            </tr>
 
-            <!-- show rider availability -->
-            <td>
-              <span
-                class="availability-badge"
-                [ngClass]="rider.availability"
-              >
-                {{ rider.availability || 'Not Available' }}
-              </span>
-            </td>
+          </tbody>
+        </table>
+      </div>
 
-   
-            <td>
-              {{ rider.date || 'Not Available' }}
-            </td>
+      <!-- Pagination -->
+      <div
+        class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4 pagination"
+        *ngIf="!isLoading && !errorMessage && totalRecords > 0"
+      >
 
-            <!-- to view the rider details -->
-            <td>
+        <div class="small text-secondary">
+          Page {{ currentPage }} of {{ totalPages }}
+          <span class="mx-1">|</span>
+          Total: {{ totalRecords }}
+        </div>
+
+        <nav aria-label="Rider list pagination">
+          <ul class="pagination pagination-sm mb-0">
+
+            <li class="page-item" [class.disabled]="currentPage === 1">
               <button
                 type="button"
-                class="action-button"
-                (click)="viewRider(rider)"
+                class="page-link"
+                (click)="previousPage()"
+                [disabled]="currentPage === 1"
+                aria-label="Previous page"
               >
-                View
+                Previous
               </button>
-            </td>
+            </li>
 
-          </tr>
-
-          <!-- show message when no rider is found -->
-          <tr *ngIf="riders.length === 0">
-
-            <td
-              colspan="9"
-              class="empty-state"
+            <li
+              class="page-item"
+              *ngFor="let page of pageNumbers"
+              [class.active]="page === currentPage"
             >
-              <h2>No Riders Found</h2>
+              <button
+                type="button"
+                class="page-link"
+                [attr.aria-current]="page === currentPage ? 'page' : null"
+                (click)="goToPage(page)"
+              >
+                {{ page }}
+              </button>
+            </li>
 
-              <p>
-                No riders match the selected search or filters.
-              </p>
-            </td>
+            <li
+              class="page-item"
+              [class.disabled]="currentPage === totalPages"
+            >
+              <button
+                type="button"
+                class="page-link"
+                (click)="nextPage()"
+                [disabled]="currentPage === totalPages"
+                aria-label="Next page"
+              >
+                Next
+              </button>
+            </li>
 
-          </tr>
+          </ul>
+        </nav>
 
-        </tbody>
-
-      </table>
-
-    </div>
-
-    <!-- show pagination -->
-    <div
-      class="pagination"
-      *ngIf="!isLoading && !errorMessage && totalRecords > 0"
-    >
-
-  
-      <div class="page-size">
-        Page {{ currentPage }} of {{ totalPages }}
-      </div>
-
-      <!-- show pagination buttons -->
-      <div class="page-numbers">
-
-        <button
-          type="button"
-          class="pagination-button"
-          (click)="previousPage()"
-          [disabled]="currentPage === 1"
-        >
-          Previous
-        </button>
-
-        <button
-          type="button"
-          class="page-number"
-          *ngFor="let page of pageNumbers"
-          [class.active]="page === currentPage"
-          (click)="goToPage(page)"
-        >
-          {{ page }}
-        </button>
-
-        <button
-          type="button"
-          class="pagination-button"
-          (click)="nextPage()"
-          [disabled]="currentPage === totalPages"
-        >
-          Next
-        </button>
-
-      </div>
-
-     
-      <div class="page-size">
-        Total: {{ totalRecords }}
       </div>
 
     </div>
-
   </div>
-
 </div>
 
-
-<!-- show selected rider details -->
+<!-- Rider details modal -->
 <div
   class="rider-modal-backdrop"
   *ngIf="selectedRider"
   (click)="closeRiderDetails()"
 >
-
   <div
     class="rider-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="riderDetailsTitle"
     (click)="$event.stopPropagation()"
   >
 
     <div class="rider-modal-header">
-
-      <h2>Rider Details</h2>
+      <h2 id="riderDetailsTitle" class="h5 mb-0">
+        Rider Details
+      </h2>
 
       <button
         type="button"
         class="close-button"
+        aria-label="Close rider details"
         (click)="closeRiderDetails()"
       >
-        ×
+        &times;
       </button>
-
     </div>
 
-    <!-- show rider details -->
     <div class="rider-modal-body">
 
-      <!-- show rider profile initial -->
       <div class="rider-detail-avatar">
-        {{ selectedRider.name.charAt(0) }}
+        {{ selectedRider.name ? selectedRider.name.charAt(0).toUpperCase() : '?' }}
       </div>
 
       <div class="rider-detail-info">
 
-        <!-- show rider id -->
         <div class="detail-row">
           <span>ID</span>
-          <strong>
-            {{ selectedRider.id }}
-          </strong>
+          <strong>{{ selectedRider.id }}</strong>
         </div>
 
-        <!-- show rider name -->
         <div class="detail-row">
           <span>Name</span>
-          <strong>
-            {{ selectedRider.name }}
-          </strong>
+          <strong>{{ selectedRider.name }}</strong>
         </div>
 
-        <!-- show rider mobile -->
         <div class="detail-row">
           <span>Mobile</span>
-          <strong>
-            {{ selectedRider.mobile || 'Not Available' }}
-          </strong>
+          <strong>{{ selectedRider.mobile || 'Not Available' }}</strong>
         </div>
-
 
         <div class="detail-row">
           <span>Email</span>
-          <strong>
-            {{ selectedRider.email || 'Not Available' }}
-          </strong>
+          <strong>{{ selectedRider.email || 'Not Available' }}</strong>
         </div>
+
         <div class="detail-row">
           <span>Vehicle</span>
-          <strong>
-            {{ selectedRider.vehicle || 'Not Assigned' }}
-          </strong>
+          <strong>{{ selectedRider.vehicle || 'Not Assigned' }}</strong>
         </div>
 
         <div class="detail-row">
           <span>Status</span>
           <strong>
-            {{ selectedRider.status || 'Not Available' }}
+            {{ (selectedRider.status || 'Not Available').replace('_', ' ') | titlecase }}
           </strong>
         </div>
 
-    
         <div class="detail-row">
           <span>Availability</span>
           <strong>
-            {{ selectedRider.availability || 'Not Available' }}
+            {{ (selectedRider.availability || 'Not Available').replace('_', ' ') | titlecase }}
           </strong>
         </div>
-
 
         <div class="detail-row">
           <span>Date</span>
-          <strong>
-            {{ selectedRider.date || 'Not Available' }}
-          </strong>
+          <strong>{{ selectedRider.date || 'Not Available' }}</strong>
         </div>
 
       </div>
-
     </div>
 
   </div>
-
 </div>

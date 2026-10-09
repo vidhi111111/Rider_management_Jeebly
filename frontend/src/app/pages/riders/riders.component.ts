@@ -1,20 +1,27 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  OnInit
+} from '@angular/core';
 import {
   FormControl,
   FormsModule,
   ReactiveFormsModule
 } from '@angular/forms';
 
-import { of } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import {
   catchError,
   debounceTime,
   distinctUntilChanged,
   finalize,
-  switchMap
+  switchMap,
+  takeUntil
 } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
+
 
 interface Rider {
   id: number;
@@ -51,7 +58,7 @@ interface RidersResponse {
   templateUrl: './riders.component.html',
   styleUrls: ['./riders.component.css']
 })
-export class RidersComponent implements OnInit {
+export class RidersComponent implements OnInit, OnDestroy {
 
   riders: Rider[] = [];
 
@@ -64,38 +71,30 @@ export class RidersComponent implements OnInit {
   totalRecords = 0;
 
   search = '';
-
   searchControl = new FormControl('');
 
   selectedStatus = '';
   selectedAvailability = '';
-
+  filtersExpanded = false;
   sortBy = 'id';
   sortOrder = 'asc';
 
   selectedRider: Rider | null = null;
 
-  private readonly apiUrl =
-    'https://rider-management-jeebly-backend.onrender.com/riders';
+  private readonly apiUrl = `${environment.apiUrl}/riders`;
+
+  private readonly reload$ = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
 
   constructor(private readonly http: HttpClient) {}
 
   ngOnInit(): void {
 
-    // listen when user changes the search text
-    this.searchControl.valueChanges
+    // Handle every list request through one stream.
+    this.reload$
       .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-
-        // take the latest search request
-        switchMap((value) => {
-
-          this.search = (value || '').trim();
-          this.currentPage = 1;
-
-          return this.loadRidersObservable();
-        })
+        switchMap(() => this.loadRidersObservable()),
+        takeUntil(this.destroy$)
       )
       .subscribe({
         next: (response) => {
@@ -108,7 +107,28 @@ export class RidersComponent implements OnInit {
         }
       });
 
+    // Search automatically after the user stops typing.
+    this.searchControl.valueChanges
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((value) => {
+
+        this.search = (value || '').trim();
+        this.currentPage = 1;
+
+        this.loadRiders();
+      });
+
     this.loadRiders();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.reload$.complete();
   }
 
   private loadRidersObservable() {
@@ -117,28 +137,13 @@ export class RidersComponent implements OnInit {
     this.errorMessage = '';
 
     let params = new HttpParams()
-      .set(
-        'page',
-        this.currentPage.toString()
-      )
-      .set(
-        'pageSize',
-        this.pageSize.toString()
-      )
-      .set(
-        'sortBy',
-        this.sortBy
-      )
-      .set(
-        'sortOrder',
-        this.sortOrder
-      );
+      .set('page', this.currentPage.toString())
+      .set('pageSize', this.pageSize.toString())
+      .set('sortBy', this.sortBy)
+      .set('sortOrder', this.sortOrder);
 
-    if (this.search.trim()) {
-      params = params.set(
-        'search',
-        this.search.trim()
-      );
+    if (this.search) {
+      params = params.set('search', this.search);
     }
 
     if (this.selectedStatus) {
@@ -156,17 +161,12 @@ export class RidersComponent implements OnInit {
     }
 
     return this.http
-      .get<RidersResponse>(
-        this.apiUrl,
-        { params }
-      )
+      .get<RidersResponse>(this.apiUrl, { params })
       .pipe(
-
-        // handle API error without breaking the search stream
         catchError(() => {
 
           this.errorMessage =
-            'Unable to load riders.';
+            'Unable to load riders. Please try again.';
 
           this.riders = [];
           this.totalPages = 0;
@@ -174,7 +174,6 @@ export class RidersComponent implements OnInit {
 
           return of(null);
         }),
-
         finalize(() => {
           this.isLoading = false;
         })
@@ -182,48 +181,48 @@ export class RidersComponent implements OnInit {
   }
 
   loadRiders(): void {
-
-    this.loadRidersObservable()
-      .subscribe({
-        next: (response) => {
-
-          if (!response) {
-            return;
-          }
-
-          this.setRiderData(response);
-        }
-      });
+    this.reload$.next();
   }
 
   private setRiderData(
     response: RidersResponse
   ): void {
 
-    this.riders =
-      response.data.riders || [];
+    const data = response.data;
 
-    this.currentPage =
-      response.data.page;
+    // Return to the last valid page if records have changed.
+    if (
+      data.totalPages > 0 &&
+      this.currentPage > data.totalPages
+    ) {
+      this.currentPage = data.totalPages;
+      this.loadRiders();
+      return;
+    }
 
-    this.pageSize =
-      response.data.pageSize;
+    this.riders = data.riders || [];
+    this.currentPage = data.page;
+    this.pageSize = data.pageSize;
+    this.totalPages = data.totalPages;
+    this.totalRecords = data.totalRecords;
 
-    this.totalPages =
-      response.data.totalPages;
-
-    this.totalRecords =
-      response.data.totalRecords;
+    if (this.totalPages === 0) {
+      this.currentPage = 1;
+    }
   }
 
   onSearch(): void {
 
-    this.currentPage = 1;
-
-    const searchValue =
+    this.search =
       (this.searchControl.value || '').trim();
 
-    this.search = searchValue;
+    this.currentPage = 1;
+
+    // Avoid triggering a second delayed search request.
+    this.searchControl.setValue(
+      this.search,
+      { emitEvent: false }
+    );
 
     this.loadRiders();
   }
@@ -233,9 +232,7 @@ export class RidersComponent implements OnInit {
     const select =
       event.target as HTMLSelectElement;
 
-    this.selectedStatus =
-      select.value;
-
+    this.selectedStatus = select.value;
     this.currentPage = 1;
 
     this.loadRiders();
@@ -246,9 +243,7 @@ export class RidersComponent implements OnInit {
     const select =
       event.target as HTMLSelectElement;
 
-    this.selectedAvailability =
-      select.value;
-
+    this.selectedAvailability = select.value;
     this.currentPage = 1;
 
     this.loadRiders();
@@ -259,9 +254,7 @@ export class RidersComponent implements OnInit {
     const select =
       event.target as HTMLSelectElement;
 
-    this.sortBy =
-      select.value;
-
+    this.sortBy = select.value;
     this.currentPage = 1;
 
     this.loadRiders();
@@ -270,26 +263,21 @@ export class RidersComponent implements OnInit {
   toggleSortOrder(): void {
 
     this.sortOrder =
-      this.sortOrder === 'asc'
-        ? 'desc'
-        : 'asc';
+      this.sortOrder === 'asc' ? 'desc' : 'asc';
 
     this.currentPage = 1;
 
     this.loadRiders();
   }
 
-  // clear everything and show the complete rider list
   clearFilters(): void {
 
     this.search = '';
-
     this.selectedStatus = '';
     this.selectedAvailability = '';
 
     this.sortBy = 'id';
     this.sortOrder = 'asc';
-
     this.currentPage = 1;
 
     this.searchControl.setValue(
@@ -311,16 +299,13 @@ export class RidersComponent implements OnInit {
     }
 
     this.currentPage = page;
-
     this.loadRiders();
   }
 
   previousPage(): void {
 
     if (this.currentPage > 1) {
-
       this.currentPage--;
-
       this.loadRiders();
     }
   }
@@ -328,9 +313,7 @@ export class RidersComponent implements OnInit {
   nextPage(): void {
 
     if (this.currentPage < this.totalPages) {
-
       this.currentPage++;
-
       this.loadRiders();
     }
   }
@@ -340,9 +323,7 @@ export class RidersComponent implements OnInit {
     const select =
       event.target as HTMLSelectElement;
 
-    this.pageSize =
-      Number(select.value);
-
+    this.pageSize = Number(select.value);
     this.currentPage = 1;
 
     this.loadRiders();
@@ -351,22 +332,17 @@ export class RidersComponent implements OnInit {
   get pageNumbers(): number[] {
 
     return Array.from(
-      {
-        length: this.totalPages
-      },
+      { length: this.totalPages },
       (_, index) => index + 1
     );
   }
 
   viewRider(rider: Rider): void {
-
-    console.log('rider', rider);
-
     this.selectedRider = rider;
   }
 
   closeRiderDetails(): void {
-
     this.selectedRider = null;
   }
+
 }
