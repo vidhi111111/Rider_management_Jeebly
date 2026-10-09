@@ -82,22 +82,32 @@ export class RidersComponent implements OnInit {
 
   ngOnInit(): void {
 
+    // listen when user changes the search text
     this.searchControl.valueChanges
       .pipe(
         debounceTime(300),
-
         distinctUntilChanged(),
 
+        // take the latest search request
         switchMap((value) => {
-          this.search = (value || '').trim();
 
+          this.search = (value || '').trim();
           this.currentPage = 1;
 
           return this.loadRidersObservable();
         })
       )
-      .subscribe();
-      
+      .subscribe({
+        next: (response) => {
+
+          if (!response) {
+            return;
+          }
+
+          this.setRiderData(response);
+        }
+      });
+
     this.loadRiders();
   }
 
@@ -107,10 +117,22 @@ export class RidersComponent implements OnInit {
     this.errorMessage = '';
 
     let params = new HttpParams()
-      .set('page', this.currentPage.toString())
-      .set('pageSize', this.pageSize.toString())
-      .set('sortBy', this.sortBy)
-      .set('sortOrder', this.sortOrder);
+      .set(
+        'page',
+        this.currentPage.toString()
+      )
+      .set(
+        'pageSize',
+        this.pageSize.toString()
+      )
+      .set(
+        'sortBy',
+        this.sortBy
+      )
+      .set(
+        'sortOrder',
+        this.sortOrder
+      );
 
     if (this.search.trim()) {
       params = params.set(
@@ -140,6 +162,7 @@ export class RidersComponent implements OnInit {
       )
       .pipe(
 
+        // handle API error without breaking the search stream
         catchError(() => {
 
           this.errorMessage =
@@ -168,31 +191,41 @@ export class RidersComponent implements OnInit {
             return;
           }
 
-          this.riders =
-            response.data.riders || [];
-
-          this.currentPage =
-            response.data.page;
-
-          this.pageSize =
-            response.data.pageSize;
-
-          this.totalPages =
-            response.data.totalPages;
-
-          this.totalRecords =
-            response.data.totalRecords;
+          this.setRiderData(response);
         }
       });
+  }
+
+  private setRiderData(
+    response: RidersResponse
+  ): void {
+
+    this.riders =
+      response.data.riders || [];
+
+    this.currentPage =
+      response.data.page;
+
+    this.pageSize =
+      response.data.pageSize;
+
+    this.totalPages =
+      response.data.totalPages;
+
+    this.totalRecords =
+      response.data.totalRecords;
   }
 
   onSearch(): void {
 
     this.currentPage = 1;
 
-    this.searchControl.setValue(
-      this.searchControl.value || ''
-    );
+    const searchValue =
+      (this.searchControl.value || '').trim();
+
+    this.search = searchValue;
+
+    this.loadRiders();
   }
 
   onStatusChange(event: Event): void {
@@ -246,22 +279,24 @@ export class RidersComponent implements OnInit {
     this.loadRiders();
   }
 
+  // clear everything and show the complete rider list
   clearFilters(): void {
 
     this.search = '';
 
     this.selectedStatus = '';
-
     this.selectedAvailability = '';
 
     this.sortBy = 'id';
-
     this.sortOrder = 'asc';
 
     this.currentPage = 1;
 
-    this.searchControl.setValue('');
-    
+    this.searchControl.setValue(
+      '',
+      { emitEvent: false }
+    );
+
     this.loadRiders();
   }
 
@@ -292,9 +327,7 @@ export class RidersComponent implements OnInit {
 
   nextPage(): void {
 
-    if (
-      this.currentPage < this.totalPages
-    ) {
+    if (this.currentPage < this.totalPages) {
 
       this.currentPage++;
 
