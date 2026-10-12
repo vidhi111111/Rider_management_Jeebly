@@ -1,4 +1,3 @@
-
 <div class="riders-page">
   <section class="riders-card">
     <header class="page-header">
@@ -6,9 +5,10 @@
         <h2>Riders</h2>
         <p>Total Riders: {{ totalRecords }}</p>
       </div>
+
       <div class="header-actions">
         <button type="button" class="btn-outline" [disabled]="isLoading" (click)="loadRiders()">↻ Refresh</button>
-        <button type="button" class="btn-outline" (click)="filtersExpanded = !filtersExpanded">☷ Filters</button>
+        <button type="button" class="btn-outline" (click)="filtersExpanded = !filtersExpanded">☷ {{ filtersExpanded ? 'Hide Filters' : 'Filters' }}</button>
         <button type="button" class="btn-primary" (click)="openAddRider()">+ Add Rider</button>
       </div>
     </header>
@@ -108,42 +108,57 @@
         <tbody>
           <tr *ngFor="let rider of riders">
             <td>{{ rider.id }}</td>
+
             <td>
               <div class="rider-cell">
                 <img *ngIf="rider.profile_image" [src]="rider.profile_image" [alt]="rider.name" class="rider-avatar rider-photo">
                 <div *ngIf="!rider.profile_image" class="rider-avatar">{{ riderInitial(rider.name) }}</div>
+
                 <div class="rider-info">
                   <strong>{{ rider.name }}</strong>
                   <small>Rider #{{ rider.id }}</small>
                 </div>
               </div>
             </td>
+
             <td class="nowrap">{{ rider.mobile }}</td>
             <td class="rider-email">{{ rider.email }}</td>
             <td>{{ rider.vehicle || '—' }}</td>
+
             <td>
               <span class="status-badge" [ngClass]="statusClass(rider.status)">
                 {{ statusLabel(rider.status) }}
               </span>
             </td>
+
             <td>
               <span class="status-badge" [ngClass]="availabilityClass(rider.availability)">
                 {{ normalizeAvailability(rider.availability) | titlecase }}
               </span>
             </td>
+
             <td class="nowrap">{{ rider.date || '—' }}</td>
+
             <td class="actions-cell">
               <div class="rider-action-menu" (click)="$event.stopPropagation()">
-                <button type="button" class="action-menu-trigger" aria-label="Rider actions" [attr.aria-expanded]="openActionMenuId === rider.id" (click)="toggleActionMenu(rider.id)">
-                  <span></span><span></span><span></span>
+                <button
+                  type="button"
+                  class="action-menu-trigger rider-action-button"
+                  aria-label="Rider actions"
+                  [attr.aria-expanded]="openActionMenuId === rider.id"
+                  (click)="toggleActionMenu(rider.id); $event.stopPropagation()">
+                  <span></span>
+                  <span></span>
+                  <span></span>
                 </button>
 
                 <div class="action-menu-dropdown" *ngIf="openActionMenuId === rider.id">
-                  <button type="button" (click)="openRiderView(rider); closeActionMenu()">
+                  <button type="button" (click)="openRiderView(rider); $event.stopPropagation()">
                     <span class="menu-icon">◉</span>
                     <span>View Rider</span>
                   </button>
-                  <button type="button" (click)="openRiderEdit(rider); closeActionMenu()">
+
+                  <button type="button" (click)="openRiderEdit(rider); $event.stopPropagation()">
                     <span class="menu-icon">✎</span>
                     <span>Edit Rider</span>
                   </button>
@@ -165,9 +180,20 @@
 
     <footer class="pagination">
       <span>Showing {{ firstRecord }}–{{ lastRecord }} of {{ totalRecords }} riders</span>
+
       <div class="pagination-actions">
         <button type="button" class="page-button" [disabled]="currentPage <= 1 || isLoading" (click)="previousPage()">Previous</button>
-        <button *ngFor="let page of pageNumbers" type="button" class="page-button" [class.active]="page === currentPage" [disabled]="isLoading" (click)="goToPage(page)">{{ page }}</button>
+
+        <button
+          *ngFor="let page of pageNumbers"
+          type="button"
+          class="page-button"
+          [class.active]="page === currentPage"
+          [disabled]="isLoading"
+          (click)="goToPage(page)">
+          {{ page }}
+        </button>
+
         <button type="button" class="page-button" [disabled]="currentPage >= totalPages || isLoading" (click)="nextPage()">Next</button>
       </div>
     </footer>
@@ -181,6 +207,7 @@
         <h2 id="riderDrawerTitle">{{ editingRiderId !== null ? 'Edit Rider' : 'Create Rider' }}</h2>
         <p>{{ editingRiderId !== null ? 'Update rider information' : 'Enter new rider information' }}</p>
       </div>
+
       <button type="button" class="drawer-close" aria-label="Close" [disabled]="isSaving" (click)="closeRiderModal()">×</button>
     </header>
 
@@ -253,6 +280,7 @@
         <h2 id="viewDrawerTitle">Rider Details</h2>
         <p>Rider #{{ selectedRider.id }}</p>
       </div>
+
       <button type="button" class="drawer-close" aria-label="Close" (click)="closeViewModal()">×</button>
     </header>
 
@@ -268,18 +296,22 @@
         <span>Full Name</span>
         <strong>{{ selectedRider.name }}</strong>
       </div>
+
       <div class="detail-item">
         <span>Mobile Number</span>
         <strong>{{ selectedRider.mobile }}</strong>
       </div>
+
       <div class="detail-item">
         <span>Email</span>
         <strong>{{ selectedRider.email }}</strong>
       </div>
+
       <div class="detail-item">
         <span>Vehicle</span>
         <strong>{{ selectedRider.vehicle || '—' }}</strong>
       </div>
+
       <div class="detail-item">
         <span>Status</span>
         <strong>
@@ -288,6 +320,7 @@
           </span>
         </strong>
       </div>
+
       <div class="detail-item">
         <span>Availability</span>
         <strong>
@@ -296,6 +329,7 @@
           </span>
         </strong>
       </div>
+
       <div class="detail-item">
         <span>Date</span>
         <strong>{{ selectedRider.date || '—' }}</strong>

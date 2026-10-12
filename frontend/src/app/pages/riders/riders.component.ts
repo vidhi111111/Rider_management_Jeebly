@@ -1,4 +1,3 @@
-
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
@@ -85,6 +84,7 @@ export class RidersComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly searchInput$ = new Subject<string>();
   private requestId = 0;
+  private detailRequestId = 0;
 
   constructor(
     private readonly http: HttpClient,
@@ -136,6 +136,7 @@ export class RidersComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.requestId++;
+    this.detailRequestId++;
     this.destroy$.next();
     this.destroy$.complete();
     this.searchInput$.complete();
@@ -143,6 +144,7 @@ export class RidersComponent implements OnInit, OnDestroy {
 
   private today(): string {
     const now = new Date();
+
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   }
 
@@ -167,7 +169,9 @@ export class RidersComponent implements OnInit, OnDestroy {
   }
 
   get firstRecord(): number {
-    return this.totalRecords === 0 ? 0 : (this.currentPage - 1) * this.pageSize + 1;
+    return this.totalRecords === 0
+      ? 0
+      : (this.currentPage - 1) * this.pageSize + 1;
   }
 
   get lastRecord(): number {
@@ -209,6 +213,7 @@ export class RidersComponent implements OnInit, OnDestroy {
     this.sortBy = 'id';
     this.sortOrder = 'asc';
     this.currentPage = 1;
+    this.searchInput$.next('');
     this.loadRiders();
   }
 
@@ -246,8 +251,8 @@ export class RidersComponent implements OnInit, OnDestroy {
       .set('sortBy', this.sortBy)
       .set('sortOrder', this.sortOrder);
 
-    if (this.search) {
-      params = params.set('search', this.search);
+    if (this.search.trim()) {
+      params = params.set('search', this.search.trim());
     }
 
     if (this.selectedStatus) {
@@ -296,14 +301,15 @@ export class RidersComponent implements OnInit, OnDestroy {
           }
 
           this.errorMessage = error.name === 'TimeoutError'
-            ? 'The riders request timed out. Check whether Flask is responding.'
+            ? 'The riders request timed out. Check the backend connection.'
             : error.error?.message || 'Unable to load riders. Check your login and backend.';
         }
       });
   }
 
   toggleActionMenu(riderId: number): void {
-    this.openActionMenuId = this.openActionMenuId === riderId ? null : riderId;
+    this.openActionMenuId =
+      this.openActionMenuId === riderId ? null : riderId;
   }
 
   closeActionMenu(): void {
@@ -312,8 +318,10 @@ export class RidersComponent implements OnInit, OnDestroy {
 
   openAddRider(): void {
     this.closeActionMenu();
+    this.detailRequestId++;
     this.editingRiderId = null;
     this.formError = '';
+
     this.riderForm.reset({
       name: '',
       mobile: '',
@@ -323,11 +331,15 @@ export class RidersComponent implements OnInit, OnDestroy {
       availability: 'available',
       date: this.today()
     });
+
     this.showRiderModal = true;
   }
 
   openEditRider(rider: Rider): void {
     this.closeActionMenu();
+
+    const detailRequest = ++this.detailRequestId;
+
     this.editingRiderId = rider.id;
     this.formError = '';
 
@@ -338,7 +350,7 @@ export class RidersComponent implements OnInit, OnDestroy {
       vehicle: rider.vehicle || 'Bike',
       status: this.normalizeStatus(rider.status),
       availability: this.normalizeAvailability(rider.availability),
-      date: rider.date || this.today()
+      date: this.formatDate(rider.date) || this.today()
     });
 
     this.showRiderModal = true;
@@ -348,14 +360,22 @@ export class RidersComponent implements OnInit, OnDestroy {
       .pipe(
         timeout(15000),
         takeUntil(this.destroy$),
-        finalize(() => this.isLoading = false)
+        finalize(() => {
+          if (detailRequest === this.detailRequestId) {
+            this.isLoading = false;
+          }
+        })
       )
       .subscribe({
         next: response => {
+          if (detailRequest !== this.detailRequestId) {
+            return;
+          }
+
           const details = this.unwrap<Rider>(response);
 
           if (!details || details.id == null) {
-            this.formError = 'Unable to refresh rider details. The existing row data is still available.';
+            this.formError = 'Rider details could not be refreshed. You can edit the loaded row data.';
             return;
           }
 
@@ -366,11 +386,16 @@ export class RidersComponent implements OnInit, OnDestroy {
             vehicle: details.vehicle || 'Bike',
             status: this.normalizeStatus(details.status),
             availability: this.normalizeAvailability(details.availability),
-            date: details.date || this.today()
+            date: this.formatDate(details.date) || this.today()
           });
         },
         error: error => {
-          this.formError = error.error?.message || 'Could not refresh rider details. You can still edit the loaded row data.';
+          if (detailRequest !== this.detailRequestId) {
+            return;
+          }
+
+          this.formError = error.error?.message
+            || 'Rider details could not be refreshed. You can edit the loaded row data.';
         }
       });
   }
@@ -389,6 +414,7 @@ export class RidersComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.detailRequestId++;
     this.showRiderModal = false;
     this.editingRiderId = null;
     this.formError = '';
@@ -429,7 +455,10 @@ export class RidersComponent implements OnInit, OnDestroy {
     this.isSaving = true;
 
     const request$ = this.editingRiderId !== null
-      ? this.http.put<ApiResponse<Rider>>(`${this.apiUrl}/${this.editingRiderId}`, payload)
+      ? this.http.put<ApiResponse<Rider>>(
+          `${this.apiUrl}/${this.editingRiderId}`,
+          payload
+        )
       : this.http.post<ApiResponse<Rider>>(this.apiUrl, payload);
 
     request$
@@ -459,9 +488,11 @@ export class RidersComponent implements OnInit, OnDestroy {
               .map(([field, message]) => `${field}: ${message}`)
               .join(' ');
           } else if (error.name === 'TimeoutError') {
-            this.formError = 'The request timed out. Check Flask and try again.';
+            this.formError = 'The request timed out. Check the backend and try again.';
           } else {
-            this.formError = error.error?.message || error.error?.error || 'Unable to save rider. Please check the API response.';
+            this.formError = error.error?.message
+              || error.error?.error
+              || 'Unable to save rider. Please check the API response.';
           }
         }
       });
@@ -486,16 +517,28 @@ export class RidersComponent implements OnInit, OnDestroy {
     }
   }
 
-  @HostListener('document:click')
-  onDocumentClick(): void {
-    this.closeActionMenu();
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target;
+
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    if (!target.closest('.rider-action-menu')) {
+      this.closeActionMenu();
+    }
   }
 
   normalizeStatus(status: string | null | undefined): RiderStatus {
-    return (status || '').toLowerCase() === 'inactive' ? 'inactive' : 'active';
+    return (status || '').toLowerCase() === 'inactive'
+      ? 'inactive'
+      : 'active';
   }
 
-  normalizeAvailability(availability: string | null | undefined): RiderAvailability {
+  normalizeAvailability(
+    availability: string | null | undefined
+  ): RiderAvailability {
     const value = (availability || '').toLowerCase();
 
     if (value === 'busy') {
@@ -510,7 +553,9 @@ export class RidersComponent implements OnInit, OnDestroy {
   }
 
   statusLabel(status: string): string {
-    return this.normalizeStatus(status) === 'active' ? 'Active' : 'Inactive';
+    return this.normalizeStatus(status) === 'active'
+      ? 'Active'
+      : 'Inactive';
   }
 
   statusClass(status: string): string {
@@ -523,5 +568,13 @@ export class RidersComponent implements OnInit, OnDestroy {
 
   riderInitial(name: string): string {
     return (name || 'R').trim().charAt(0).toUpperCase();
+  }
+
+  private formatDate(value: string | null | undefined): string {
+    if (!value) {
+      return '';
+    }
+
+    return value.length >= 10 ? value.substring(0, 10) : value;
   }
 }
