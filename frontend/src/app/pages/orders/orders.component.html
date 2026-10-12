@@ -1,1 +1,318 @@
-<p>orders works!</p>
+
+<div class="orders-page container-fluid">
+  <div class="breadcrumb-row">
+    <span>Home</span>
+    <span>/</span>
+    <strong>Orders</strong>
+  </div>
+
+  <div class="page-heading">
+    <div>
+      <h1>Orders</h1>
+      <p>Manage and create delivery orders</p>
+    </div>
+    <button class="create-btn" type="button" (click)="openCreateOrder()">
+      <span class="plus-icon">+</span> Create Order
+    </button>
+  </div>
+
+  <div class="alert alert-success alert-dismissible" *ngIf="successMessage">
+    {{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+  </div>
+
+  <div class="alert alert-danger alert-dismissible" *ngIf="errorMessage && !showOrderModal">
+    {{ errorMessage }}
+    <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+  </div>
+
+  <section class="card filter-card">
+    <div class="section-heading">
+      <div>
+        <h2>Orders</h2>
+        <p>Search and filter orders</p>
+      </div>
+      <button type="button" class="clear-filters" (click)="clearFilters()">
+        Clear Filters
+      </button>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-12 col-lg-4">
+        <label for="orderSearch" class="form-label">Search</label>
+        <input
+          id="orderSearch"
+          class="form-control"
+          type="search"
+          placeholder="Search by order ID, customer..."
+          [(ngModel)]="searchText"
+          (ngModelChange)="onFilterChange()"
+        />
+      </div>
+
+      <div class="col-12 col-sm-6 col-lg-2">
+        <label for="statusFilter" class="form-label">Status</label>
+        <select id="statusFilter" class="form-select"
+          [(ngModel)]="selectedStatus" (ngModelChange)="onFilterChange()">
+          <option value="">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="In Transit">In Transit</option>
+          <option value="Delivered">Delivered</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+
+      <div class="col-12 col-sm-6 col-lg-2">
+        <label for="riderFilter" class="form-label">Rider</label>
+        <select id="riderFilter" class="form-select"
+          [(ngModel)]="selectedRider" (ngModelChange)="onFilterChange()">
+          <option value="">All Riders</option>
+          <option *ngFor="let rider of riders" [value]="rider.id">
+            {{ rider.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="col-12 col-sm-6 col-lg-2">
+        <label for="dateFilter" class="form-label">Order Date</label>
+        <input id="dateFilter" type="date" class="form-control"
+          [(ngModel)]="selectedDate" (ngModelChange)="onFilterChange()" />
+      </div>
+
+      <div class="col-12 col-sm-6 col-lg-2">
+        <label for="sortFilter" class="form-label">Sort By</label>
+        <select id="sortFilter" class="form-select"
+          [(ngModel)]="sortBy" (ngModelChange)="onFilterChange()">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="amountHigh">Highest Amount</option>
+          <option value="amountLow">Lowest Amount</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section class="card order-list-card">
+    <div class="list-heading">
+      <div>
+        <h2>Order List</h2>
+        <p>{{ filteredOrders.length }} orders found</p>
+      </div>
+
+      <select class="form-select page-size-select"
+        [ngModel]="pageSize" (ngModelChange)="changePageSize($event)"
+        aria-label="Rows per page">
+        <option [ngValue]="5">5 / page</option>
+        <option [ngValue]="10">10 / page</option>
+        <option [ngValue]="25">25 / page</option>
+        <option [ngValue]="50">50 / page</option>
+      </select>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table order-table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>ORDER ID</th>
+            <th>CUSTOMER</th>
+            <th>PICKUP</th>
+            <th>DELIVERY</th>
+            <th>AMOUNT</th>
+            <th>RIDER</th>
+            <th>STATUS</th>
+            <th>DATE</th>
+            <th>ASSIGN RIDER</th>
+            <th>ACTIONS</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let order of paginatedOrders">
+            <td class="order-id">{{ order.id }}</td>
+
+            <td>
+              <div class="customer-name">{{ order.customer }}</div>
+              <div class="customer-mobile">{{ order.mobile }}</div>
+            </td>
+
+            <td>{{ order.pickup }}</td>
+            <td>{{ order.delivery }}</td>
+
+            <td>
+              <div class="amount-currency">{{ order.currency }}</div>
+              <strong class="amount-value">{{ order.amount | number:'1.0-2' }}</strong>
+            </td>
+
+            <td>
+              <span [class.unassigned]="!order.riderId">{{ order.rider }}</span>
+            </td>
+
+            <td>
+              <span class="status-badge"
+                [ngClass]="{
+                  'status-pending': order.status === 'Pending',
+                  'status-transit': order.status === 'In Transit',
+                  'status-delivered': order.status === 'Delivered',
+                  'status-cancelled': order.status === 'Cancelled'
+                }">
+                {{ order.status }}
+              </span>
+            </td>
+
+            <td class="date-cell">{{ order.date | date:'dd MMM yyyy' }}</td>
+
+            <td>
+              <select class="form-select assign-select"
+                [ngModel]="order.riderId"
+                (ngModelChange)="assignRider(order, $event)"
+                [attr.aria-label]="'Assign rider to ' + order.id">
+                <option value="">Assign Rider</option>
+                <option *ngFor="let rider of riders" [value]="rider.id">
+                  {{ rider.name }}
+                </option>
+              </select>
+            </td>
+
+            <td>
+              <div class="action-buttons">
+                <button type="button" class="action-btn edit-btn"
+                  title="Edit order" (click)="openEditOrder(order)">
+                  Edit
+                </button>
+                <button type="button" class="action-btn delete-btn"
+                  title="Delete order" (click)="deleteOrder(order)">
+                  Delete
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredOrders.length === 0">
+            <td colspan="10" class="empty-state">
+              <h5>No orders found</h5>
+              <p>Try changing your search or filters.</p>
+              <button type="button" class="btn btn-outline-danger btn-sm"
+                (click)="clearFilters()">Clear Filters</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-footer">
+      <p>
+        Showing {{ startRecord }}–{{ endRecord }}
+        of {{ filteredOrders.length }} orders
+      </p>
+
+      <div class="pagination-controls">
+        <button type="button" [disabled]="currentPage === 1"
+          (click)="changePage(currentPage - 1)">Previous</button>
+
+        <button type="button"
+          *ngFor="let page of [].constructor(totalPages); let i = index"
+          [class.active-page]="currentPage === i + 1"
+          (click)="changePage(i + 1)">
+          {{ i + 1 }}
+        </button>
+
+        <button type="button" [disabled]="currentPage === totalPages"
+          (click)="changePage(currentPage + 1)">Next</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="modal-backdrop-custom" *ngIf="showOrderModal"
+  (click)="closeOrderModal()">
+  <section class="order-modal" role="dialog" aria-modal="true"
+    aria-labelledby="orderModalTitle" (click)="$event.stopPropagation()">
+
+    <div class="modal-heading">
+      <div>
+        <h2 id="orderModalTitle">
+          {{ isEditing ? 'Edit Order' : 'Create Order' }}
+        </h2>
+        <p>Enter the order details below.</p>
+      </div>
+      <button type="button" class="modal-close"
+        aria-label="Close" (click)="closeOrderModal()">×</button>
+    </div>
+
+    <form #orderForm="ngForm" (ngSubmit)="saveOrder()">
+      <div class="modal-body-custom">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label for="customerName" class="form-label">Customer Name *</label>
+            <input id="customerName" name="customer" class="form-control"
+              [(ngModel)]="newOrder.customer" required />
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="customerMobile" class="form-label">Mobile Number *</label>
+            <input id="customerMobile" name="mobile" class="form-control"
+              [(ngModel)]="newOrder.mobile" required />
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="pickupAddress" class="form-label">Pickup Location *</label>
+            <input id="pickupAddress" name="pickup" class="form-control"
+              [(ngModel)]="newOrder.pickup" required />
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="deliveryAddress" class="form-label">Delivery Location *</label>
+            <input id="deliveryAddress" name="delivery" class="form-control"
+              [(ngModel)]="newOrder.delivery" required />
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="orderAmount" class="form-label">Amount *</label>
+            <input id="orderAmount" name="amount" type="number" min="0.01"
+              step="0.01" class="form-control" [(ngModel)]="newOrder.amount" required />
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="currency" class="form-label">Currency</label>
+            <select id="currency" name="currency" class="form-select"
+              [(ngModel)]="newOrder.currency">
+              <option value="AED">AED</option>
+              <option value="INR">INR</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="orderStatus" class="form-label">Status</label>
+            <select id="orderStatus" name="status" class="form-select"
+              [(ngModel)]="newOrder.status">
+              <option value="Pending">Pending</option>
+              <option value="In Transit">In Transit</option>
+              <option value="Delivered">Delivered</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="orderDate" class="form-label">Order Date *</label>
+            <input id="orderDate" name="date" type="date" class="form-control"
+              [(ngModel)]="newOrder.date" required />
+          </div>
+        </div>
+
+        <div class="alert alert-danger mt-3 mb-0" *ngIf="errorMessage">
+          {{ errorMessage }}
+        </div>
+      </div>
+
+      <div class="modal-footer-custom">
+        <button type="button" class="cancel-btn" (click)="closeOrderModal()">
+          Cancel
+        </button>
+        <button type="submit" class="create-btn">
+          {{ isEditing ? 'Save Changes' : 'Create Order' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
