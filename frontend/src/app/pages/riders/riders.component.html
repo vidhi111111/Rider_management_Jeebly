@@ -14,7 +14,7 @@
     </header>
 
     <div *ngIf="successMessage" class="alert alert-success">
-      {{ successMessage }}
+      <span>{{ successMessage }}</span>
       <button type="button" (click)="successMessage = ''">×</button>
     </div>
 
@@ -66,8 +66,8 @@
         </div>
 
         <div class="filter-field">
-          <label>Sort order</label>
-          <button type="button" class="btn-outline sort-button" (click)="toggleSortOrder()">
+          <label for="sortOrder">Sort order</label>
+          <button id="sortOrder" type="button" class="btn-outline sort-button" (click)="toggleSortOrder()">
             {{ sortOrder === 'asc' ? '↑ Ascending' : '↓ Descending' }}
           </button>
         </div>
@@ -104,12 +104,14 @@
             <th class="actions-heading">Actions</th>
           </tr>
         </thead>
+
         <tbody>
           <tr *ngFor="let rider of riders">
             <td>{{ rider.id }}</td>
             <td>
               <div class="rider-cell">
-                <div class="rider-avatar">{{ riderInitial(rider.name) }}</div>
+                <img *ngIf="rider.profile_image" [src]="rider.profile_image" [alt]="rider.name" class="rider-avatar rider-photo">
+                <div *ngIf="!rider.profile_image" class="rider-avatar">{{ riderInitial(rider.name) }}</div>
                 <div class="rider-info">
                   <strong>{{ rider.name }}</strong>
                   <small>Rider #{{ rider.id }}</small>
@@ -118,22 +120,38 @@
             </td>
             <td class="nowrap">{{ rider.mobile }}</td>
             <td class="rider-email">{{ rider.email }}</td>
-            <td>{{ rider.vehicle }}</td>
-            <td><span class="status-badge" [ngClass]="statusClass(rider.status)">{{ statusLabel(rider.status) }}</span></td>
-            <td><span class="status-badge" [ngClass]="availabilityClass(rider.availability)">{{ rider.availability }}</span></td>
-            <td class="nowrap">{{ rider.date }}</td>
+            <td>{{ rider.vehicle || '—' }}</td>
+            <td>
+              <span class="status-badge" [ngClass]="statusClass(rider.status)">
+                {{ statusLabel(rider.status) }}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="availabilityClass(rider.availability)">
+                {{ normalizeAvailability(rider.availability) | titlecase }}
+              </span>
+            </td>
+            <td class="nowrap">{{ rider.date || '—' }}</td>
             <td class="actions-cell">
               <div class="rider-action-menu" (click)="$event.stopPropagation()">
                 <button type="button" class="action-menu-trigger" aria-label="Rider actions" [attr.aria-expanded]="openActionMenuId === rider.id" (click)="toggleActionMenu(rider.id)">
                   <span></span><span></span><span></span>
                 </button>
+
                 <div class="action-menu-dropdown" *ngIf="openActionMenuId === rider.id">
-                  <button type="button" (click)="openRiderView(rider)">◉ <span>View Rider</span></button>
-                  <button type="button" (click)="openRiderEdit(rider)">✎ <span>Edit Rider</span></button>
+                  <button type="button" (click)="openRiderView(rider); closeActionMenu()">
+                    <span class="menu-icon">◉</span>
+                    <span>View Rider</span>
+                  </button>
+                  <button type="button" (click)="openRiderEdit(rider); closeActionMenu()">
+                    <span class="menu-icon">✎</span>
+                    <span>Edit Rider</span>
+                  </button>
                 </div>
               </div>
             </td>
           </tr>
+
           <tr *ngIf="!isLoading && riders.length === 0">
             <td colspan="9" class="empty-state">
               <strong>No riders found</strong>
@@ -167,6 +185,7 @@
     </header>
 
     <div *ngIf="formError" class="drawer-error" role="alert">{{ formError }}</div>
+
     <div *ngIf="editingRiderId !== null && isLoading" class="drawer-loading">Refreshing rider details...</div>
 
     <form [formGroup]="riderForm" (ngSubmit)="saveRider()" novalidate>
@@ -237,19 +256,54 @@
       <button type="button" class="drawer-close" aria-label="Close" (click)="closeViewModal()">×</button>
     </header>
 
+    <div class="view-profile">
+      <img *ngIf="selectedRider.profile_image" [src]="selectedRider.profile_image" [alt]="selectedRider.name" class="view-profile-image">
+      <div *ngIf="!selectedRider.profile_image" class="view-profile-avatar">{{ riderInitial(selectedRider.name) }}</div>
+      <h3>{{ selectedRider.name }}</h3>
+      <span class="status-badge" [ngClass]="statusClass(selectedRider.status)">{{ statusLabel(selectedRider.status) }}</span>
+    </div>
+
     <div class="view-details">
-      <div class="detail-item"><span>Full Name</span><strong>{{ selectedRider.name }}</strong></div>
-      <div class="detail-item"><span>Mobile Number</span><strong>{{ selectedRider.mobile }}</strong></div>
-      <div class="detail-item"><span>Email</span><strong>{{ selectedRider.email }}</strong></div>
-      <div class="detail-item"><span>Vehicle</span><strong>{{ selectedRider.vehicle }}</strong></div>
-      <div class="detail-item"><span>Status</span><strong><span class="status-badge" [ngClass]="statusClass(selectedRider.status)">{{ statusLabel(selectedRider.status) }}</span></strong></div>
-      <div class="detail-item"><span>Availability</span><strong><span class="status-badge" [ngClass]="availabilityClass(selectedRider.availability)">{{ selectedRider.availability }}</span></strong></div>
-      <div class="detail-item"><span>Date</span><strong>{{ selectedRider.date }}</strong></div>
+      <div class="detail-item">
+        <span>Full Name</span>
+        <strong>{{ selectedRider.name }}</strong>
+      </div>
+      <div class="detail-item">
+        <span>Mobile Number</span>
+        <strong>{{ selectedRider.mobile }}</strong>
+      </div>
+      <div class="detail-item">
+        <span>Email</span>
+        <strong>{{ selectedRider.email }}</strong>
+      </div>
+      <div class="detail-item">
+        <span>Vehicle</span>
+        <strong>{{ selectedRider.vehicle || '—' }}</strong>
+      </div>
+      <div class="detail-item">
+        <span>Status</span>
+        <strong>
+          <span class="status-badge" [ngClass]="statusClass(selectedRider.status)">
+            {{ statusLabel(selectedRider.status) }}
+          </span>
+        </strong>
+      </div>
+      <div class="detail-item">
+        <span>Availability</span>
+        <strong>
+          <span class="status-badge" [ngClass]="availabilityClass(selectedRider.availability)">
+            {{ normalizeAvailability(selectedRider.availability) | titlecase }}
+          </span>
+        </strong>
+      </div>
+      <div class="detail-item">
+        <span>Date</span>
+        <strong>{{ selectedRider.date || '—' }}</strong>
+      </div>
     </div>
 
     <footer class="drawer-footer">
       <button type="button" class="btn-outline" (click)="closeViewModal()">Close</button>
-      <button type="button" class="btn-primary" (click)="closeViewModal(); openEditRider(selectedRider)">Edit Rider</button>
     </footer>
   </section>
 </div>

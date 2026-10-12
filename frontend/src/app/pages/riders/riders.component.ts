@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subject, of } from 'rxjs';
-import { catchError, debounceTime, distinctUntilChanged, finalize, takeUntil, timeout } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, finalize, takeUntil, timeout } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
-type RiderStatus = 'assigned' | 'free' | 'waiting' | 'reject' | 'on_route';
+type RiderStatus = 'active' | 'inactive';
+type RiderAvailability = 'available' | 'busy' | 'unavailable';
 
 interface Rider {
   id: number;
@@ -15,8 +16,8 @@ interface Rider {
   mobile: string;
   email: string;
   vehicle: string;
-  status: string;
-  availability: string;
+  status: RiderStatus | string;
+  availability: RiderAvailability | string;
   date: string;
   profile_image: string | null;
 }
@@ -68,16 +69,15 @@ export class RidersComponent implements OnInit, OnDestroy {
   riderForm: FormGroup;
 
   readonly statuses: { value: RiderStatus; label: string }[] = [
-    { value: 'assigned', label: 'Assigned' },
-    { value: 'free', label: 'Free' },
-    { value: 'waiting', label: 'Waiting' },
-    { value: 'reject', label: 'Reject' },
-    { value: 'on_route', label: 'On Route' }
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' }
   ];
 
   readonly vehicles = ['Bike', 'Scooter', 'Car', 'Van'];
-  readonly availabilityOptions = [
+
+  readonly availabilityOptions: { value: RiderAvailability; label: string }[] = [
     { value: 'available', label: 'Available' },
+    { value: 'busy', label: 'Busy' },
     { value: 'unavailable', label: 'Unavailable' }
   ];
 
@@ -95,15 +95,36 @@ export class RidersComponent implements OnInit, OnDestroy {
       mobile: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
       email: ['', [Validators.required, Validators.email, Validators.maxLength(120)]],
       vehicle: ['Bike', Validators.required],
-      status: ['free', Validators.required],
+      status: ['active', Validators.required],
       availability: ['available', Validators.required],
       date: [this.today(), Validators.required]
     });
+
+    this.riderForm.get('status')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(status => {
+        const availabilityControl = this.riderForm.get('availability');
+
+        if (status === 'inactive') {
+          availabilityControl?.setValue('unavailable', { emitEvent: false });
+          availabilityControl?.disable({ emitEvent: false });
+        } else {
+          availabilityControl?.enable({ emitEvent: false });
+
+          if (availabilityControl?.value === 'unavailable') {
+            availabilityControl.setValue('available', { emitEvent: false });
+          }
+        }
+      });
   }
 
   ngOnInit(): void {
     this.searchInput$
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$)
+      )
       .subscribe(value => {
         this.search = value.trim();
         this.currentPage = 1;
@@ -123,6 +144,18 @@ export class RidersComponent implements OnInit, OnDestroy {
   private today(): string {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }
+
+  private unwrap<T>(response: any): T {
+    if (response?.data?.data !== undefined) {
+      return response.data.data as T;
+    }
+
+    if (response?.data !== undefined) {
+      return response.data as T;
+    }
+
+    return response as T;
   }
 
   get f() {
@@ -189,6 +222,7 @@ export class RidersComponent implements OnInit, OnDestroy {
     if (page < 1 || page > this.totalPages || page === this.currentPage) {
       return;
     }
+
     this.currentPage = page;
     this.loadRiders();
   }
@@ -212,23 +246,36 @@ export class RidersComponent implements OnInit, OnDestroy {
       .set('sortBy', this.sortBy)
       .set('sortOrder', this.sortOrder);
 
-    if (this.search) params = params.set('search', this.search);
-    if (this.selectedStatus) params = params.set('status', this.selectedStatus);
-    if (this.selectedAvailability) params = params.set('availability', this.selectedAvailability);
+    if (this.search) {
+      params = params.set('search', this.search);
+    }
+
+    if (this.selectedStatus) {
+      params = params.set('status', this.selectedStatus);
+    }
+
+    if (this.selectedAvailability) {
+      params = params.set('availability', this.selectedAvailability);
+    }
 
     this.http.get<ApiResponse<RidersData>>(this.apiUrl, { params })
       .pipe(
         timeout(15000),
         takeUntil(this.destroy$),
         finalize(() => {
-          if (request === this.requestId) this.isLoading = false;
+          if (request === this.requestId) {
+            this.isLoading = false;
+          }
         })
       )
       .subscribe({
         next: response => {
-          if (request !== this.requestId) return;
+          if (request !== this.requestId) {
+            return;
+          }
 
-          const data = response?.data;
+          const data = this.unwrap<RidersData>(response);
+
           if (!data || !Array.isArray(data.riders)) {
             this.riders = [];
             this.totalRecords = 0;
@@ -244,7 +291,10 @@ export class RidersComponent implements OnInit, OnDestroy {
           this.pageSize = Number(data.pageSize) || this.pageSize;
         },
         error: error => {
-          if (request !== this.requestId) return;
+          if (request !== this.requestId) {
+            return;
+          }
+
           this.errorMessage = error.name === 'TimeoutError'
             ? 'The riders request timed out. Check whether Flask is responding.'
             : error.error?.message || 'Unable to load riders. Check your login and backend.';
@@ -269,7 +319,7 @@ export class RidersComponent implements OnInit, OnDestroy {
       mobile: '',
       email: '',
       vehicle: 'Bike',
-      status: 'free',
+      status: 'active',
       availability: 'available',
       date: this.today()
     });
@@ -280,15 +330,17 @@ export class RidersComponent implements OnInit, OnDestroy {
     this.closeActionMenu();
     this.editingRiderId = rider.id;
     this.formError = '';
+
     this.riderForm.reset({
       name: rider.name || '',
       mobile: rider.mobile || '',
       email: rider.email || '',
       vehicle: rider.vehicle || 'Bike',
       status: this.normalizeStatus(rider.status),
-      availability: (rider.availability || 'available').toLowerCase(),
+      availability: this.normalizeAvailability(rider.availability),
       date: rider.date || this.today()
     });
+
     this.showRiderModal = true;
     this.isLoading = true;
 
@@ -300,7 +352,8 @@ export class RidersComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: response => {
-          const details = response?.data as Rider;
+          const details = this.unwrap<Rider>(response);
+
           if (!details || details.id == null) {
             this.formError = 'Unable to refresh rider details. The existing row data is still available.';
             return;
@@ -312,7 +365,7 @@ export class RidersComponent implements OnInit, OnDestroy {
             email: details.email || '',
             vehicle: details.vehicle || 'Bike',
             status: this.normalizeStatus(details.status),
-            availability: (details.availability || 'available').toLowerCase(),
+            availability: this.normalizeAvailability(details.availability),
             date: details.date || this.today()
           });
         },
@@ -332,7 +385,10 @@ export class RidersComponent implements OnInit, OnDestroy {
   }
 
   closeRiderModal(): void {
-    if (this.isSaving) return;
+    if (this.isSaving) {
+      return;
+    }
+
     this.showRiderModal = false;
     this.editingRiderId = null;
     this.formError = '';
@@ -350,16 +406,23 @@ export class RidersComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.isSaving) return;
+    if (this.isSaving) {
+      return;
+    }
 
     const value = this.riderForm.getRawValue();
+    const status = this.normalizeStatus(value.status);
+    const availability = status === 'inactive'
+      ? 'unavailable'
+      : this.normalizeAvailability(value.availability);
+
     const payload = {
       name: String(value.name).trim(),
       mobile: String(value.mobile).trim(),
       email: String(value.email).trim().toLowerCase(),
       vehicle: value.vehicle,
-      status: value.status,
-      availability: value.availability,
+      status,
+      availability,
       date: value.date
     };
 
@@ -390,8 +453,11 @@ export class RidersComponent implements OnInit, OnDestroy {
         },
         error: error => {
           const errors = error.error?.errors as Record<string, string> | undefined;
+
           if (errors && Object.keys(errors).length) {
-            this.formError = Object.entries(errors).map(([field, message]) => `${field}: ${message}`).join(' ');
+            this.formError = Object.entries(errors)
+              .map(([field, message]) => `${field}: ${message}`)
+              .join(' ');
           } else if (error.name === 'TimeoutError') {
             this.formError = 'The request timed out. Check Flask and try again.';
           } else {
@@ -402,21 +468,8 @@ export class RidersComponent implements OnInit, OnDestroy {
   }
 
   viewRider(rider: Rider): void {
-    this.selectedRider = rider;
+    this.selectedRider = { ...rider };
     this.showViewModal = true;
-
-    this.http.get<ApiResponse<Rider>>(`${this.apiUrl}/${rider.id}`)
-      .pipe(
-        timeout(15000),
-        takeUntil(this.destroy$),
-        catchError(error => {
-          this.errorMessage = error.error?.message || 'Unable to refresh rider details. Showing available row data.';
-          return of(null);
-        })
-      )
-      .subscribe(response => {
-        if (response?.data) this.selectedRider = response.data as Rider;
-      });
   }
 
   closeViewModal(): void {
@@ -439,24 +492,25 @@ export class RidersComponent implements OnInit, OnDestroy {
   }
 
   normalizeStatus(status: string | null | undefined): RiderStatus {
-    const value = (status || '').toLowerCase().replace(/[\s-]+/g, '_');
-    const aliases: Record<string, RiderStatus> = {
-      available: 'free',
-      free: 'free',
-      on_order: 'assigned',
-      assigned: 'assigned',
-      scheduled_break: 'waiting',
-      waiting: 'waiting',
-      absent: 'reject',
-      reject: 'reject',
-      on_route: 'on_route'
-    };
-    return aliases[value] || 'free';
+    return (status || '').toLowerCase() === 'inactive' ? 'inactive' : 'active';
+  }
+
+  normalizeAvailability(availability: string | null | undefined): RiderAvailability {
+    const value = (availability || '').toLowerCase();
+
+    if (value === 'busy') {
+      return 'busy';
+    }
+
+    if (value === 'unavailable') {
+      return 'unavailable';
+    }
+
+    return 'available';
   }
 
   statusLabel(status: string): string {
-    const normalized = this.normalizeStatus(status);
-    return this.statuses.find(item => item.value === normalized)?.label || status;
+    return this.normalizeStatus(status) === 'active' ? 'Active' : 'Inactive';
   }
 
   statusClass(status: string): string {
@@ -464,9 +518,7 @@ export class RidersComponent implements OnInit, OnDestroy {
   }
 
   availabilityClass(availability: string): string {
-    return (availability || '').toLowerCase() === 'available'
-      ? 'availability-available'
-      : 'availability-unavailable';
+    return `availability-${this.normalizeAvailability(availability)}`;
   }
 
   riderInitial(name: string): string {

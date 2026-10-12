@@ -103,7 +103,7 @@ def create_app() -> Flask:
         }), 500
 
     with app.app_context():
-        from .models import User, Rider
+        from .models import User, Rider, Order
 
         db.create_all()
 
