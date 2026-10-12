@@ -1,3 +1,4 @@
+
 import { Routes } from '@angular/router';
 
 import { AuthGuard } from './core/guards/auth.guard';
@@ -40,6 +41,20 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/riders/riders.component').then(
             m => m.RidersComponent
+          )
+      },
+      {
+        path: 'riders/add',
+        loadComponent: () =>
+          import('./pages/rider-form/rider-form.component').then(
+            m => m.RiderFormComponent
+          )
+      },
+      {
+        path: 'riders/edit/:id',
+        loadComponent: () =>
+          import('./pages/rider-form/rider-form.component').then(
+            m => m.RiderFormComponent
           )
       },
       {

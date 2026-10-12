@@ -1,0 +1,150 @@
+
+.rider-form-page {
+  padding: 24px;
+  color: #183b5b;
+}
+
+.form-card {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 28px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 18px rgba(0, 0, 0, 0.07);
+}
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e6ebf1;
+}
+
+.form-header h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.form-header p {
+  margin: 0;
+  color: #718096;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.form-field input,
+.form-field select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #d5deea;
+  border-radius: 6px;
+  background: #fff;
+  color: #183b5b;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  outline: none;
+  border-color: #1769ff;
+  box-shadow: 0 0 0 3px rgba(23, 105, 255, 0.1);
+}
+
+.form-field small {
+  color: #dc3545;
+  font-size: 12px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.btn-save,
+.btn-cancel {
+  padding: 10px 18px;
+  border: 1px solid #1769ff;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.btn-save {
+  color: #fff;
+  background: #1769ff;
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  color: #1769ff;
+  background: #fff;
+}
+
+.error-message,
+.success-message,
+.info-message {
+  margin-bottom: 18px;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.error-message {
+  color: #a51d2d;
+  background: #ffe8eb;
+}
+
+.success-message {
+  color: #146c43;
+  background: #d9f7e6;
+}
+
+.info-message {
+  color: #245780;
+  background: #e8f3ff;
+}
+
+@media (max-width: 650px) {
+  .rider-form-page {
+    padding: 12px;
+  }
+
+  .form-card {
+    padding: 18px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

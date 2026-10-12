@@ -1,0 +1,100 @@
+
+<div class="rider-form-page">
+  <div class="form-card">
+    <div class="form-header">
+      <div>
+        <h2>{{ isEditMode ? 'Edit Rider' : 'Add Rider' }}</h2>
+        <p>{{ isEditMode ? 'Update rider information' : 'Enter new rider information' }}</p>
+      </div>
+      <button type="button" class="btn-cancel" (click)="cancel()">
+        Back to Riders
+      </button>
+    </div>
+
+    <div *ngIf="isLoading" class="info-message">
+      Loading rider details...
+    </div>
+
+    <div *ngIf="errorMessage" class="error-message">
+      {{ errorMessage }}
+    </div>
+
+    <div *ngIf="successMessage" class="success-message">
+      {{ successMessage }}
+    </div>
+
+    <form *ngIf="!isLoading" [formGroup]="riderForm" (ngSubmit)="saveRider()">
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="name">Full Name *</label>
+          <input id="name" type="text" formControlName="name"
+                 placeholder="Enter rider name">
+          <small *ngIf="f.name.touched && f.name.invalid">
+            Enter a name with at least 2 characters.
+          </small>
+        </div>
+
+        <div class="form-field">
+          <label for="mobile">Mobile Number *</label>
+          <input id="mobile" type="tel" formControlName="mobile"
+                 placeholder="Enter mobile number">
+          <small *ngIf="f.mobile.touched && f.mobile.invalid">
+            Enter a valid 10–15 digit mobile number.
+          </small>
+        </div>
+
+        <div class="form-field">
+          <label for="email">Email *</label>
+          <input id="email" type="email" formControlName="email"
+                 placeholder="Enter email">
+          <small *ngIf="f.email.touched && f.email.invalid">
+            Enter a valid email address.
+          </small>
+        </div>
+
+        <div class="form-field">
+          <label for="vehicle">Vehicle *</label>
+          <select id="vehicle" formControlName="vehicle">
+            <option value="Bike">Bike</option>
+            <option value="Scooter">Scooter</option>
+            <option value="Car">Car</option>
+            <option value="Van">Van</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="status">Status *</label>
+          <select id="status" formControlName="status">
+            <option value="Available">Available</option>
+            <option value="On Order">On Order</option>
+            <option value="Scheduled Break">Scheduled Break</option>
+            <option value="Absent">Absent</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="availability">Availability *</label>
+          <select id="availability" formControlName="availability">
+            <option value="Available">Available</option>
+            <option value="Unavailable">Unavailable</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="date">Date *</label>
+          <input id="date" type="date" formControlName="date">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" (click)="cancel()">
+          Cancel
+        </button>
+        <button type="submit" class="btn-save"
+                [disabled]="isSaving || riderForm.invalid">
+          {{ isSaving ? 'Saving...' : (isEditMode ? 'Update Rider' : 'Add Rider') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
