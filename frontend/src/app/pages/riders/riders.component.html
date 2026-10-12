@@ -1,38 +1,48 @@
+
 <div class="riders-page">
-  <section class="riders-card">
+  <div class="riders-card">
     <header class="page-header">
       <div>
-        <h2>Riders</h2>
+        <h2>Rider List</h2>
         <p>Total Riders: {{ totalRecords }}</p>
       </div>
 
       <div class="header-actions">
-        <button type="button" class="btn-outline" [disabled]="isLoading" (click)="loadRiders()">↻ Refresh</button>
-        <button type="button" class="btn-outline" (click)="filtersExpanded = !filtersExpanded">☷ {{ filtersExpanded ? 'Hide Filters' : 'Filters' }}</button>
+        <label for="pageSize">Rows per page:</label>
+        <select id="pageSize" [value]="pageSize" (change)="changePageSize($any($event.target).value)">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+
         <button type="button" class="btn-primary" (click)="openAddRider()">+ Add Rider</button>
       </div>
     </header>
 
-    <div *ngIf="successMessage" class="alert alert-success">
-      <span>{{ successMessage }}</span>
-      <button type="button" (click)="successMessage = ''">×</button>
+    <div *ngIf="successMessage" class="alert alert-success" role="status">
+      {{ successMessage }}
+      <button type="button" (click)="successMessage = ''" aria-label="Dismiss">×</button>
     </div>
 
-    <div *ngIf="errorMessage" class="alert alert-error">
-      <span>{{ errorMessage }}</span>
+    <div *ngIf="errorMessage" class="alert alert-error" role="alert">
+      {{ errorMessage }}
       <button type="button" (click)="loadRiders()">Retry</button>
     </div>
 
-    <section class="filters-section" *ngIf="filtersExpanded">
+    <section class="filters-section">
       <div class="section-heading">
-        <h3>Filter Riders</h3>
-        <button type="button" class="btn-link" (click)="clearFilters()">Clear all</button>
+        <h3>Search &amp; Filters</h3>
+        <button type="button" class="btn-outline" (click)="filtersExpanded = !filtersExpanded">
+          {{ filtersExpanded ? 'Hide Filters ▲' : 'Show Filters ▼' }}
+        </button>
       </div>
 
-      <div class="filter-controls expanded">
+      <div class="filter-controls" [class.expanded]="filtersExpanded">
         <div class="filter-field">
           <label for="riderSearch">Search riders</label>
-          <input id="riderSearch" type="search" placeholder="Name, mobile or email" [value]="search" (input)="onSearch($any($event.target).value)">
+          <input id="riderSearch" type="search" placeholder="Name, mobile or email"
+                 [value]="search" (input)="onSearch($any($event.target).value)">
         </div>
 
         <div class="filter-field">
@@ -45,7 +55,8 @@
 
         <div class="filter-field">
           <label for="availabilityFilter">Availability</label>
-          <select id="availabilityFilter" [value]="selectedAvailability" (change)="onAvailabilityChange($any($event.target).value)">
+          <select id="availabilityFilter" [value]="selectedAvailability"
+                  (change)="onAvailabilityChange($any($event.target).value)">
             <option value="">All availability</option>
             <option *ngFor="let item of availabilityOptions" [value]="item.value">{{ item.label }}</option>
           </select>
@@ -66,28 +77,20 @@
         </div>
 
         <div class="filter-field">
-          <label for="sortOrder">Sort order</label>
-          <button id="sortOrder" type="button" class="btn-outline sort-button" (click)="toggleSortOrder()">
+          <label>Sort order</label>
+          <button type="button" class="btn-outline sort-button" (click)="toggleSortOrder()">
             {{ sortOrder === 'asc' ? '↑ Ascending' : '↓ Descending' }}
           </button>
+        </div>
+
+        <div class="filter-field">
+          <label>&nbsp;</label>
+          <button type="button" class="btn-outline" (click)="clearFilters()">Clear filters</button>
         </div>
       </div>
     </section>
 
-    <div class="table-toolbar">
-      <span>Rider directory</span>
-      <div class="page-size-control">
-        <label for="pageSize">Rows per page</label>
-        <select id="pageSize" [value]="pageSize" (change)="changePageSize($any($event.target).value)">
-          <option value="5">5</option>
-          <option value="10">10</option>
-          <option value="20">20</option>
-          <option value="50">50</option>
-        </select>
-      </div>
-    </div>
-
-    <div *ngIf="isLoading && riders.length === 0" class="loading-state">Loading riders...</div>
+    <div *ngIf="isLoading" class="loading-state" role="status">Loading riders…</div>
 
     <div class="table-wrapper">
       <table class="riders-table">
@@ -101,137 +104,115 @@
             <th>Status</th>
             <th>Availability</th>
             <th>Date</th>
-            <th class="actions-heading">Actions</th>
+            <th>Actions</th>
           </tr>
         </thead>
 
         <tbody>
           <tr *ngFor="let rider of riders">
             <td>{{ rider.id }}</td>
-
             <td>
               <div class="rider-cell">
-                <img *ngIf="rider.profile_image" [src]="rider.profile_image" [alt]="rider.name" class="rider-avatar rider-photo">
-                <div *ngIf="!rider.profile_image" class="rider-avatar">{{ riderInitial(rider.name) }}</div>
-
-                <div class="rider-info">
+                <img *ngIf="rider.profile_image" [src]="rider.profile_image"
+                     [alt]="rider.name" class="rider-avatar-image">
+                <div *ngIf="!rider.profile_image" class="avatar">{{ riderInitial(rider.name) }}</div>
+                <div>
                   <strong>{{ rider.name }}</strong>
                   <small>Rider #{{ rider.id }}</small>
                 </div>
               </div>
             </td>
-
-            <td class="nowrap">{{ rider.mobile }}</td>
-            <td class="rider-email">{{ rider.email }}</td>
-            <td>{{ rider.vehicle || '—' }}</td>
-
+            <td>{{ rider.mobile }}</td>
+            <td>{{ rider.email }}</td>
+            <td>{{ rider.vehicle }}</td>
             <td>
               <span class="status-badge" [ngClass]="statusClass(rider.status)">
                 {{ statusLabel(rider.status) }}
               </span>
             </td>
-
             <td>
               <span class="status-badge" [ngClass]="availabilityClass(rider.availability)">
-                {{ normalizeAvailability(rider.availability) | titlecase }}
+                {{ rider.availability }}
               </span>
             </td>
-
-            <td class="nowrap">{{ rider.date || '—' }}</td>
-
-            <td class="actions-cell">
-              <div class="rider-action-menu" (click)="$event.stopPropagation()">
-                <button
-                  type="button"
-                  class="action-menu-trigger rider-action-button"
-                  aria-label="Rider actions"
-                  [attr.aria-expanded]="openActionMenuId === rider.id"
-                  (click)="toggleActionMenu(rider.id); $event.stopPropagation()">
-                  <span></span>
-                  <span></span>
-                  <span></span>
+            <td>{{ rider.date }}</td>
+            <td>
+              <div class="rider-action-menu">
+                <button type="button" class="action-menu-trigger" aria-label="Rider actions"
+                        [attr.aria-expanded]="openActionMenuId === rider.id"
+                        (click)="toggleActionMenu(rider.id)">
+                  <span></span><span></span><span></span>
                 </button>
 
                 <div class="action-menu-dropdown" *ngIf="openActionMenuId === rider.id">
-                  <button type="button" (click)="openRiderView(rider); $event.stopPropagation()">
-                    <span class="menu-icon">◉</span>
-                    <span>View Rider</span>
-                  </button>
-
-                  <button type="button" (click)="openRiderEdit(rider); $event.stopPropagation()">
-                    <span class="menu-icon">✎</span>
-                    <span>Edit Rider</span>
-                  </button>
+                  <button type="button" (click)="openRiderView(rider)">◉ View Rider</button>
+                  <button type="button" (click)="openRiderEdit(rider)">✎ Edit Rider</button>
+                  <button type="button" class="delete-menu-item" (click)="requestDeleteRider(rider)">🗑 Delete Rider</button>
                 </div>
               </div>
             </td>
           </tr>
 
           <tr *ngIf="!isLoading && riders.length === 0">
-            <td colspan="9" class="empty-state">
-              <strong>No riders found</strong>
-              <span>Try changing your search or filters.</span>
-              <button type="button" class="btn-primary" (click)="openAddRider()">+ Add Rider</button>
-            </td>
+            <td colspan="9" class="empty-state">No riders found. Try changing the search or filters, or add a new rider.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <footer class="pagination">
-      <span>Showing {{ firstRecord }}–{{ lastRecord }} of {{ totalRecords }} riders</span>
+      <span>Showing {{ firstRecord }}–{{ lastRecord }} of {{ totalRecords }} {{ totalRecords === 1 ? 'rider' : 'riders' }}</span>
 
-      <div class="pagination-actions">
-        <button type="button" class="page-button" [disabled]="currentPage <= 1 || isLoading" (click)="previousPage()">Previous</button>
-
-        <button
-          *ngFor="let page of pageNumbers"
-          type="button"
-          class="page-button"
-          [class.active]="page === currentPage"
-          [disabled]="isLoading"
-          (click)="goToPage(page)">
+      <div class="pagination-buttons">
+        <button type="button" class="btn-outline" [disabled]="currentPage <= 1 || isLoading" (click)="previousPage()">Previous</button>
+        <button *ngFor="let page of pageNumbers" type="button" class="page-number"
+                [class.active]="page === currentPage" [disabled]="isLoading" (click)="goToPage(page)">
           {{ page }}
         </button>
-
-        <button type="button" class="page-button" [disabled]="currentPage >= totalPages || isLoading" (click)="nextPage()">Next</button>
+        <button type="button" class="btn-outline" [disabled]="currentPage >= totalPages || isLoading" (click)="nextPage()">Next</button>
       </div>
     </footer>
-  </section>
+  </div>
 </div>
 
 <div *ngIf="showRiderModal" class="drawer-backdrop" (click)="closeRiderModal()">
-  <section class="rider-drawer" role="dialog" aria-modal="true" aria-labelledby="riderDrawerTitle" (click)="$event.stopPropagation()">
-    <header class="drawer-header">
+  <section class="rider-drawer" role="dialog" aria-modal="true" aria-labelledby="riderModalTitle"
+           (click)="$event.stopPropagation()">
+    <header class="modal-header">
       <div>
-        <h2 id="riderDrawerTitle">{{ editingRiderId !== null ? 'Edit Rider' : 'Create Rider' }}</h2>
+        <h2 id="riderModalTitle">{{ editingRiderId !== null ? 'Edit Rider' : 'Add Rider' }}</h2>
         <p>{{ editingRiderId !== null ? 'Update rider information' : 'Enter new rider information' }}</p>
       </div>
-
-      <button type="button" class="drawer-close" aria-label="Close" [disabled]="isSaving" (click)="closeRiderModal()">×</button>
+      <button type="button" class="modal-close" [disabled]="isSaving"
+              (click)="closeRiderModal()" aria-label="Close dialog">×</button>
     </header>
 
-    <div *ngIf="formError" class="drawer-error" role="alert">{{ formError }}</div>
-
-    <div *ngIf="editingRiderId !== null && isLoading" class="drawer-loading">Refreshing rider details...</div>
+    <div *ngIf="formError" class="alert alert-error modal-alert" role="alert">{{ formError }}</div>
+    <div *ngIf="editingRiderId !== null && isLoading" class="loading-state">Loading rider details…</div>
 
     <form [formGroup]="riderForm" (ngSubmit)="saveRider()" novalidate>
-      <div class="drawer-form">
+      <div class="modal-form-grid">
         <div class="form-field">
           <label for="riderName">Full Name *</label>
-          <input id="riderName" type="text" formControlName="name" placeholder="Enter full name" [class.invalid]="f['name'].touched && f['name'].invalid">
-          <small class="field-error" *ngIf="f['name'].touched && f['name'].invalid">Enter a name with at least 2 characters.</small>
+          <input id="riderName" type="text" formControlName="name" placeholder="Enter full name"
+                 autocomplete="name" [class.invalid]="f['name'].touched && f['name'].invalid">
+          <small class="field-error" *ngIf="f['name'].touched && f['name'].hasError('required')">Full name is required.</small>
+          <small class="field-error" *ngIf="f['name'].touched && f['name'].hasError('minlength')">Name must contain at least 2 characters.</small>
+          <small class="field-error" *ngIf="f['name'].touched && f['name'].hasError('maxlength')">Name cannot exceed 100 characters.</small>
         </div>
 
         <div class="form-field">
           <label for="riderMobile">Mobile Number *</label>
-          <input id="riderMobile" type="tel" formControlName="mobile" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric" [class.invalid]="f['mobile'].touched && f['mobile'].invalid">
+          <input id="riderMobile" type="tel" formControlName="mobile" placeholder="Enter 10-digit mobile"
+                 inputmode="numeric" maxlength="10" autocomplete="tel"
+                 [class.invalid]="f['mobile'].touched && f['mobile'].invalid">
           <small class="field-error" *ngIf="f['mobile'].touched && f['mobile'].invalid">Enter exactly 10 digits.</small>
         </div>
 
         <div class="form-field">
           <label for="riderEmail">Email *</label>
-          <input id="riderEmail" type="email" formControlName="email" placeholder="name@example.com" [class.invalid]="f['email'].touched && f['email'].invalid">
+          <input id="riderEmail" type="email" formControlName="email" placeholder="name@example.com"
+                 autocomplete="email" [class.invalid]="f['email'].touched && f['email'].invalid">
           <small class="field-error" *ngIf="f['email'].touched && f['email'].invalid">Enter a valid email address.</small>
         </div>
 
@@ -258,15 +239,31 @@
 
         <div class="form-field">
           <label for="riderDate">Date *</label>
-          <input id="riderDate" type="date" formControlName="date" [class.invalid]="f['date'].touched && f['date'].invalid">
+          <input id="riderDate" type="date" formControlName="date"
+                 [class.invalid]="f['date'].touched && f['date'].invalid">
           <small class="field-error" *ngIf="f['date'].touched && f['date'].invalid">Date is required.</small>
+        </div>
+
+        <div class="form-field image-upload-field">
+          <label for="riderProfileImage">Rider Profile Image</label>
+          <input id="riderProfileImage" type="file" accept="image/jpeg,image/png,image/webp"
+                 (change)="onImageSelected($event)">
+
+          <div class="image-preview" *ngIf="imagePreviewUrl || currentImageUrl">
+            <img [src]="imagePreviewUrl || currentImageUrl" alt="Rider profile preview"
+                 class="rider-image-preview">
+            <span>{{ imagePreviewUrl ? 'New image selected' : 'Current profile image' }}</span>
+          </div>
+
+          <small>Allowed formats: JPG, PNG, WEBP. Maximum size: 5 MB.</small>
         </div>
       </div>
 
-      <footer class="drawer-footer">
+      <footer class="modal-footer">
         <button type="button" class="btn-outline" [disabled]="isSaving" (click)="closeRiderModal()">Cancel</button>
-        <button type="submit" class="btn-primary" [disabled]="isSaving || (editingRiderId !== null && isLoading)">
-          {{ isSaving ? 'Saving...' : editingRiderId !== null ? 'Update Rider' : 'Save Rider' }}
+        <button type="submit" class="btn-primary"
+                [disabled]="isSaving || (editingRiderId !== null && isLoading)">
+          {{ isSaving ? 'Saving…' : editingRiderId !== null ? 'Update Rider' : 'Save Rider' }}
         </button>
       </footer>
     </form>
@@ -274,70 +271,67 @@
 </div>
 
 <div *ngIf="showViewModal && selectedRider" class="drawer-backdrop" (click)="closeViewModal()">
-  <section class="rider-drawer view-drawer" role="dialog" aria-modal="true" aria-labelledby="viewDrawerTitle" (click)="$event.stopPropagation()">
-    <header class="drawer-header">
+  <section class="rider-drawer view-drawer" role="dialog" aria-modal="true"
+           aria-labelledby="viewRiderTitle" (click)="$event.stopPropagation()">
+    <header class="modal-header">
       <div>
-        <h2 id="viewDrawerTitle">Rider Details</h2>
+        <h2 id="viewRiderTitle">Rider Details</h2>
         <p>Rider #{{ selectedRider.id }}</p>
       </div>
-
-      <button type="button" class="drawer-close" aria-label="Close" (click)="closeViewModal()">×</button>
+      <button type="button" class="modal-close" (click)="closeViewModal()" aria-label="Close">×</button>
     </header>
 
-    <div class="view-profile">
-      <img *ngIf="selectedRider.profile_image" [src]="selectedRider.profile_image" [alt]="selectedRider.name" class="view-profile-image">
-      <div *ngIf="!selectedRider.profile_image" class="view-profile-avatar">{{ riderInitial(selectedRider.name) }}</div>
+    <div class="rider-profile-view">
+      <img *ngIf="selectedRider.profile_image" [src]="selectedRider.profile_image"
+           [alt]="selectedRider.name" class="rider-detail-image">
+      <div *ngIf="!selectedRider.profile_image" class="avatar detail-avatar">{{ riderInitial(selectedRider.name) }}</div>
       <h3>{{ selectedRider.name }}</h3>
-      <span class="status-badge" [ngClass]="statusClass(selectedRider.status)">{{ statusLabel(selectedRider.status) }}</span>
     </div>
 
-    <div class="view-details">
-      <div class="detail-item">
-        <span>Full Name</span>
-        <strong>{{ selectedRider.name }}</strong>
-      </div>
-
-      <div class="detail-item">
-        <span>Mobile Number</span>
-        <strong>{{ selectedRider.mobile }}</strong>
-      </div>
-
-      <div class="detail-item">
-        <span>Email</span>
-        <strong>{{ selectedRider.email }}</strong>
-      </div>
-
-      <div class="detail-item">
-        <span>Vehicle</span>
-        <strong>{{ selectedRider.vehicle || '—' }}</strong>
-      </div>
-
-      <div class="detail-item">
+    <div class="details-grid">
+      <div><span>Full Name</span><strong>{{ selectedRider.name }}</strong></div>
+      <div><span>Mobile</span><strong>{{ selectedRider.mobile }}</strong></div>
+      <div><span>Email</span><strong>{{ selectedRider.email }}</strong></div>
+      <div><span>Vehicle</span><strong>{{ selectedRider.vehicle }}</strong></div>
+      <div>
         <span>Status</span>
-        <strong>
-          <span class="status-badge" [ngClass]="statusClass(selectedRider.status)">
-            {{ statusLabel(selectedRider.status) }}
-          </span>
-        </strong>
+        <strong><span class="status-badge" [ngClass]="statusClass(selectedRider.status)">{{ statusLabel(selectedRider.status) }}</span></strong>
       </div>
-
-      <div class="detail-item">
+      <div>
         <span>Availability</span>
-        <strong>
-          <span class="status-badge" [ngClass]="availabilityClass(selectedRider.availability)">
-            {{ normalizeAvailability(selectedRider.availability) | titlecase }}
-          </span>
-        </strong>
+        <strong><span class="status-badge" [ngClass]="availabilityClass(selectedRider.availability)">{{ selectedRider.availability }}</span></strong>
       </div>
-
-      <div class="detail-item">
-        <span>Date</span>
-        <strong>{{ selectedRider.date || '—' }}</strong>
-      </div>
+      <div><span>Date</span><strong>{{ selectedRider.date }}</strong></div>
     </div>
 
-    <footer class="drawer-footer">
+    <footer class="modal-footer">
       <button type="button" class="btn-outline" (click)="closeViewModal()">Close</button>
+
+    </footer>
+  </section>
+</div>
+
+<div *ngIf="showDeleteDialog" class="drawer-backdrop" (click)="cancelDeleteRider()">
+  <section class="rider-drawer delete-dialog" role="dialog" aria-modal="true"
+           aria-labelledby="deleteRiderTitle" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <div>
+        <h2 id="deleteRiderTitle">Delete Rider?</h2>
+        <p>This action cannot be undone.</p>
+      </div>
+      <button type="button" class="modal-close" [disabled]="isDeleting"
+              (click)="cancelDeleteRider()" aria-label="Close">×</button>
+    </header>
+
+    <div class="delete-dialog-content">
+      <p *ngIf="deletingRider">Are you sure you want to delete <strong>{{ deletingRider.name }}</strong>?</p>
+    </div>
+
+    <footer class="modal-footer">
+      <button type="button" class="btn-outline" [disabled]="isDeleting" (click)="cancelDeleteRider()">Cancel</button>
+      <button type="button" class="btn-danger" [disabled]="isDeleting" (click)="confirmDeleteRider()">
+        {{ isDeleting ? 'Deleting…' : 'Delete Rider' }}
+      </button>
     </footer>
   </section>
 </div>

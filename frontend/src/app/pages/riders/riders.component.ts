@@ -1,3 +1,4 @@
+
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
@@ -47,24 +48,37 @@ export class RidersComponent implements OnInit, OnDestroy {
   riders: Rider[] = [];
   isLoading = false;
   isSaving = false;
+  isDeleting = false;
+
   errorMessage = '';
   successMessage = '';
   formError = '';
+
   currentPage = 1;
   pageSize = 10;
   totalPages = 0;
   totalRecords = 0;
+
   search = '';
   selectedStatus = '';
   selectedAvailability = '';
   sortBy = 'id';
   sortOrder: 'asc' | 'desc' = 'asc';
   filtersExpanded = false;
+
   openActionMenuId: number | null = null;
   showRiderModal = false;
   showViewModal = false;
+  showDeleteDialog = false;
+
   editingRiderId: number | null = null;
   selectedRider: Rider | null = null;
+  deletingRider: Rider | null = null;
+
+  selectedImageFile: File | null = null;
+  imagePreviewUrl: string | null = null;
+  currentImageUrl: string | null = null;
+
   riderForm: FormGroup;
 
   readonly statuses: { value: RiderStatus; label: string }[] = [
@@ -84,7 +98,6 @@ export class RidersComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly searchInput$ = new Subject<string>();
   private requestId = 0;
-  private detailRequestId = 0;
 
   constructor(
     private readonly http: HttpClient,
@@ -103,16 +116,16 @@ export class RidersComponent implements OnInit, OnDestroy {
     this.riderForm.get('status')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(status => {
-        const availabilityControl = this.riderForm.get('availability');
+        const availability = this.riderForm.get('availability');
 
         if (status === 'inactive') {
-          availabilityControl?.setValue('unavailable', { emitEvent: false });
-          availabilityControl?.disable({ emitEvent: false });
+          availability?.setValue('unavailable', { emitEvent: false });
+          availability?.disable({ emitEvent: false });
         } else {
-          availabilityControl?.enable({ emitEvent: false });
+          availability?.enable({ emitEvent: false });
 
-          if (availabilityControl?.value === 'unavailable') {
-            availabilityControl.setValue('available', { emitEvent: false });
+          if (availability?.value === 'unavailable') {
+            availability.setValue('available', { emitEvent: false });
           }
         }
       });
@@ -136,7 +149,7 @@ export class RidersComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.requestId++;
-    this.detailRequestId++;
+    this.resetImageSelection();
     this.destroy$.next();
     this.destroy$.complete();
     this.searchInput$.complete();
@@ -144,7 +157,6 @@ export class RidersComponent implements OnInit, OnDestroy {
 
   private today(): string {
     const now = new Date();
-
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   }
 
@@ -169,9 +181,7 @@ export class RidersComponent implements OnInit, OnDestroy {
   }
 
   get firstRecord(): number {
-    return this.totalRecords === 0
-      ? 0
-      : (this.currentPage - 1) * this.pageSize + 1;
+    return this.totalRecords === 0 ? 0 : (this.currentPage - 1) * this.pageSize + 1;
   }
 
   get lastRecord(): number {
@@ -213,7 +223,6 @@ export class RidersComponent implements OnInit, OnDestroy {
     this.sortBy = 'id';
     this.sortOrder = 'asc';
     this.currentPage = 1;
-    this.searchInput$.next('');
     this.loadRiders();
   }
 
@@ -251,8 +260,8 @@ export class RidersComponent implements OnInit, OnDestroy {
       .set('sortBy', this.sortBy)
       .set('sortOrder', this.sortOrder);
 
-    if (this.search.trim()) {
-      params = params.set('search', this.search.trim());
+    if (this.search) {
+      params = params.set('search', this.search);
     }
 
     if (this.selectedStatus) {
@@ -301,15 +310,14 @@ export class RidersComponent implements OnInit, OnDestroy {
           }
 
           this.errorMessage = error.name === 'TimeoutError'
-            ? 'The riders request timed out. Check the backend connection.'
+            ? 'The riders request timed out. Check whether Flask is responding.'
             : error.error?.message || 'Unable to load riders. Check your login and backend.';
         }
       });
   }
 
   toggleActionMenu(riderId: number): void {
-    this.openActionMenuId =
-      this.openActionMenuId === riderId ? null : riderId;
+    this.openActionMenuId = this.openActionMenuId === riderId ? null : riderId;
   }
 
   closeActionMenu(): void {
@@ -318,7 +326,7 @@ export class RidersComponent implements OnInit, OnDestroy {
 
   openAddRider(): void {
     this.closeActionMenu();
-    this.detailRequestId++;
+    this.resetImageSelection();
     this.editingRiderId = null;
     this.formError = '';
 
@@ -337,10 +345,9 @@ export class RidersComponent implements OnInit, OnDestroy {
 
   openEditRider(rider: Rider): void {
     this.closeActionMenu();
-
-    const detailRequest = ++this.detailRequestId;
-
+    this.resetImageSelection();
     this.editingRiderId = rider.id;
+    this.currentImageUrl = rider.profile_image || null;
     this.formError = '';
 
     this.riderForm.reset({
@@ -350,7 +357,7 @@ export class RidersComponent implements OnInit, OnDestroy {
       vehicle: rider.vehicle || 'Bike',
       status: this.normalizeStatus(rider.status),
       availability: this.normalizeAvailability(rider.availability),
-      date: this.formatDate(rider.date) || this.today()
+      date: rider.date || this.today()
     });
 
     this.showRiderModal = true;
@@ -360,24 +367,18 @@ export class RidersComponent implements OnInit, OnDestroy {
       .pipe(
         timeout(15000),
         takeUntil(this.destroy$),
-        finalize(() => {
-          if (detailRequest === this.detailRequestId) {
-            this.isLoading = false;
-          }
-        })
+        finalize(() => this.isLoading = false)
       )
       .subscribe({
         next: response => {
-          if (detailRequest !== this.detailRequestId) {
-            return;
-          }
-
           const details = this.unwrap<Rider>(response);
 
           if (!details || details.id == null) {
-            this.formError = 'Rider details could not be refreshed. You can edit the loaded row data.';
+            this.formError = 'Unable to refresh rider details.';
             return;
           }
+
+          this.currentImageUrl = details.profile_image || null;
 
           this.riderForm.patchValue({
             name: details.name || '',
@@ -386,16 +387,11 @@ export class RidersComponent implements OnInit, OnDestroy {
             vehicle: details.vehicle || 'Bike',
             status: this.normalizeStatus(details.status),
             availability: this.normalizeAvailability(details.availability),
-            date: this.formatDate(details.date) || this.today()
+            date: details.date || this.today()
           });
         },
         error: error => {
-          if (detailRequest !== this.detailRequestId) {
-            return;
-          }
-
-          this.formError = error.error?.message
-            || 'Rider details could not be refreshed. You can edit the loaded row data.';
+          this.formError = error.error?.message || 'Could not refresh rider details.';
         }
       });
   }
@@ -414,12 +410,63 @@ export class RidersComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.detailRequestId++;
     this.showRiderModal = false;
     this.editingRiderId = null;
     this.formError = '';
+    this.resetImageSelection();
     this.riderForm.markAsPristine();
     this.riderForm.markAsUntouched();
+  }
+
+  onImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    this.formError = '';
+
+    if (!file) {
+      return;
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+    if (!allowedTypes.includes(file.type)) {
+      this.formError = 'Only JPG, PNG and WEBP images are allowed.';
+      input.value = '';
+      return;
+    }
+
+    if (file.size === 0 || file.size > 5 * 1024 * 1024) {
+      this.formError = 'Image must not be empty or exceed 5 MB.';
+      input.value = '';
+      return;
+    }
+
+    this.selectedImageFile = file;
+    this.imagePreviewUrl = null;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        this.imagePreviewUrl = reader.result;
+      } else {
+        this.formError = 'Unable to preview this image.';
+      }
+    };
+
+    reader.onerror = () => {
+      this.imagePreviewUrl = null;
+      this.formError = 'Unable to read this image. Please select another file.';
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  private resetImageSelection(): void {
+    this.selectedImageFile = null;
+    this.imagePreviewUrl = null;
+    this.currentImageUrl = null;
   }
 
   saveRider(): void {
@@ -442,24 +489,24 @@ export class RidersComponent implements OnInit, OnDestroy {
       ? 'unavailable'
       : this.normalizeAvailability(value.availability);
 
-    const payload = {
-      name: String(value.name).trim(),
-      mobile: String(value.mobile).trim(),
-      email: String(value.email).trim().toLowerCase(),
-      vehicle: value.vehicle,
-      status,
-      availability,
-      date: value.date
-    };
+    const formData = new FormData();
+    formData.append('name', String(value.name).trim());
+    formData.append('mobile', String(value.mobile).trim());
+    formData.append('email', String(value.email).trim().toLowerCase());
+    formData.append('vehicle', String(value.vehicle));
+    formData.append('status', status);
+    formData.append('availability', availability);
+    formData.append('date', String(value.date));
+
+    if (this.selectedImageFile) {
+      formData.append('profile_image', this.selectedImageFile, this.selectedImageFile.name);
+    }
 
     this.isSaving = true;
 
     const request$ = this.editingRiderId !== null
-      ? this.http.put<ApiResponse<Rider>>(
-          `${this.apiUrl}/${this.editingRiderId}`,
-          payload
-        )
-      : this.http.post<ApiResponse<Rider>>(this.apiUrl, payload);
+      ? this.http.put<ApiResponse<Rider>>(`${this.apiUrl}/${this.editingRiderId}`, formData)
+      : this.http.post<ApiResponse<Rider>>(this.apiUrl, formData);
 
     request$
       .pipe(
@@ -476,7 +523,8 @@ export class RidersComponent implements OnInit, OnDestroy {
 
           this.showRiderModal = false;
           this.editingRiderId = null;
-          this.successMessage = 'Rider saved successfully.';
+          this.resetImageSelection();
+          this.successMessage = response?.message || 'Rider saved successfully.';
           this.currentPage = 1;
           this.loadRiders();
         },
@@ -488,11 +536,9 @@ export class RidersComponent implements OnInit, OnDestroy {
               .map(([field, message]) => `${field}: ${message}`)
               .join(' ');
           } else if (error.name === 'TimeoutError') {
-            this.formError = 'The request timed out. Check the backend and try again.';
+            this.formError = 'The request timed out. Check Flask and try again.';
           } else {
-            this.formError = error.error?.message
-              || error.error?.error
-              || 'Unable to save rider. Please check the API response.';
+            this.formError = error.error?.message || 'Unable to save rider. Check the API response.';
           }
         }
       });
@@ -508,22 +554,73 @@ export class RidersComponent implements OnInit, OnDestroy {
     this.selectedRider = null;
   }
 
+  requestDeleteRider(rider: Rider): void {
+    this.closeActionMenu();
+    this.deletingRider = rider;
+    this.showDeleteDialog = true;
+    this.errorMessage = '';
+  }
+
+  cancelDeleteRider(): void {
+    if (this.isDeleting) {
+      return;
+    }
+
+    this.showDeleteDialog = false;
+    this.deletingRider = null;
+  }
+
+  confirmDeleteRider(): void {
+    if (!this.deletingRider || this.isDeleting) {
+      return;
+    }
+
+    const riderId = this.deletingRider.id;
+    this.isDeleting = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.http.delete<ApiResponse<{ id: number }>>(`${this.apiUrl}/${riderId}`)
+      .pipe(
+        timeout(15000),
+        takeUntil(this.destroy$),
+        finalize(() => this.isDeleting = false)
+      )
+      .subscribe({
+        next: response => {
+          this.showDeleteDialog = false;
+          this.deletingRider = null;
+          this.successMessage = response?.message || 'Rider deleted successfully.';
+
+          if (this.riders.length === 1 && this.currentPage > 1) {
+            this.currentPage--;
+          }
+
+          if (this.selectedRider?.id === riderId) {
+            this.closeViewModal();
+          }
+
+          this.loadRiders();
+        },
+        error: error => {
+          this.errorMessage = error.error?.message || 'Unable to delete rider.';
+        }
+      });
+  }
+
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    if (!this.isSaving) {
+    if (!this.isSaving && !this.isDeleting) {
       this.closeRiderModal();
       this.closeViewModal();
       this.closeActionMenu();
+      this.cancelDeleteRider();
     }
   }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    const target = event.target;
-
-    if (!(target instanceof Element)) {
-      return;
-    }
+    const target = event.target as HTMLElement;
 
     if (!target.closest('.rider-action-menu')) {
       this.closeActionMenu();
@@ -531,14 +628,10 @@ export class RidersComponent implements OnInit, OnDestroy {
   }
 
   normalizeStatus(status: string | null | undefined): RiderStatus {
-    return (status || '').toLowerCase() === 'inactive'
-      ? 'inactive'
-      : 'active';
+    return (status || '').toLowerCase() === 'inactive' ? 'inactive' : 'active';
   }
 
-  normalizeAvailability(
-    availability: string | null | undefined
-  ): RiderAvailability {
+  normalizeAvailability(availability: string | null | undefined): RiderAvailability {
     const value = (availability || '').toLowerCase();
 
     if (value === 'busy') {
@@ -553,9 +646,7 @@ export class RidersComponent implements OnInit, OnDestroy {
   }
 
   statusLabel(status: string): string {
-    return this.normalizeStatus(status) === 'active'
-      ? 'Active'
-      : 'Inactive';
+    return this.normalizeStatus(status) === 'active' ? 'Active' : 'Inactive';
   }
 
   statusClass(status: string): string {
@@ -568,13 +659,5 @@ export class RidersComponent implements OnInit, OnDestroy {
 
   riderInitial(name: string): string {
     return (name || 'R').trim().charAt(0).toUpperCase();
-  }
-
-  private formatDate(value: string | null | undefined): string {
-    if (!value) {
-      return '';
-    }
-
-    return value.length >= 10 ? value.substring(0, 10) : value;
   }
 }
