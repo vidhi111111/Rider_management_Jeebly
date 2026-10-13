@@ -753,7 +753,12 @@ def assign_rider(order_id):
                 "Only active riders can be assigned.",
                 400
             )
-
+        if rider.availability != "available":
+            return error_response(
+                "only available riders can be assigned.",
+                400
+            )
+ 
         order.rider_id = rider.id
 
     try:
@@ -898,7 +903,7 @@ def settings():
             "user_id": request.user_id,
             "settings": {
                 "notifications": True,
-                "dark_mode": False
+                "dark_mode": True
             }
         }
     )
