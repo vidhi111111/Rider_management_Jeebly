@@ -34,20 +34,27 @@ export class BreadcrumbComponent {
 }
 
   private generateBreadcrumbs(): void {
-    const url = this.router.url.split('?')[0];
-    const segments = url.split('/').filter(segment => segment);
-    this.breadcrumbs = [];
-    let currentUrl = '';
+  const url = this.router.url.split('?')[0];
+  const segments = url.split('/').filter(segment => segment);
 
-    segments.forEach(segment => {
-      currentUrl += `/${segment}`;
+  this.breadcrumbs = [
+    {
+      label: 'Home',
+      url: '/dashboard'
+    }
+  ];
 
-      this.breadcrumbs.push({
-        label: this.routeLabels[segment] || this.formatLabel(segment),
-        url: currentUrl
-      });
+  let currentUrl = '';
+
+  segments.forEach(segment => {
+    currentUrl += `/${segment}`;
+
+    this.breadcrumbs.push({
+      label: this.routeLabels[segment] || this.formatLabel(segment),
+      url: currentUrl
     });
-  }
+  });
+}
 
   private formatLabel(segment: string): string {
     return segment

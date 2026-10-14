@@ -1,17 +1,33 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
 .breadcrumb {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 25px;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 22px 32px 12px;
+  box-sizing: border-box;
   font-family: 'Nexa', Arial, sans-serif;
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .breadcrumb a {
   color: #163758;
   text-decoration: none;
   font-weight: 400;
+  transition: color 0.2s ease;
 }
 
 .breadcrumb a:hover {
@@ -19,13 +35,35 @@
 }
 
 .separator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #6b7280;
+  color: #8291a5;
+  font-size: 16px;
 }
 
 .current {
   color: #163758;
+  font-size: 17px;
   font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .breadcrumb {
+    padding: 20px 22px 10px;
+  }
+}
+
+@media (max-width: 576px) {
+  .breadcrumb {
+    padding: 16px 14px 8px;
+    gap: 8px;
+    font-size: 14px;
+  }
+
+  .breadcrumb-item {
+    gap: 8px;
+  }
+
+  .current,
+  .separator {
+    font-size: 15px;
+  }
 }

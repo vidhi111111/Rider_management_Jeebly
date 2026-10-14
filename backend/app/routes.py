@@ -168,8 +168,15 @@ def validate_rider_data(data):
     elif len(vehicle) > 100:
         errors["vehicle"] = "Vehicle cannot exceed 100 characters."
 
-    if status not in {"active", "inactive"}:
-        errors["status"] = "Status must be active or inactive."
+    if status not in {
+        "active",
+        "inactive",
+        "available",
+        "on_order",
+        "scheduled_break",
+        "absent"
+    }:
+        errors["status"] = "Invalid rider status."
 
     if availability not in {"available", "busy", "unavailable"}:
         errors["availability"] = (
@@ -188,8 +195,10 @@ def validate_rider_data(data):
         except ValueError:
             errors["date"] = "Date must be in YYYY-MM-DD format."
 
-    if status == "inactive":
+    if status in {"inactive", "absent", "scheduled_break"}:
         availability = "unavailable"
+    elif status == "on_order":
+        availability = "busy"
 
     return errors, {
         "name": name,
@@ -203,7 +212,7 @@ def validate_rider_data(data):
 
 
 def refresh_rider_availability(rider):
-    if rider.status == "inactive":
+    if rider.status in {"inactive", "absent", "scheduled_break"}:
         rider.availability = "unavailable"
         return
 
@@ -214,7 +223,14 @@ def refresh_rider_availability(rider):
         )
     ).count()
 
-    rider.availability = "busy" if active_orders else "available"
+    if active_orders:
+        rider.availability = "busy"
+        if rider.status == "active":
+            rider.status = "on_order"
+    else:
+        rider.availability = "available"
+        if rider.status == "on_order":
+            rider.status = "active"
 
 
 def read_request_data():
@@ -387,7 +403,7 @@ def riders():
                 )
             )
 
-        if status in {"active", "inactive"}:
+        if status:
             query = query.filter(Rider.status == status)
 
         if availability in {
@@ -748,17 +764,20 @@ def assign_rider(order_id):
         if rider is None:
             return error_response("Rider not found.", 404)
 
-        if rider.status != "active":
+        if rider.status in {
+            "inactive", "absent", "scheduled_break", "on_order"
+        }:
             return error_response(
-                "Only active riders can be assigned.",
+                "Only eligible riders can be assigned.",
                 400
             )
+
         if rider.availability != "available":
             return error_response(
-                "only available riders can be assigned.",
+                "Only available riders can be assigned.",
                 400
             )
- 
+
         order.rider_id = rider.id
 
     try:
@@ -808,27 +827,35 @@ def dashboard():
 
         total_riders = Rider.query.count()
 
-        active_riders = Rider.query.filter_by(
-            status="active"
+        active_riders = Rider.query.filter(
+            Rider.status.notin_(["inactive", "absent"])
         ).count()
 
-        available_riders = Rider.query.filter_by(
-            availability="available",
-            status="active"
-        ).count()
+        available_rider_query = Rider.query.filter_by(
+            availability="available"
+        ).filter(
+            Rider.status.notin_(
+                ["inactive", "absent", "on_order", "scheduled_break"]
+            )
+        )
 
-        busy_riders = Rider.query.filter_by(
-            availability="busy"
+        available_riders = available_rider_query.count()
+
+        busy_riders = Rider.query.filter(
+            or_(
+                Rider.availability == "busy",
+                Rider.status == "on_order"    
+                            
+            )
         ).count()
 
         recent_orders = Order.query.order_by(
             Order.created_at.desc()
         ).limit(5).all()
 
-        available_rider_list = Rider.query.filter_by(
-            status="active",
-            availability="available"
-        ).order_by(Rider.id.asc()).limit(10).all()
+        available_rider_list = available_rider_query.order_by(
+            Rider.id.asc()
+        ).limit(10).all()
 
         data = {
             "summary": {

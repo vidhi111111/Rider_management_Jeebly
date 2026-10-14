@@ -2,7 +2,7 @@ import os
 
 from flask import Flask, jsonify
 from flask_cors import CORS
-
+from flask_migrate import Migrate
 from .extensions import db, bcrypt
 from .routes import register_routes
 
@@ -56,7 +56,8 @@ def create_app() -> Flask:
 
     db.init_app(app)
     bcrypt.init_app(app)
-    register_routes(app)
+    Migrate(app, db)
+    register_routes(app)  
 
     @app.errorhandler(400)
     def bad_request(error):
