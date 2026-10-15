@@ -12,3 +12,4 @@ frontend/.angular/cache/
 *.env
 
 .vscode/
+backend/render_backup_before_fix.dump

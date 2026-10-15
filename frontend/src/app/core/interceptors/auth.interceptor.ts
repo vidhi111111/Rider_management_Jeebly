@@ -1,3 +1,4 @@
+
 import { Injectable } from '@angular/core';
 import {
   HttpEvent,
@@ -6,14 +7,13 @@ import {
   HttpRequest,
   HttpErrorResponse
 } from '@angular/common/http';
-
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-
 import { Router } from '@angular/router';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
+  private isRedirecting = false;
 
   constructor(private readonly router: Router) {}
 
@@ -21,34 +21,39 @@ export class AuthInterceptor implements HttpInterceptor {
     request: HttpRequest<any>,
     next: HttpHandler
   ): Observable<HttpEvent<any>> {
-
     const token = localStorage.getItem('access_token');
 
-    let authRequest = request;
-
-    if (token) {
-      authRequest = request.clone({
-        setHeaders: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-    }
+    const authRequest = token
+      ? request.clone({
+          setHeaders: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+      : request;
 
     return next.handle(authRequest).pipe(
-
       catchError((error: HttpErrorResponse) => {
+        const isAuthEndpoint =
+          request.url.includes('/login') ||
+          request.url.includes('/register');
 
-        if (error.status === 401) {
+        if (
+          error.status === 401 &&
+          !isAuthEndpoint &&
+          !this.isRedirecting
+        ) {
+          this.isRedirecting = true;
 
           localStorage.removeItem('access_token');
           localStorage.removeItem('current_user');
 
-          this.router.navigate(['/login']);
+          this.router.navigate(['/login']).finally(() => {
+            this.isRedirecting = false;
+          });
         }
 
         return throwError(() => error);
       })
-
     );
   }
 }
