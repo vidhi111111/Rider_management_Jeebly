@@ -1,15 +1,38 @@
+
+# Environment variables and secrets
+.env
+.env.*
+*.env
+**/.env
+**/.env.*
+
+# Python virtual environment
+.venv/
+venv/
 backend/.venv/
-backend/**/__pycache__/
-backend/**/*.pyc
 
+# Python cache files
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyc
 
+# Local database files
 backend/instance/*.db
+*.db
+*.sqlite
+*.sqlite3
 
+# Database backups - keep local, do not push
+backend/render_backup_before_fix.dump
+*.dump
+
+# Frontend dependencies and build cache
 frontend/node_modules/
 frontend/.angular/cache/
+frontend/dist/
 
-.env
-*.env
-
+# Editor and operating system files
 .vscode/
-backend/render_backup_before_fix.dump
+.DS_Store
+Thumbs.db

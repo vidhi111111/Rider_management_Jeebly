@@ -21,7 +21,7 @@ def authenticate_user(email, password):
     token = jwt.encode(
         {
             "user_id": user.id,
-            "exp": datetime.now(timezone.utc) + timedelta(hours=1)
+            "exp": datetime.now(timezone.utc) + timedelta(hours=5)
         },
         current_app.config["SECRET_KEY"],
         algorithm="HS256"

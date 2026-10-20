@@ -1,24 +1,32 @@
+
 import os
 
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
+from dotenv import load_dotenv
+
 from .extensions import db, bcrypt
 from .routes import register_routes
 
 
 def create_app() -> Flask:
+
+    load_dotenv()
+
     app = Flask(__name__)
 
     frontend_url = os.getenv(
         "FRONTEND_URL",
         "http://localhost:4200"
     )
+    database_url = os.getenv("DATABASE_URL")
 
-    database_url = os.getenv(
-        "DATABASE_URL",
-        "sqlite:///users.db"
-    )
+    if not database_url:
+        raise RuntimeError(
+            "DATABASE_URL is missing. Configure it in the "
+            "local .env file or Render Environment Variables."
+        )
 
     if database_url.startswith("postgres://"):
         database_url = database_url.replace(
@@ -35,15 +43,23 @@ def create_app() -> Flask:
 
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["SECRET_KEY"] = os.getenv(
-        "SECRET_KEY",
-        "1542e59d3455bb7ccdf57c8372e7de9377cc78efb1af36a8532d571e6aac792d"
-    )
 
-    allowed_origins = [
+    # Secret key configuration
+    secret_key = os.getenv("SECRET_KEY")
+
+    if not secret_key:
+        raise RuntimeError(
+            "SECRET_KEY is missing. Configure it in the "
+            "local .env file or Render Environment Variables."
+        )
+
+    app.config["SECRET_KEY"] = secret_key
+
+    # CORS configuration for local and deployed frontend
+    allowed_origins = list({
         "http://localhost:4200",
         frontend_url
-    ]
+    })
 
     CORS(
         app,
@@ -54,11 +70,15 @@ def create_app() -> Flask:
         }
     )
 
+    # Initialize extensions
     db.init_app(app)
     bcrypt.init_app(app)
     Migrate(app, db)
-    register_routes(app)  
 
+    # Register API routes
+    register_routes(app)
+
+    # Error handlers
     @app.errorhandler(400)
     def bad_request(error):
         return jsonify({
@@ -90,6 +110,8 @@ def create_app() -> Flask:
     @app.errorhandler(500)
     def internal_server_error(error):
         db.session.rollback()
+        app.logger.exception("Internal server error")
+
         return jsonify({
             "success": False,
             "message": "Internal server error."
@@ -98,15 +120,13 @@ def create_app() -> Flask:
     @app.errorhandler(Exception)
     def handle_exception(error):
         db.session.rollback()
+        app.logger.exception("Unhandled application error")
+
         return jsonify({
             "success": False,
             "message": "An unexpected error occurred."
         }), 500
 
-    with app.app_context():
-        from .models import User, Rider, Order
+    from .models import User, Rider, Order
 
-        db.create_all()
-
-        
     return app

@@ -33,9 +33,11 @@ export class AuthInterceptor implements HttpInterceptor {
 
     return next.handle(authRequest).pipe(
       catchError((error: HttpErrorResponse) => {
+        const url = request.url.toLowerCase();
+
         const isAuthEndpoint =
-          request.url.includes('/login') ||
-          request.url.includes('/register');
+          url.includes('/login') ||
+          url.includes('/register');
 
         if (
           error.status === 401 &&
@@ -47,7 +49,7 @@ export class AuthInterceptor implements HttpInterceptor {
           localStorage.removeItem('access_token');
           localStorage.removeItem('current_user');
 
-          this.router.navigate(['/login']).finally(() => {
+          this.router.navigateByUrl('/login').finally(() => {
             this.isRedirecting = false;
           });
         }

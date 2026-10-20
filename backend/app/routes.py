@@ -33,6 +33,8 @@ MAX_IMAGE_SIZE = 5 * 1024 * 1024
 def register_routes(app: Flask) -> None:
     app.register_blueprint(routes)
 
+# RIDER IMAGE HELPERS
+
 
 def get_upload_folder():
     folder = Path(current_app.root_path) / "uploads"
@@ -95,6 +97,8 @@ def delete_rider_image(filename):
 def rider_upload(filename):
     return send_from_directory(get_upload_folder(), filename)
 
+# SERIALIZATION
+
 
 def serialize_rider(rider):
     image_url = None
@@ -123,14 +127,30 @@ def serialize_order(order):
     return {
         "id": order.id,
         "customer_name": order.customer_name,
+        "mobile": order.mobile,
+        "pickup": order.pickup,
+        "delivery": order.delivery,
+        "amount": (
+            float(order.amount)
+            if order.amount is not None
+            else None
+        ),
+        "currency": order.currency,
         "status": order.status,
         "created_at": (
             order.created_at.isoformat()
-            if order.created_at else None
+            if order.created_at
+            else None
         ),
         "rider_id": order.rider_id,
-        "rider": serialize_rider(order.rider) if order.rider else None
+        "rider": (
+            serialize_rider(order.rider)
+            if order.rider
+            else None
+        )
     }
+
+# RIDER VALIDATION AND AVAILABILITY
 
 
 def validate_rider_data(data):
@@ -149,12 +169,16 @@ def validate_rider_data(data):
     if not name:
         errors["name"] = "Name is required."
     elif len(name) < 2 or len(name) > 100:
-        errors["name"] = "Name must contain between 2 and 100 characters."
+        errors["name"] = (
+            "Name must contain between 2 and 100 characters."
+        )
 
     if not mobile:
         errors["mobile"] = "Mobile number is required."
     elif not mobile.isdigit() or len(mobile) != 10:
-        errors["mobile"] = "Mobile number must contain exactly 10 digits."
+        errors["mobile"] = (
+            "Mobile number must contain exactly 10 digits."
+        )
 
     if not email:
         errors["email"] = "Email is required."
@@ -168,17 +192,23 @@ def validate_rider_data(data):
     elif len(vehicle) > 100:
         errors["vehicle"] = "Vehicle cannot exceed 100 characters."
 
-    if status not in {
+    valid_statuses = {
         "active",
         "inactive",
         "available",
         "on_order",
         "scheduled_break",
         "absent"
-    }:
+    }
+
+    if status not in valid_statuses:
         errors["status"] = "Invalid rider status."
 
-    if availability not in {"available", "busy", "unavailable"}:
+    if availability not in {
+        "available",
+        "busy",
+        "unavailable"
+    }:
         errors["availability"] = (
             "Availability must be available, busy, or unavailable."
         )
@@ -195,7 +225,11 @@ def validate_rider_data(data):
         except ValueError:
             errors["date"] = "Date must be in YYYY-MM-DD format."
 
-    if status in {"inactive", "absent", "scheduled_break"}:
+    if status in {
+        "inactive",
+        "absent",
+        "scheduled_break"
+    }:
         availability = "unavailable"
     elif status == "on_order":
         availability = "busy"
@@ -212,7 +246,11 @@ def validate_rider_data(data):
 
 
 def refresh_rider_availability(rider):
-    if rider.status in {"inactive", "absent", "scheduled_break"}:
+    if rider.status in {
+        "inactive",
+        "absent",
+        "scheduled_break"
+    }:
         rider.availability = "unavailable"
         return
 
@@ -225,10 +263,12 @@ def refresh_rider_availability(rider):
 
     if active_orders:
         rider.availability = "busy"
+
         if rider.status == "active":
             rider.status = "on_order"
     else:
         rider.availability = "available"
+
         if rider.status == "on_order":
             rider.status = "active"
 
@@ -242,6 +282,10 @@ def read_request_data():
 
     return None
 
+
+# =========================================================
+# HEALTH
+# =========================================================
 
 @routes.get("/health")
 def health():
@@ -352,7 +396,7 @@ def login():
     token = jwt.encode(
         {
             "user_id": user.id,
-            "exp": datetime.now(timezone.utc) + timedelta(seconds=60)
+            "exp": datetime.now(timezone.utc) + timedelta(hours=2)
         },
         current_app.config["SECRET_KEY"],
         algorithm="HS256"
@@ -370,6 +414,7 @@ def login():
         }
     }), 200
 
+# RIDER LIST WITH SERVER-SIDE FILTERING AND PAGINATION
 
 @routes.get("/riders")
 @auth_required
@@ -395,6 +440,7 @@ def riders():
 
         if search:
             search_value = f"%{search}%"
+
             query = query.filter(
                 or_(
                     Rider.name.ilike(search_value),
@@ -407,7 +453,9 @@ def riders():
             query = query.filter(Rider.status == status)
 
         if availability in {
-            "available", "busy", "unavailable"
+            "available",
+            "busy",
+            "unavailable"
         }:
             query = query.filter(
                 Rider.availability == availability
@@ -456,6 +504,7 @@ def riders():
         current_app.logger.exception("Unable to retrieve riders.")
         return error_response("Unable to retrieve riders.", 500)
 
+# CREATE RIDER
 
 @routes.post("/riders")
 @auth_required
@@ -528,6 +577,43 @@ def create_rider():
         201
     )
 
+# AVAILABLE RIDERS FOR ORDER ASSIGNMENT
+# Keep this route before /riders/<int:rider_id>.
+
+@routes.get("/riders/available")
+@auth_required
+def available_riders():
+    try:
+        riders_list = Rider.query.filter(
+            Rider.availability == "available",
+            Rider.status.notin_([
+                "inactive",
+                "absent",
+                "scheduled_break",
+                "on_order"
+            ])
+        ).order_by(Rider.name.asc()).all()
+
+        return success_response(
+            "Available riders retrieved successfully.",
+            {
+                "riders": [
+                    serialize_rider(rider)
+                    for rider in riders_list
+                ]
+            }
+        )
+
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Unable to retrieve available riders."
+        )
+        return error_response(
+            "Unable to retrieve available riders.", 500
+        )
+
+# GET RIDER DETAILS
 
 @routes.get("/riders/<int:rider_id>")
 @auth_required
@@ -553,6 +639,7 @@ def get_rider(rider_id):
             "Unable to retrieve rider details.", 500
         )
 
+# UPDATE RIDER
 
 @routes.put("/riders/<int:rider_id>")
 @auth_required
@@ -642,6 +729,7 @@ def update_rider(rider_id):
         serialize_rider(rider)
     )
 
+# DELETE RIDER
 
 @routes.delete("/riders/<int:rider_id>")
 @auth_required
@@ -676,7 +764,8 @@ def delete_rider(rider_id):
         {"id": rider_id}
     )
 
-
+# ORDERS LIST
+# Server-side pagination, search, status and rider filtering
 @routes.get("/orders")
 @auth_required
 def orders():
@@ -694,12 +783,24 @@ def orders():
         query = Order.query
 
         if search:
-            query = query.filter(
-                Order.customer_name.ilike(f"%{search}%")
-            )
+            search_value = f"%{search}%"
+
+            search_conditions = [
+                Order.customer_name.ilike(search_value),
+                Order.mobile.ilike(search_value)
+            ]
+
+            if search.isdigit():
+                search_conditions.append(
+                    Order.id == int(search)
+                )
+
+            query = query.filter(or_(*search_conditions))
 
         if status:
-            query = query.filter(Order.status == status)
+            query = query.filter(
+                db.func.lower(Order.status) == status
+            )
 
         if rider_id is not None:
             query = query.filter(Order.rider_id == rider_id)
@@ -731,78 +832,129 @@ def orders():
         current_app.logger.exception("Unable to retrieve orders.")
         return error_response("Unable to retrieve orders.", 500)
 
+# ORDER DETAILS BY ID
+# GET /orders/<order_id>
 
+@routes.get("/orders/<int:order_id>")
+@auth_required
+def get_order(order_id):
+    try:
+        order = db.session.get(Order, order_id)
+
+        if order is None:
+            return error_response("Order not found.", 404)
+
+        return success_response(
+            "Order details retrieved successfully.",
+            serialize_order(order)
+        )
+
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Unable to retrieve order %s.", order_id
+        )
+        return error_response(
+            "Unable to retrieve order details.", 500
+        )
+
+# ASSIGN RIDER TO ORDER
+# POST /orders/<order_id>/assign-rider
+#
+# JSON body:
+# {"rider_id": 12}
+#
+# To unassign:
+# {"rider_id": null}
+#
+# PATCH is also retained for backward compatibility.
+
+
+@routes.post("/orders/<int:order_id>/assign-rider")
 @routes.patch("/orders/<int:order_id>/assign-rider")
 @auth_required
 def assign_rider(order_id):
-    order = db.session.get(Order, order_id)
-
-    if order is None:
-        return error_response("Order not found.", 404)
-
-    data = request.get_json(silent=True)
-
-    if not isinstance(data, dict):
-        return error_response(
-            "A valid JSON object is required.",
-            400
-        )
-
-    previous_rider = order.rider
-    rider_id = data.get("rider_id")
-
-    if rider_id is None:
-        order.rider_id = None
-    else:
-        try:
-            rider_id = int(rider_id)
-        except (TypeError, ValueError):
-            return error_response("Invalid rider ID.", 400)
-
-        rider = db.session.get(Rider, rider_id)
-
-        if rider is None:
-            return error_response("Rider not found.", 404)
-
-        if rider.status in {
-            "inactive", "absent", "scheduled_break", "on_order"
-        }:
-            return error_response(
-                "Only eligible riders can be assigned.",
-                400
-            )
-
-        if rider.availability != "available":
-            return error_response(
-                "Only available riders can be assigned.",
-                400
-            )
-
-        order.rider_id = rider.id
-
     try:
+        order = db.session.get(Order, order_id)
+
+        if order is None:
+            return error_response("Order not found.", 404)
+
+        data = request.get_json(silent=True)
+
+        if not isinstance(data, dict) or "rider_id" not in data:
+            return error_response(
+                "A JSON object containing rider_id is required.",
+                400
+            )
+
+        previous_rider = order.rider
+        requested_rider_id = data.get("rider_id")
+
+        if requested_rider_id is None:
+            order.rider_id = None
+
+        else:
+            try:
+                requested_rider_id = int(requested_rider_id)
+
+                if requested_rider_id <= 0:
+                    raise ValueError
+
+            except (TypeError, ValueError):
+                return error_response("Invalid rider ID.", 400)
+
+            rider = db.session.get(Rider, requested_rider_id)
+
+            if rider is None:
+                return error_response("Rider not found.", 404)
+
+            if rider.status in {
+                "inactive",
+                "absent",
+                "scheduled_break",
+                "on_order"
+            }:
+                return error_response(
+                    "Only eligible riders can be assigned.",
+                    400
+                )
+
+            if rider.availability != "available":
+                return error_response(
+                    "Only available riders can be assigned.",
+                    400
+                )
+
+            order.rider_id = rider.id
+
         db.session.flush()
 
         if previous_rider:
             refresh_rider_availability(previous_rider)
 
-        if order.rider and (
+        current_rider = order.rider
+
+        if current_rider and (
             previous_rider is None
-            or order.rider.id != previous_rider.id
+            or current_rider.id != previous_rider.id
         ):
-            refresh_rider_availability(order.rider)
+            refresh_rider_availability(current_rider)
 
         db.session.commit()
 
+        return success_response(
+            "Order assignment updated successfully.",
+            serialize_order(order)
+        )
+
     except SQLAlchemyError:
         db.session.rollback()
-        current_app.logger.exception("Unable to assign rider.")
+        current_app.logger.exception(
+            "Unable to assign rider to order %s.", order_id
+        )
         return error_response("Unable to assign rider.", 500)
 
-    return success_response(
-        "Order assignment updated successfully.",
-        serialize_order(order)
-    )
 
 
 @routes.get("/dashboard")
@@ -834,18 +986,20 @@ def dashboard():
         available_rider_query = Rider.query.filter_by(
             availability="available"
         ).filter(
-            Rider.status.notin_(
-                ["inactive", "absent", "on_order", "scheduled_break"]
-            )
+            Rider.status.notin_([
+                "inactive",
+                "absent",
+                "on_order",
+                "scheduled_break"
+            ])
         )
 
-        available_riders = available_rider_query.count()
+        available_riders_count = available_rider_query.count()
 
         busy_riders = Rider.query.filter(
             or_(
                 Rider.availability == "busy",
-                Rider.status == "on_order"    
-                            
+                Rider.status == "on_order"
             )
         ).count()
 
@@ -867,7 +1021,7 @@ def dashboard():
             "rider_summary": {
                 "total": total_riders,
                 "active": active_riders,
-                "available": available_riders,
+                "available": available_riders_count,
                 "busy": busy_riders
             },
             "recent_orders": [
@@ -877,7 +1031,8 @@ def dashboard():
                     "customer": order.customer_name,
                     "created_at": (
                         order.created_at.isoformat()
-                        if order.created_at else None
+                        if order.created_at
+                        else None
                     ),
                     "rider_id": order.rider_id
                 }

@@ -30,13 +30,46 @@ class Order(db.Model):
     __tablename__ = "order"
 
     id = db.Column(db.Integer, primary_key=True)
-    customer_name = db.Column(db.String(100), nullable=False)
-    status = db.Column(db.String(30), nullable=False, default="pending")
+
+    customer_name = db.Column(
+        db.String(100),
+        nullable=False
+    )
+
+    mobile = db.Column(db.String(20), nullable=True)
+    pickup = db.Column(db.String(255), nullable=True)
+    delivery = db.Column(db.String(255), nullable=True)
+
+    amount = db.Column(
+        db.Numeric(12, 2),
+        nullable=True
+    )
+
+    currency = db.Column(
+        db.String(10),
+        nullable=False,
+        default="AED"
+    )
+
+    status = db.Column(
+        db.String(30),
+        nullable=False,
+        default="pending"
+    )
+
     created_at = db.Column(
         db.DateTime,
         nullable=True,
         default=lambda: datetime.now(timezone.utc)
     )
-    rider_id = db.Column(db.Integer, db.ForeignKey("rider.id"), nullable=True)
-    rider = db.relationship("Rider", backref="orders")
 
+    rider_id = db.Column(
+        db.Integer,
+        db.ForeignKey("rider.id"),
+        nullable=True
+    )
+
+    rider = db.relationship(
+        "Rider",
+        backref="orders"
+    )
