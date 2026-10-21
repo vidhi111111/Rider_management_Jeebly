@@ -7,13 +7,8 @@ from pathlib import Path
 
 import jwt
 from flask import (
-    Blueprint,
-    Flask,
-    current_app,
-    jsonify,
-    request,
-    send_from_directory,
-    url_for
+    Blueprint, Flask, current_app, jsonify, request,
+    send_from_directory, url_for
 )
 from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
@@ -25,11 +20,17 @@ from .validators import validate_registration
 from .Middleware import auth_required
 from .responses import success_response, error_response
 
-
 routes = Blueprint("routes", __name__)
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 MAX_IMAGE_SIZE = 5 * 1024 * 1024
+TERMINAL_STATUSES = {"delivered", "cancelled", "completed"}
+
+# Business workflow statuses. Keep these consistent with the frontend.
+ORDER_STATUSES = {
+    "pending", "accepted", "picked_up", "in_transit",
+    "delivered", "cancelled"
+}
 
 
 def register_routes(app: Flask) -> None:
@@ -37,69 +38,149 @@ def register_routes(app: Flask) -> None:
 
 
 # =========================================================
-# RIDER IMAGE HELPERS
+# IMAGE HELPERS: CLOUDINARY OPTIONAL, LOCAL FALLBACK
 # =========================================================
 
-def get_upload_folder():
-    folder = Path(current_app.root_path) / "uploads"
-    folder.mkdir(parents=True, exist_ok=True)
-    return folder
+def cloudinary_enabled():
+    return bool(
+        current_app.config.get("CLOUDINARY_CLOUD_NAME")
+        or os.getenv("CLOUDINARY_CLOUD_NAME")
+    )
 
 
-def save_rider_image(file):
+def upload_rider_image(file):
     if not file or not file.filename:
         return None, None
 
     safe_name = secure_filename(file.filename)
-
     if not safe_name or "." not in safe_name:
         return None, "Invalid image filename."
 
     extension = safe_name.rsplit(".", 1)[1].lower()
-
     if extension not in ALLOWED_IMAGE_EXTENSIONS:
         return None, "Only JPG, JPEG, PNG and WEBP images are allowed."
 
     file.stream.seek(0, os.SEEK_END)
-    file_size = file.stream.tell()
+    size = file.stream.tell()
     file.stream.seek(0)
 
-    if file_size == 0:
+    if size == 0:
         return None, "The selected image is empty."
-
-    if file_size > MAX_IMAGE_SIZE:
+    if size > MAX_IMAGE_SIZE:
         return None, "Image size must not exceed 5 MB."
 
+    if cloudinary_enabled():
+        try:
+            import cloudinary
+            import cloudinary.uploader
+
+            cloudinary.config(
+                cloud_name=(
+                    current_app.config.get("CLOUDINARY_CLOUD_NAME")
+                    or os.getenv("CLOUDINARY_CLOUD_NAME")
+                ),
+                api_key=(
+                    current_app.config.get("CLOUDINARY_API_KEY")
+                    or os.getenv("CLOUDINARY_API_KEY")
+                ),
+                api_secret=(
+                    current_app.config.get("CLOUDINARY_API_SECRET")
+                    or os.getenv("CLOUDINARY_API_SECRET")
+                ),
+                secure=True
+            )
+
+            result = cloudinary.uploader.upload(
+                file,
+                folder="jeebly/riders",
+                resource_type="image"
+            )
+            return {
+                "url": result["secure_url"],
+                "public_id": result["public_id"],
+                "storage": "cloudinary"
+            }, None
+
+        except Exception:
+            current_app.logger.exception("Cloudinary upload failed.")
+            return None, "Unable to upload image to Cloudinary."
+
+    # Local fallback when Cloudinary credentials are not configured.
+    folder = Path(current_app.root_path) / "uploads"
+    folder.mkdir(parents=True, exist_ok=True)
     filename = f"{uuid.uuid4().hex}.{extension}"
-    destination = get_upload_folder() / filename
 
     try:
-        file.save(str(destination))
+        file.save(str(folder / filename))
     except OSError:
-        current_app.logger.exception("Unable to save rider image.")
-        return None, "Unable to save the uploaded image."
+        current_app.logger.exception("Local image upload failed.")
+        return None, "Unable to save uploaded image."
 
-    return filename, None
+    return {
+        "url": url_for(
+            "routes.rider_upload",
+            filename=filename,
+            _external=True
+        ),
+        "public_id": filename,
+        "storage": "local"
+    }, None
 
 
-def delete_rider_image(filename):
-    if not filename:
+def delete_rider_image(image_value):
+    if not image_value:
         return
 
-    safe_name = os.path.basename(filename)
+    # Existing records may contain a Cloudinary URL or local filename.
+    value = str(image_value)
+
+    if "res.cloudinary.com/" in value:
+        try:
+            import cloudinary
+            import cloudinary.uploader
+
+            cloudinary.config(
+                cloud_name=(
+                    current_app.config.get("CLOUDINARY_CLOUD_NAME")
+                    or os.getenv("CLOUDINARY_CLOUD_NAME")
+                ),
+                api_key=(
+                    current_app.config.get("CLOUDINARY_API_KEY")
+                    or os.getenv("CLOUDINARY_API_KEY")
+                ),
+                api_secret=(
+                    current_app.config.get("CLOUDINARY_API_SECRET")
+                    or os.getenv("CLOUDINARY_API_SECRET")
+                ),
+                secure=True
+            )
+
+            # URL alone does not safely identify every Cloudinary asset's
+            # public_id. Do not guess and accidentally delete another asset.
+            current_app.logger.info(
+                "Cloudinary image retained; store public_id to enable deletion."
+            )
+        except Exception:
+            current_app.logger.exception("Cloudinary cleanup failed.")
+        return
+
+    filename = os.path.basename(value)
+    folder = Path(current_app.root_path) / "uploads"
 
     try:
-        image_path = get_upload_folder() / safe_name
-
-        if image_path.is_file():
-            image_path.unlink()
+        path = folder / filename
+        if path.is_file():
+            path.unlink()
     except OSError:
-        current_app.logger.exception("Unable to delete rider image.")
+        current_app.logger.exception("Unable to delete local rider image.")
 
 
 @routes.get("/rider-uploads/<path:filename>")
 def rider_upload(filename):
-    return send_from_directory(get_upload_folder(), filename)
+    return send_from_directory(
+        Path(current_app.root_path) / "uploads",
+        filename
+    )
 
 
 # =========================================================
@@ -107,14 +188,19 @@ def rider_upload(filename):
 # =========================================================
 
 def serialize_rider(rider):
-    image_url = None
+    image = rider.profile_image
 
-    if rider.profile_image:
+    # If stored value is already a URL, return it directly.
+    if image and str(image).startswith(("https://", "http://")):
+        image_url = image
+    elif image:
         image_url = url_for(
             "routes.rider_upload",
-            filename=rider.profile_image,
+            filename=image,
             _external=True
         )
+    else:
+        image_url = None
 
     return {
         "id": rider.id,
@@ -136,25 +222,32 @@ def serialize_order(order):
         "mobile": order.mobile,
         "pickup": order.pickup,
         "delivery": order.delivery,
-        "amount": (
-            float(order.amount)
-            if order.amount is not None
-            else None
-        ),
+        "amount": float(order.amount) if order.amount is not None else None,
         "currency": order.currency,
         "status": order.status,
         "created_at": (
             order.created_at.isoformat()
-            if order.created_at
-            else None
+            if order.created_at else None
         ),
         "rider_id": order.rider_id,
-        "rider": (
-            serialize_rider(order.rider)
-            if order.rider
-            else None
-        )
+        "rider": serialize_rider(order.rider) if order.rider else None
     }
+
+
+# =========================================================
+# REQUEST HELPERS
+# =========================================================
+
+def read_request_data():
+    if request.is_json:
+        return request.get_json(silent=True)
+    if request.form:
+        return request.form.to_dict()
+    return None
+
+
+def get_user_id():
+    return getattr(request, "user_id", None)
 
 
 # =========================================================
@@ -174,70 +267,41 @@ def validate_rider_data(data):
     ).strip().lower()
     date_value = str(data.get("date", "")).strip()
 
-    if not name:
-        errors["name"] = "Name is required."
-    elif len(name) < 2 or len(name) > 100:
-        errors["name"] = (
-            "Name must contain between 2 and 100 characters."
-        )
+    if not name or not 2 <= len(name) <= 100:
+        errors["name"] = "Name must contain 2 to 100 characters."
 
-    if not mobile:
-        errors["mobile"] = "Mobile number is required."
-    elif not mobile.isdigit() or len(mobile) != 10:
-        errors["mobile"] = (
-            "Mobile number must contain exactly 10 digits."
-        )
+    if not mobile.isdigit() or len(mobile) != 10:
+        errors["mobile"] = "Mobile number must contain 10 digits."
 
-    if not email:
-        errors["email"] = "Email is required."
-    elif "@" not in email or "." not in email.split("@")[-1]:
+    if (
+        not email
+        or "@" not in email
+        or "." not in email.split("@")[-1]
+        or len(email) > 120
+    ):
         errors["email"] = "Enter a valid email address."
-    elif len(email) > 120:
-        errors["email"] = "Email cannot exceed 120 characters."
 
-    if not vehicle:
-        errors["vehicle"] = "Vehicle is required."
-    elif len(vehicle) > 100:
-        errors["vehicle"] = "Vehicle cannot exceed 100 characters."
+    if not vehicle or len(vehicle) > 100:
+        errors["vehicle"] = "Vehicle is required (maximum 100 characters)."
 
-    valid_statuses = {
-        "active",
-        "inactive",
-        "available",
-        "on_order",
-        "scheduled_break",
-        "absent"
+    valid_rider_statuses = {
+        "active", "inactive", "available", "on_order",
+        "scheduled_break", "absent"
     }
 
-    if status not in valid_statuses:
+    if status not in valid_rider_statuses:
         errors["status"] = "Invalid rider status."
 
-    if availability not in {
-        "available",
-        "busy",
-        "unavailable"
-    }:
-        errors["availability"] = (
-            "Availability must be available, busy, or unavailable."
-        )
+    if availability not in {"available", "busy", "unavailable"}:
+        errors["availability"] = "Invalid rider availability."
 
     parsed_date = None
+    try:
+        parsed_date = datetime.strptime(date_value, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        errors["date"] = "Date must use YYYY-MM-DD format."
 
-    if not date_value:
-        errors["date"] = "Date is required."
-    else:
-        try:
-            parsed_date = datetime.strptime(
-                date_value, "%Y-%m-%d"
-            ).date()
-        except ValueError:
-            errors["date"] = "Date must be in YYYY-MM-DD format."
-
-    if status in {
-        "inactive",
-        "absent",
-        "scheduled_break"
-    }:
+    if status in {"inactive", "absent", "scheduled_break"}:
         availability = "unavailable"
     elif status == "on_order":
         availability = "busy"
@@ -254,45 +318,37 @@ def validate_rider_data(data):
 
 
 def refresh_rider_availability(rider):
-    if rider.status in {
-        "inactive",
-        "absent",
-        "scheduled_break"
-    }:
+    if rider.status in {"inactive", "absent", "scheduled_break"}:
         rider.availability = "unavailable"
         return
 
     active_orders = Order.query.filter(
         Order.rider_id == rider.id,
-        Order.status.notin_(
+        db.func.lower(Order.status).notin_(
             ["delivered", "cancelled", "completed"]
         )
     ).count()
 
+    if active_orders > 0:
+        rider.availability = "busy"
+        rider.status = "on_order"
+    else:
+        rider.availability = "available"
+        if rider.status == "on_order":
+            rider.status = "active"
+
     if active_orders:
         rider.availability = "busy"
-
-        if rider.status == "active":
+        if rider.status in {"active", "available"}:
             rider.status = "on_order"
     else:
         rider.availability = "available"
-
         if rider.status == "on_order":
             rider.status = "active"
 
 
-def read_request_data():
-    if request.form:
-        return request.form.to_dict()
-
-    if request.is_json:
-        return request.get_json(silent=True)
-
-    return None
-
-
 # =========================================================
-# HEALTH
+# HEALTH, REGISTRATION AND LOGIN
 # =========================================================
 
 @routes.get("/health")
@@ -303,26 +359,16 @@ def health():
     }), 200
 
 
-# =========================================================
-# REGISTRATION
-# =========================================================
-
 @routes.post("/register")
 def register():
     if not request.is_json:
-        return error_response(
-            "Content-Type must be application/json.", 415
-        )
+        return error_response("Content-Type must be application/json.", 415)
 
     data = request.get_json(silent=True)
-
     if not isinstance(data, dict):
-        return error_response(
-            "A valid JSON object is required.", 400
-        )
+        return error_response("A valid JSON object is required.", 400)
 
     errors = validate_registration(data)
-
     if errors:
         return jsonify({
             "success": False,
@@ -337,7 +383,6 @@ def register():
 
     if User.query.filter_by(email=email).first():
         return error_response("Email already registered.", 409)
-
     if User.query.filter_by(mobile=mobile).first():
         return error_response("Mobile number already registered.", 409)
 
@@ -345,9 +390,7 @@ def register():
         name=name,
         email=email,
         mobile=mobile,
-        password=bcrypt.generate_password_hash(
-            password
-        ).decode("utf-8")
+        password=bcrypt.generate_password_hash(password).decode("utf-8")
     )
 
     try:
@@ -370,38 +413,23 @@ def register():
     )
 
 
-# =========================================================
-# LOGIN
-# =========================================================
-
 @routes.post("/login")
 def login():
     if not request.is_json:
-        return error_response(
-            "Content-Type must be application/json.", 415
-        )
+        return error_response("Content-Type must be application/json.", 415)
 
     data = request.get_json(silent=True)
-
     if not isinstance(data, dict):
-        return error_response(
-            "A valid JSON object is required.", 400
-        )
+        return error_response("A valid JSON object is required.", 400)
 
     email = str(data.get("email", "")).strip().lower()
     password = str(data.get("password", ""))
 
     if not email or not password:
-        return error_response(
-            "Email and password are required.", 400
-        )
+        return error_response("Email and password are required.", 400)
 
     user = User.query.filter_by(email=email).first()
-
-    if (
-        not user
-        or not bcrypt.check_password_hash(user.password, password)
-    ):
+    if not user or not bcrypt.check_password_hash(user.password, password):
         return error_response("Invalid email or password.", 401)
 
     token = jwt.encode(
@@ -427,7 +455,7 @@ def login():
 
 
 # =========================================================
-# RIDER LIST
+# RIDER LIST AND DETAILS
 # =========================================================
 
 @routes.get("/riders")
@@ -435,134 +463,130 @@ def login():
 def riders():
     try:
         page = max(request.args.get("page", 1, type=int), 1)
-        page_size = min(
-            max(request.args.get("pageSize", 10, type=int), 1),
-            100
-        )
-
+        page_size = min(max(request.args.get("pageSize", 10, type=int), 1), 100)
         search = request.args.get("search", "").strip()
         status = request.args.get("status", "").strip().lower()
-        availability = request.args.get(
-            "availability", ""
-        ).strip().lower()
+        availability = request.args.get("availability", "").strip().lower()
         sort_by = request.args.get("sortBy", "id").strip()
-        sort_order = request.args.get(
-            "sortOrder", "asc"
-        ).strip().lower()
+        sort_order = request.args.get("sortOrder", "asc").strip().lower()
 
         query = Rider.query
 
         if search:
-            search_value = f"%{search}%"
-            query = query.filter(
-                or_(
-                    Rider.name.ilike(search_value),
-                    Rider.mobile.ilike(search_value),
-                    Rider.email.ilike(search_value)
-                )
-            )
+            value = f"%{search}%"
+            query = query.filter(or_(
+                Rider.name.ilike(value),
+                Rider.mobile.ilike(value),
+                Rider.email.ilike(value)
+            ))
 
         if status:
-            query = query.filter(Rider.status == status)
+            query = query.filter(db.func.lower(Rider.status) == status)
 
         if availability in {"available", "busy", "unavailable"}:
             query = query.filter(Rider.availability == availability)
 
         sort_columns = {
-            "id": Rider.id,
-            "name": Rider.name,
-            "mobile": Rider.mobile,
-            "email": Rider.email,
-            "vehicle": Rider.vehicle,
-            "status": Rider.status,
-            "availability": Rider.availability,
-            "date": Rider.date
+            "id": Rider.id, "name": Rider.name,
+            "mobile": Rider.mobile, "email": Rider.email,
+            "vehicle": Rider.vehicle, "status": Rider.status,
+            "availability": Rider.availability, "date": Rider.date
         }
-
-        sort_column = sort_columns.get(sort_by, Rider.id)
-
-        if sort_order == "desc":
-            query = query.order_by(sort_column.desc())
-        else:
-            query = query.order_by(sort_column.asc())
+        column = sort_columns.get(sort_by, Rider.id)
+        query = query.order_by(
+            column.desc() if sort_order == "desc" else column.asc()
+        )
 
         pagination = query.paginate(
-            page=page,
-            per_page=page_size,
-            error_out=False
+            page=page, per_page=page_size, error_out=False
         )
 
-        return success_response(
-            "Riders retrieved successfully.",
-            {
-                "riders": [
-                    serialize_rider(rider)
-                    for rider in pagination.items
-                ],
-                "page": pagination.page,
-                "pageSize": pagination.per_page,
-                "totalRecords": pagination.total,
-                "totalPages": pagination.pages
-            }
-        )
-
+        return success_response("Riders retrieved successfully.", {
+            "riders": [serialize_rider(r) for r in pagination.items],
+            "page": pagination.page,
+            "pageSize": pagination.per_page,
+            "totalRecords": pagination.total,
+            "totalPages": pagination.pages
+        })
     except SQLAlchemyError:
         db.session.rollback()
         current_app.logger.exception("Unable to retrieve riders.")
         return error_response("Unable to retrieve riders.", 500)
 
 
-# =========================================================
-# CREATE RIDER
-# =========================================================
+@routes.get("/riders/available")
+@auth_required
+def available_riders():
+    try:
+        # Reconcile availability before returning the list.
+        rider_list = Rider.query.order_by(Rider.name.asc()).all()
+        for rider in rider_list:
+            refresh_rider_availability(rider)
+        db.session.commit()
+
+        eligible = [
+            r for r in rider_list
+            if r.availability == "available"
+            and r.status not in {
+                "inactive", "absent", "scheduled_break", "on_order"
+            }
+        ]
+
+        return success_response("Available riders retrieved successfully.", {
+            "riders": [serialize_rider(r) for r in eligible]
+        })
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Unable to retrieve available riders.")
+        return error_response("Unable to retrieve available riders.", 500)
+
+
+@routes.get("/riders/<int:rider_id>")
+@auth_required
+def get_rider(rider_id):
+    rider = db.session.get(Rider, rider_id)
+    if rider is None:
+        return error_response("Rider not found.", 404)
+    return success_response("Rider retrieved successfully.", serialize_rider(rider))
+
 
 @routes.post("/riders")
 @auth_required
 def create_rider():
     data = read_request_data()
-
     if not isinstance(data, dict):
-        return error_response(
-            "A valid JSON or form body is required.", 400
-        )
+        return error_response("A valid JSON or form body is required.", 400)
 
-    errors, rider_data = validate_rider_data(data)
-
+    errors, values = validate_rider_data(data)
     if errors:
         return jsonify({
-            "success": False,
-            "message": "Validation failed.",
-            "errors": errors
+            "success": False, "message": "Validation failed.", "errors": errors
         }), 400
 
-    if Rider.query.filter_by(mobile=rider_data["mobile"]).first():
-        return error_response(
-            "Mobile number already registered.", 409
-        )
+    if Rider.query.filter_by(mobile=values["mobile"]).first():
+        return error_response("Mobile number already registered.", 409)
+    if Rider.query.filter_by(email=values["email"]).first():
+        return error_response("Email already registered.", 409)
 
-    if Rider.query.filter_by(email=rider_data["email"]).first():
-        return error_response(
-            "Email already registered.", 409
-        )
-
+    uploaded = None
     image_file = request.files.get("profile_image")
-    image_filename = None
-
     if image_file and image_file.filename:
-        image_filename, image_error = save_rider_image(image_file)
-
+        uploaded, image_error = upload_rider_image(image_file)
         if image_error:
             return error_response(image_error, 400)
 
+    # NOTE: profile_image stores a string in the existing model.
+    image_value = uploaded["url"] if uploaded else None
+
     rider = Rider(
-        name=rider_data["name"],
-        mobile=rider_data["mobile"],
-        email=rider_data["email"],
-        vehicle=rider_data["vehicle"],
-        status=rider_data["status"],
-        availability=rider_data["availability"],
-        date=rider_data["date"],
-        profile_image=image_filename
+        name=values["name"],
+        mobile=values["mobile"],
+        email=values["email"],
+        vehicle=values["vehicle"],
+        status=values["status"],
+        availability=values["availability"],
+        date=values["date"],
+        profile_image=image_value
     )
 
     try:
@@ -570,216 +594,99 @@ def create_rider():
         db.session.commit()
     except SQLAlchemyError:
         db.session.rollback()
-        delete_rider_image(image_filename)
         current_app.logger.exception("Unable to create rider.")
         return error_response("Database error occurred.", 500)
 
-    return success_response(
-        "Rider created successfully.",
-        serialize_rider(rider),
-        201
-    )
+    return success_response("Rider created successfully.", serialize_rider(rider), 201)
 
-
-# =========================================================
-# AVAILABLE RIDERS
-# =========================================================
-
-@routes.get("/riders/available")
-@auth_required
-def available_riders():
-    try:
-        riders_list = Rider.query.filter(
-            Rider.availability == "available",
-            Rider.status.notin_([
-                "inactive",
-                "absent",
-                "scheduled_break",
-                "on_order"
-            ])
-        ).order_by(Rider.name.asc()).all()
-
-        return success_response(
-            "Available riders retrieved successfully.",
-            {
-                "riders": [
-                    serialize_rider(rider)
-                    for rider in riders_list
-                ]
-            }
-        )
-
-    except SQLAlchemyError:
-        db.session.rollback()
-        current_app.logger.exception(
-            "Unable to retrieve available riders."
-        )
-        return error_response(
-            "Unable to retrieve available riders.", 500
-        )
-
-
-# =========================================================
-# GET RIDER DETAILS
-# =========================================================
-
-@routes.get("/riders/<int:rider_id>")
-@auth_required
-def get_rider(rider_id):
-    try:
-        rider = db.session.get(Rider, rider_id)
-
-        if rider is None:
-            return error_response("Rider not found.", 404)
-
-        return success_response(
-            "Rider retrieved successfully.",
-            serialize_rider(rider),
-            200
-        )
-
-    except SQLAlchemyError:
-        db.session.rollback()
-        current_app.logger.exception(
-            "Unable to retrieve rider %s.", rider_id
-        )
-        return error_response(
-            "Unable to retrieve rider details.", 500
-        )
-
-
-# =========================================================
-# UPDATE RIDER
-# =========================================================
 
 @routes.put("/riders/<int:rider_id>")
 @auth_required
 def update_rider(rider_id):
     rider = db.session.get(Rider, rider_id)
-
     if rider is None:
         return error_response("Rider not found.", 404)
 
     data = read_request_data()
-
     if not isinstance(data, dict):
-        return error_response(
-            "A valid JSON or form body is required.", 400
-        )
+        return error_response("A valid JSON or form body is required.", 400)
 
-    errors, rider_data = validate_rider_data(data)
-
+    errors, values = validate_rider_data(data)
     if errors:
         return jsonify({
-            "success": False,
-            "message": "Validation failed.",
-            "errors": errors
+            "success": False, "message": "Validation failed.", "errors": errors
         }), 400
 
-    existing_mobile = Rider.query.filter(
-        Rider.mobile == rider_data["mobile"],
-        Rider.id != rider_id
-    ).first()
+    if Rider.query.filter(
+        Rider.mobile == values["mobile"], Rider.id != rider_id
+    ).first():
+        return error_response("Mobile number already registered for another rider.", 409)
 
-    if existing_mobile:
-        return error_response(
-            "Mobile number already registered for another rider.",
-            409
-        )
-
-    existing_email = Rider.query.filter(
-        Rider.email == rider_data["email"],
-        Rider.id != rider_id
-    ).first()
-
-    if existing_email:
-        return error_response(
-            "Email already registered for another rider.",
-            409
-        )
+    if Rider.query.filter(
+        Rider.email == values["email"], Rider.id != rider_id
+    ).first():
+        return error_response("Email already registered for another rider.", 409)
 
     image_file = request.files.get("profile_image")
-    new_image_filename = None
-
+    new_image = None
     if image_file and image_file.filename:
-        new_image_filename, image_error = save_rider_image(image_file)
-
+        new_image, image_error = upload_rider_image(image_file)
         if image_error:
             return error_response(image_error, 400)
 
-    old_image_filename = rider.profile_image
+    rider.name = values["name"]
+    rider.mobile = values["mobile"]
+    rider.email = values["email"]
+    rider.vehicle = values["vehicle"]
+    rider.status = values["status"]
+    rider.availability = values["availability"]
+    rider.date = values["date"]
 
-    rider.name = rider_data["name"]
-    rider.mobile = rider_data["mobile"]
-    rider.email = rider_data["email"]
-    rider.vehicle = rider_data["vehicle"]
-    rider.status = rider_data["status"]
-    rider.availability = rider_data["availability"]
-    rider.date = rider_data["date"]
-
-    if new_image_filename:
-        rider.profile_image = new_image_filename
+    if new_image:
+        old_image = rider.profile_image
+        rider.profile_image = new_image["url"]
+    else:
+        old_image = None
 
     try:
         refresh_rider_availability(rider)
         db.session.commit()
     except SQLAlchemyError:
         db.session.rollback()
-        delete_rider_image(new_image_filename)
-        current_app.logger.exception(
-            "Unable to update rider %s.", rider_id
-        )
+        current_app.logger.exception("Unable to update rider.")
         return error_response("Database error occurred.", 500)
 
-    if new_image_filename:
-        delete_rider_image(old_image_filename)
+    if old_image:
+        delete_rider_image(old_image)
 
-    return success_response(
-        "Rider updated successfully.",
-        serialize_rider(rider)
-    )
+    return success_response("Rider updated successfully.", serialize_rider(rider))
 
-
-# =========================================================
-# DELETE RIDER
-# =========================================================
 
 @routes.delete("/riders/<int:rider_id>")
 @auth_required
 def delete_rider(rider_id):
     rider = db.session.get(Rider, rider_id)
-
     if rider is None:
         return error_response("Rider not found.", 404)
 
-    image_filename = rider.profile_image
-
     try:
         Order.query.filter_by(rider_id=rider.id).update(
-            {"rider_id": None},
-            synchronize_session=False
+            {"rider_id": None}, synchronize_session=False
         )
-
+        image = rider.profile_image
         db.session.delete(rider)
         db.session.commit()
-
     except SQLAlchemyError:
         db.session.rollback()
-        current_app.logger.exception(
-            "Unable to delete rider %s.", rider_id
-        )
+        current_app.logger.exception("Unable to delete rider.")
         return error_response("Unable to delete rider.", 500)
 
-    delete_rider_image(image_filename)
-
-    return success_response(
-        "Rider deleted successfully.",
-        {"id": rider_id}
-    )
+    delete_rider_image(image)
+    return success_response("Rider deleted successfully.", {"id": rider_id})
 
 
 # =========================================================
-# ORDERS LIST
+# ORDERS: SERVER-SIDE SEARCH, FILTERS, SORTING, PAGINATION
 # =========================================================
 
 @routes.get("/orders")
@@ -787,85 +694,68 @@ def delete_rider(rider_id):
 def orders():
     try:
         page = max(request.args.get("page", 1, type=int), 1)
-        page_size = min(
-            max(request.args.get("pageSize", 10, type=int), 1),
-            100
-        )
-
+        page_size = min(max(request.args.get("pageSize", 10, type=int), 1), 100)
         search = request.args.get("search", "").strip()
         status = request.args.get("status", "").strip().lower()
         rider_id = request.args.get("rider_id", type=int)
+        order_date = request.args.get("order_date", "").strip()
+        sort_by = request.args.get("sortBy", "newest").strip().lower()
 
         query = Order.query
 
         if search:
-            search_value = f"%{search}%"
-            search_conditions = [
-                Order.customer_name.ilike(search_value),
-                Order.mobile.ilike(search_value)
+            value = f"%{search}%"
+            conditions = [
+                Order.customer_name.ilike(value),
+                Order.mobile.ilike(value)
             ]
-
             if search.isdigit():
-                search_conditions.append(Order.id == int(search))
-
-            query = query.filter(or_(*search_conditions))
+                conditions.append(Order.id == int(search))
+            query = query.filter(or_(*conditions))
 
         if status:
-            query = query.filter(
-                db.func.lower(Order.status) == status
-            )
+            query = query.filter(db.func.lower(Order.status) == status)
 
         if rider_id is not None:
             query = query.filter(Order.rider_id == rider_id)
 
-        pagination = query.order_by(
-            Order.created_at.desc(),
-            Order.id.desc()
-        ).paginate(
-            page=page,
-            per_page=page_size,
-            error_out=False
+        if order_date:
+            try:
+                parsed_date = datetime.strptime(order_date, "%Y-%m-%d").date()
+                query = query.filter(db.func.date(Order.created_at) == parsed_date)
+            except ValueError:
+                return error_response("Invalid order_date. Use YYYY-MM-DD.", 400)
+
+        if sort_by == "oldest":
+            query = query.order_by(Order.created_at.asc(), Order.id.asc())
+        else:
+            query = query.order_by(Order.created_at.desc(), Order.id.desc())
+
+        pagination = query.paginate(
+            page=page, per_page=page_size, error_out=False
         )
 
-        return success_response(
-            "Orders retrieved successfully.",
-            {
-                "orders": [
-                    serialize_order(order)
-                    for order in pagination.items
-                ],
-                "page": pagination.page,
-                "pageSize": pagination.per_page,
-                "totalRecords": pagination.total,
-                "totalPages": pagination.pages
-            }
-        )
-
+        return success_response("Orders retrieved successfully.", {
+            "orders": [serialize_order(o) for o in pagination.items],
+            "page": pagination.page,
+            "pageSize": pagination.per_page,
+            "totalRecords": pagination.total,
+            "totalPages": pagination.pages
+        })
     except SQLAlchemyError:
         db.session.rollback()
         current_app.logger.exception("Unable to retrieve orders.")
         return error_response("Unable to retrieve orders.", 500)
 
 
-# =========================================================
-# CREATE ORDER
-# POST /orders
-# =========================================================
-
 @routes.post("/orders")
 @auth_required
 def create_order():
     data = request.get_json(silent=True)
-
     if not isinstance(data, dict):
-        return error_response(
-            "A valid JSON object is required.", 400
-        )
+        return error_response("A valid JSON object is required.", 400)
 
-    customer_name = str(
-        data.get("customer_name", "")
-    ).strip()
-
+    customer_name = str(data.get("customer_name", "")).strip()
     mobile = str(data.get("mobile") or "").strip()
     pickup = str(data.get("pickup") or "").strip()
     delivery = str(data.get("delivery") or "").strip()
@@ -873,37 +763,23 @@ def create_order():
 
     if not customer_name:
         return error_response("Customer name is required.", 400)
-
     if len(customer_name) > 100:
-        return error_response(
-            "Customer name cannot exceed 100 characters.", 400
-        )
-
+        return error_response("Customer name cannot exceed 100 characters.", 400)
     if len(mobile) > 20:
-        return error_response(
-            "Mobile number cannot exceed 20 characters.", 400
-        )
-
+        return error_response("Mobile number cannot exceed 20 characters.", 400)
     if len(pickup) > 255 or len(delivery) > 255:
-        return error_response(
-            "Pickup and delivery must not exceed 255 characters.",
-            400
-        )
-
+        return error_response("Pickup and delivery must not exceed 255 characters.", 400)
     if not currency or len(currency) > 10:
         return error_response("Invalid currency.", 400)
 
     amount = data.get("amount")
-
     if amount is not None:
         try:
             amount = float(amount)
             if not math.isfinite(amount) or amount < 0:
                 raise ValueError
         except (TypeError, ValueError):
-            return error_response(
-                "Amount must be a valid non-negative number.", 400
-            )
+            return error_response("Amount must be a valid non-negative number.", 400)
 
     order = Order(
         customer_name=customer_name,
@@ -919,51 +795,59 @@ def create_order():
     try:
         db.session.add(order)
         db.session.commit()
-
-        return success_response(
-            "Order created successfully.",
-            serialize_order(order),
-            201
-        )
-
+        return success_response("Order created successfully.", serialize_order(order), 201)
     except SQLAlchemyError:
         db.session.rollback()
         current_app.logger.exception("Unable to create order.")
         return error_response("Unable to create order.", 500)
 
 
-# =========================================================
-# ORDER DETAILS
-# =========================================================
-
 @routes.get("/orders/<int:order_id>")
 @auth_required
 def get_order(order_id):
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return error_response("Order not found.", 404)
+    return success_response("Order details retrieved successfully.", serialize_order(order))
+
+
+@routes.patch("/orders/<int:order_id>/status")
+@auth_required
+def update_order_status(order_id):
     try:
         order = db.session.get(Order, order_id)
-
         if order is None:
             return error_response("Order not found.", 404)
 
-        return success_response(
-            "Order details retrieved successfully.",
-            serialize_order(order)
-        )
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return error_response("A valid JSON body is required.", 400)
 
+        new_status = str(data.get("status", "")).strip().lower()
+        if new_status not in ORDER_STATUSES:
+            return error_response("Invalid order status.", 400)
+
+        current_status = str(order.status or "").strip().lower()
+        if current_status in TERMINAL_STATUSES:
+            return error_response(
+                "Delivered or cancelled orders cannot be changed.", 409
+            )
+
+        order.status = new_status
+        db.session.flush()
+
+        if order.rider:
+            refresh_rider_availability(order.rider)
+
+        db.session.commit()
+        return success_response(
+            "Order status updated successfully.", serialize_order(order)
+        )
     except SQLAlchemyError:
         db.session.rollback()
-        current_app.logger.exception(
-            "Unable to retrieve order %s.", order_id
-        )
-        return error_response(
-            "Unable to retrieve order details.", 500
-        )
+        current_app.logger.exception("Unable to update order status.")
+        return error_response("Unable to update order status.", 500)
 
-
-# =========================================================
-# ASSIGN RIDER TO ORDER
-# POST/PATCH /orders/<order_id>/assign-rider
-# =========================================================
 
 @routes.post("/orders/<int:order_id>/assign-rider")
 @routes.patch("/orders/<int:order_id>/assign-rider")
@@ -971,50 +855,40 @@ def get_order(order_id):
 def assign_rider(order_id):
     try:
         order = db.session.get(Order, order_id)
-
         if order is None:
             return error_response("Order not found.", 404)
 
-        data = request.get_json(silent=True)
+        if str(order.status or "").lower() in TERMINAL_STATUSES:
+            return error_response("Cannot assign a rider to a terminal order.", 409)
 
+        data = request.get_json(silent=True)
         if not isinstance(data, dict) or "rider_id" not in data:
-            return error_response(
-                "A JSON object containing rider_id is required.",
-                400
-            )
+            return error_response("A JSON object containing rider_id is required.", 400)
 
         previous_rider = order.rider
-        requested_rider_id = data.get("rider_id")
+        requested_id = data.get("rider_id")
 
-        if requested_rider_id is None:
+        if requested_id is None:
             order.rider_id = None
         else:
             try:
-                requested_rider_id = int(requested_rider_id)
-                if requested_rider_id <= 0:
+                requested_id = int(requested_id)
+                if requested_id <= 0:
                     raise ValueError
             except (TypeError, ValueError):
                 return error_response("Invalid rider ID.", 400)
 
-            rider = db.session.get(Rider, requested_rider_id)
-
+            rider = db.session.get(Rider, requested_id)
             if rider is None:
                 return error_response("Rider not found.", 404)
 
-            if rider.status in {
-                "inactive",
-                "absent",
-                "scheduled_break",
-                "on_order"
-            }:
-                return error_response(
-                    "Only eligible riders can be assigned.", 400
-                )
+            # Do not reassign an order to its current rider as a duplicate.
+            if order.rider_id != rider.id:
+                if rider.status in {"inactive", "absent", "scheduled_break", "on_order"}:
+                    return error_response("Only eligible riders can be assigned.", 409)
 
-            if rider.availability != "available":
-                return error_response(
-                    "Only available riders can be assigned.", 400
-                )
+                if rider.availability != "available":
+                    return error_response("Only available riders can be assigned.", 409)
 
             order.rider_id = rider.id
 
@@ -1024,124 +898,71 @@ def assign_rider(order_id):
             refresh_rider_availability(previous_rider)
 
         current_rider = order.rider
-
-        if current_rider and (
-            previous_rider is None
-            or current_rider.id != previous_rider.id
-        ):
+        if current_rider:
             refresh_rider_availability(current_rider)
 
         db.session.commit()
-
         return success_response(
-            "Order assignment updated successfully.",
-            serialize_order(order)
+            "Order assignment updated successfully.", serialize_order(order)
         )
-
     except SQLAlchemyError:
         db.session.rollback()
-        current_app.logger.exception(
-            "Unable to assign rider to order %s.", order_id
-        )
+        current_app.logger.exception("Unable to assign rider.")
         return error_response("Unable to assign rider.", 500)
 
-
-# =========================================================
 # DASHBOARD
-# =========================================================
 
 @routes.get("/dashboard")
 @auth_required
 def dashboard():
     try:
         total_orders = Order.query.count()
-
-        delivered_orders = Order.query.filter_by(
-            status="delivered"
+        delivered = Order.query.filter(
+            db.func.lower(Order.status).in_(["delivered", "completed"])
+        ).count()
+        cancelled = Order.query.filter(
+            db.func.lower(Order.status) == "cancelled"
+        ).count()
+        in_progress = Order.query.filter(
+            db.func.lower(Order.status).notin_(list(TERMINAL_STATUSES))
         ).count()
 
-        cancelled_orders = Order.query.filter_by(
-            status="cancelled"
-        ).count()
+        riders_list = Rider.query.all()
+        for rider in riders_list:
+            refresh_rider_availability(rider)
+        db.session.commit()
 
-        in_progress_orders = Order.query.filter(
-            Order.status.notin_(
-                ["delivered", "cancelled", "completed"]
-            )
-        ).count()
-
-        total_riders = Rider.query.count()
-
-        active_riders = Rider.query.filter(
-            Rider.status.notin_(["inactive", "absent"])
-        ).count()
-
-        available_rider_query = Rider.query.filter_by(
-            availability="available"
-        ).filter(
-            Rider.status.notin_([
-                "inactive",
-                "absent",
-                "on_order",
-                "scheduled_break"
-            ])
-        )
-
-        available_riders_count = available_rider_query.count()
-
-        busy_riders = Rider.query.filter(
-            or_(
-                Rider.availability == "busy",
-                Rider.status == "on_order"
-            )
-        ).count()
+        available_riders = [
+            r for r in riders_list if r.availability == "available"
+        ]
+        busy_riders = [r for r in riders_list if r.availability == "busy"]
 
         recent_orders = Order.query.order_by(
-            Order.created_at.desc()
+            Order.created_at.desc(), Order.id.desc()
         ).limit(5).all()
 
-        available_rider_list = available_rider_query.order_by(
-            Rider.id.asc()
-        ).limit(10).all()
-
-        data = {
+        return success_response("Dashboard data retrieved successfully.", {
             "summary": {
                 "total_orders": total_orders,
-                "delivered_orders": delivered_orders,
-                "cancelled_orders": cancelled_orders,
-                "in_progress_orders": in_progress_orders
+                "delivered_orders": delivered,
+                "cancelled_orders": cancelled,
+                "in_progress_orders": in_progress
             },
             "rider_summary": {
-                "total": total_riders,
-                "active": active_riders,
-                "available": available_riders_count,
-                "busy": busy_riders
+                "total": len(riders_list),
+                "active": sum(1 for r in riders_list if r.status not in {"inactive", "absent"}),
+                "available": len(available_riders),
+                "busy": len(busy_riders)
             },
-            "recent_orders": [
-                {
-                    "id": order.id,
-                    "status": order.status,
-                    "customer": order.customer_name,
-                    "created_at": (
-                        order.created_at.isoformat()
-                        if order.created_at
-                        else None
-                    ),
-                    "rider_id": order.rider_id
-                }
-                for order in recent_orders
-            ],
-            "available_riders": [
-                serialize_rider(rider)
-                for rider in available_rider_list
-            ]
-        }
-
-        return success_response(
-            "Dashboard data retrieved successfully.",
-            data
-        )
-
+            "recent_orders": [{
+                "id": o.id,
+                "status": o.status,
+                "customer": o.customer_name,
+                "created_at": o.created_at.isoformat() if o.created_at else None,
+                "rider_id": o.rider_id
+            } for o in recent_orders],
+            "available_riders": [serialize_rider(r) for r in available_riders[:10]]
+        })
     except SQLAlchemyError:
         db.session.rollback()
         current_app.logger.exception("Unable to retrieve dashboard.")
@@ -1149,26 +970,98 @@ def dashboard():
 
 
 # =========================================================
-# PROFILE
+# PROFILE AND CHANGE PASSWORD
 # =========================================================
 
 @routes.get("/profile")
 @auth_required
 def profile():
-    user = db.session.get(User, request.user_id)
-
+    user = db.session.get(User, get_user_id())
     if user is None:
         return error_response("User not found.", 404)
 
-    return success_response(
-        "Profile retrieved successfully.",
-        {
-            "id": user.id,
-            "name": user.name,
-            "email": user.email,
-            "mobile": user.mobile
-        }
-    )
+    return success_response("Profile retrieved successfully.", {
+        "id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "mobile": user.mobile
+    })
+
+
+@routes.put("/profile")
+@auth_required
+def update_profile():
+    user = db.session.get(User, get_user_id())
+    if user is None:
+        return error_response("User not found.", 404)
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return error_response("A valid JSON object is required.", 400)
+
+    name = str(data.get("name", user.name)).strip()
+    mobile = str(data.get("mobile", user.mobile)).strip()
+
+    if not name or len(name) > 100:
+        return error_response("Name is required and must be at most 100 characters.", 400)
+    if not mobile.isdigit() or len(mobile) != 10:
+        return error_response("Mobile number must contain exactly 10 digits.", 400)
+
+    duplicate = User.query.filter(
+        User.mobile == mobile, User.id != user.id
+    ).first()
+    if duplicate:
+        return error_response("Mobile number already registered.", 409)
+
+    user.name = name
+    user.mobile = mobile
+
+    try:
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Unable to update profile.")
+        return error_response("Unable to update profile.", 500)
+
+    return success_response("Profile updated successfully.", {
+        "id": user.id, "name": user.name,
+        "email": user.email, "mobile": user.mobile
+    })
+
+
+@routes.put("/change-password")
+@auth_required
+def change_password():
+    user = db.session.get(User, get_user_id())
+    if user is None:
+        return error_response("User not found.", 404)
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return error_response("A valid JSON object is required.", 400)
+
+    current_password = str(data.get("current_password", ""))
+    new_password = str(data.get("new_password", ""))
+
+    if not current_password or not new_password:
+        return error_response("Current and new passwords are required.", 400)
+
+    if not bcrypt.check_password_hash(user.password, current_password):
+        return error_response("Current password is incorrect.", 400)
+
+    if len(new_password) < 8:
+        return error_response("New password must be at least 8 characters.", 400)
+
+    user.password = bcrypt.generate_password_hash(new_password).decode("utf-8")
+
+    try:
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Unable to change password.")
+        return error_response("Unable to change password.", 500)
+
+    return success_response("Password changed successfully.", None)
 
 
 # =========================================================
@@ -1178,13 +1071,10 @@ def profile():
 @routes.get("/settings")
 @auth_required
 def settings():
-    return success_response(
-        "Settings retrieved successfully.",
-        {
-            "user_id": request.user_id,
-            "settings": {
-                "notifications": True,
-                "dark_mode": True
-            }
+    return success_response("Settings retrieved successfully.", {
+        "user_id": get_user_id(),
+        "settings": {
+            "notifications": True,
+            "dark_mode": True
         }
-    )
+    })
