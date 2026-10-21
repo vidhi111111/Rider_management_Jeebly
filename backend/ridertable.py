@@ -71,23 +71,7 @@ with app.app_context():
 
    
     # update rider details
-    for rider in rider_data:
-        db.session.execute(
-            text(
-                """
-                UPDATE rider
-                SET
-                    mobile = :mobile,
-                    email = :email,
-                    vehicle = :vehicle,
-                    status = :status,
-                    availability = :availability,
-                    date = :date
-                WHERE id = :id
-                """
-            ),
-            rider
-        )
+ 
 
     # set default values for any other riders
     db.session.execute(
