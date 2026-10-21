@@ -4,7 +4,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 
-import { OrderService } from '../../core/services/order.service';
+import {
+  OrderService,
+  CreateOrderPayload
+} from '../../core/services/order.service';
 
 interface RiderOption {
   id: string;
@@ -45,6 +48,7 @@ export class OrdersComponent implements OnInit {
   totalPages = 1;
 
   isLoading = false;
+  isSaving = false;
   assigningOrderId: number | null = null;
 
   showOrderModal = false;
@@ -57,22 +61,26 @@ export class OrdersComponent implements OnInit {
   orders: Order[] = [];
   riders: RiderOption[] = [];
 
-  newOrder = {
-    customer: '',
-    mobile: '',
-    pickup: '',
-    delivery: '',
-    amount: 0,
-    currency: 'AED',
-    status: 'Pending',
-    date: new Date().toISOString().slice(0, 10)
-  };
+  newOrder = this.emptyOrder();
 
   constructor(private orderService: OrderService) {}
 
   ngOnInit(): void {
     this.loadOrders();
     this.loadRiders();
+  }
+
+  private emptyOrder() {
+    return {
+      customer: '',
+      mobile: '',
+      pickup: '',
+      delivery: '',
+      amount: 0,
+      currency: 'AED',
+      status: 'Pending',
+      date: new Date().toISOString().slice(0, 10)
+    };
   }
 
   private getPayload(response: any): any {
@@ -114,9 +122,7 @@ export class OrdersComponent implements OnInit {
       amount: Number(item.amount ?? 0),
       currency: item.currency ?? 'AED',
       rider: rider?.name ?? 'Unassigned',
-      riderId: item.rider_id != null
-        ? String(item.rider_id)
-        : '',
+      riderId: item.rider_id != null ? String(item.rider_id) : '',
       status: this.normalizeStatus(item.status),
       date: item.created_at
         ? String(item.created_at).slice(0, 10)
@@ -219,23 +225,20 @@ export class OrdersComponent implements OnInit {
         }
 
         this.riders = Array.from(uniqueRiders.values());
-
-        if (this.riders.length === 0) {
-          console.warn('Riders API returned no rider records.');
-        }
       },
       error: (error) => {
-        console.error('Riders API error:', error);
-        this.riders = [];
+        console.error('Available riders API error:', error);
 
-        this.errorMessage = error?.status === 401
-          ? 'Session expired. Please log in again.'
-          : 'Unable to load available riders from the backend.';
+        if (error?.status === 401) {
+          this.errorMessage = 'Session expired. Please log in again.';
+        } else {
+          this.errorMessage =
+            'Unable to load available riders from the backend.';
+        }
       }
     });
   }
 
-  // The backend performs filtering and pagination.
   get filteredOrders(): Order[] {
     return this.orders;
   }
@@ -302,7 +305,6 @@ export class OrdersComponent implements OnInit {
         Number(parsedRiderId) <= 0)
     ) {
       this.errorMessage = 'Please select a valid rider.';
-      this.loadOrders();
       return;
     }
 
@@ -327,52 +329,105 @@ export class OrdersComponent implements OnInit {
 
           this.errorMessage =
             error?.error?.message ??
-            'Unable to assign rider. Check rider availability and try again.';
-
-          this.loadOrders();
+            'Unable to assign rider. Check availability and try again.';
         }
       });
   }
 
   openCreateOrder(): void {
     this.clearMessages();
-    this.errorMessage =
-      'Create Order API is not configured. No order was created.';
+    this.isEditing = false;
+    this.editingOrderId = null;
+    this.newOrder = this.emptyOrder();
+    this.showOrderModal = true;
   }
 
   openEditOrder(order: Order): void {
     this.clearMessages();
     this.errorMessage =
-      'Update Order API is not configured. No changes were saved.';
+      'Edit Order API is not implemented in the backend yet.';
   }
 
   saveOrder(): void {
-    this.errorMessage =
-      'Create/Update Order API is not configured.';
+    this.clearMessages();
+
+    const customerName = this.newOrder.customer.trim();
+
+    if (!customerName) {
+      this.errorMessage = 'Customer name is required.';
+      return;
+    }
+
+    if (customerName.length > 100) {
+      this.errorMessage =
+        'Customer name cannot exceed 100 characters.';
+      return;
+    }
+
+    if (this.newOrder.mobile.trim().length > 20) {
+      this.errorMessage =
+        'Mobile number cannot exceed 20 characters.';
+      return;
+    }
+
+    if (
+      !Number.isFinite(Number(this.newOrder.amount)) ||
+      Number(this.newOrder.amount) < 0
+    ) {
+      this.errorMessage =
+        'Amount must be a valid non-negative number.';
+      return;
+    }
+
+    const payload: CreateOrderPayload = {
+      customer_name: customerName,
+      mobile: this.newOrder.mobile.trim(),
+      pickup: this.newOrder.pickup.trim(),
+      delivery: this.newOrder.delivery.trim(),
+      amount: Number(this.newOrder.amount),
+      currency: this.newOrder.currency.trim() || 'AED'
+    };
+
+    this.isSaving = true;
+
+    this.orderService.createOrder(payload)
+      .pipe(finalize(() => {
+        this.isSaving = false;
+      }))
+      .subscribe({
+        next: (response: any) => {
+          this.successMessage =
+            response?.message ?? 'Order created successfully.';
+
+          this.showOrderModal = false;
+          this.resetForm();
+          this.currentPage = 1;
+          this.loadOrders();
+        },
+        error: (error) => {
+          console.error('Create Order API error:', error);
+
+          this.errorMessage =
+            error?.error?.message ??
+            'Unable to create order. Please check the backend logs.';
+        }
+      });
   }
 
   deleteOrder(order: Order): void {
+    this.clearMessages();
     this.errorMessage =
-      'Delete Order API is not configured. No order was deleted.';
+      'Delete Order API is not implemented in the backend yet.';
   }
 
   closeOrderModal(): void {
     this.showOrderModal = false;
     this.resetForm();
-    this.errorMessage = '';
+    this.clearMessages();
   }
 
   resetForm(): void {
-    this.newOrder = {
-      customer: '',
-      mobile: '',
-      pickup: '',
-      delivery: '',
-      amount: 0,
-      currency: 'AED',
-      status: 'Pending',
-      date: new Date().toISOString().slice(0, 10)
-    };
+    this.newOrder = this.emptyOrder();
   }
 
   clearMessages(): void {

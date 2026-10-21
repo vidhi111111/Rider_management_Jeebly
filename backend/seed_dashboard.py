@@ -1,21 +1,21 @@
 from app import create_app
 from app.extensions import db
-from app.models import Rider, Order
+from app.models import Order
 
 app = create_app()
 
 with app.app_context():
-    Rider.query.delete()
+    # Rider.query.delete()
     Order.query.delete()
 
-    riders = [
-        Rider(name="Rahul Sharma", status="available"),
-        Rider(name="Aman Kumar", status="available"),
-        Rider(name="Vikas Singh", status="on_order"),          
-        Rider(name="Rohit Verma", status="scheduled_break"),
-        Rider(name="Arjun Mehta", status="absent"),
-        Rider(name="Arjun", status="available")
-    ]
+    # riders = [
+    #     Rider(name="Rahul Sharma", status="available"),
+    #     Rider(name="Aman Kumar", status="available"),
+    #     Rider(name="Vikas Singh", status="on_order"),          
+    #     Rider(name="Rohit Verma", status="scheduled_break"),
+    #     Rider(name="Arjun Mehta", status="absent"),
+    #     Rider(name="Arjun", status="available")
+    # ]
 
     orders = [
         Order(
@@ -44,7 +44,7 @@ with app.app_context():
         )
     ]
 
-    db.session.add_all(riders)
+    # db.session.add_all(riders)
     db.session.add_all(orders)
     db.session.commit()
 

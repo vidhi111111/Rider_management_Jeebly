@@ -12,6 +12,15 @@ export interface OrderFilters {
   rider_id?: string;
 }
 
+export interface CreateOrderPayload {
+  customer_name: string;
+  mobile?: string;
+  pickup?: string;
+  delivery?: string;
+  amount?: number | null;
+  currency?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -20,6 +29,7 @@ export class OrderService {
 
   constructor(private http: HttpClient) {}
 
+  // Get orders with server-side pagination and filters
   getOrders(filters: OrderFilters): Observable<any> {
     let params = new HttpParams()
       .set('page', String(filters.page))
@@ -40,18 +50,22 @@ export class OrderService {
     return this.http.get(`${this.apiUrl}/orders`, { params });
   }
 
+  // Create an order in PostgreSQL
+  createOrder(order: CreateOrderPayload): Observable<any> {
+    return this.http.post(`${this.apiUrl}/orders`, order);
+  }
+
+  // Get riders available for assignment
   getAvailableRiders(): Observable<any> {
-    return this.http.get(
-      `${this.apiUrl}/riders/available`
-    );
+    return this.http.get(`${this.apiUrl}/riders/available`);
   }
 
+  // Get one order by ID
   getOrderById(orderId: number): Observable<any> {
-    return this.http.get(
-      `${this.apiUrl}/orders/${orderId}`
-    );
+    return this.http.get(`${this.apiUrl}/orders/${orderId}`);
   }
 
+  // Assign or unassign a rider
   assignRider(
     orderId: number,
     riderId: number | null

@@ -1,5 +1,7 @@
+
 import os
 import uuid
+import math
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -33,8 +35,10 @@ MAX_IMAGE_SIZE = 5 * 1024 * 1024
 def register_routes(app: Flask) -> None:
     app.register_blueprint(routes)
 
-# RIDER IMAGE HELPERS
 
+# =========================================================
+# RIDER IMAGE HELPERS
+# =========================================================
 
 def get_upload_folder():
     folder = Path(current_app.root_path) / "uploads"
@@ -97,8 +101,10 @@ def delete_rider_image(filename):
 def rider_upload(filename):
     return send_from_directory(get_upload_folder(), filename)
 
-# SERIALIZATION
 
+# =========================================================
+# SERIALIZATION
+# =========================================================
 
 def serialize_rider(rider):
     image_url = None
@@ -150,8 +156,10 @@ def serialize_order(order):
         )
     }
 
-# RIDER VALIDATION AND AVAILABILITY
 
+# =========================================================
+# RIDER VALIDATION AND AVAILABILITY
+# =========================================================
 
 def validate_rider_data(data):
     errors = {}
@@ -295,20 +303,22 @@ def health():
     }), 200
 
 
+# =========================================================
+# REGISTRATION
+# =========================================================
+
 @routes.post("/register")
 def register():
     if not request.is_json:
         return error_response(
-            "Content-Type must be application/json.",
-            415
+            "Content-Type must be application/json.", 415
         )
 
     data = request.get_json(silent=True)
 
     if not isinstance(data, dict):
         return error_response(
-            "A valid JSON object is required.",
-            400
+            "A valid JSON object is required.", 400
         )
 
     errors = validate_registration(data)
@@ -360,20 +370,22 @@ def register():
     )
 
 
+# =========================================================
+# LOGIN
+# =========================================================
+
 @routes.post("/login")
 def login():
     if not request.is_json:
         return error_response(
-            "Content-Type must be application/json.",
-            415
+            "Content-Type must be application/json.", 415
         )
 
     data = request.get_json(silent=True)
 
     if not isinstance(data, dict):
         return error_response(
-            "A valid JSON object is required.",
-            400
+            "A valid JSON object is required.", 400
         )
 
     email = str(data.get("email", "")).strip().lower()
@@ -381,8 +393,7 @@ def login():
 
     if not email or not password:
         return error_response(
-            "Email and password are required.",
-            400
+            "Email and password are required.", 400
         )
 
     user = User.query.filter_by(email=email).first()
@@ -414,7 +425,10 @@ def login():
         }
     }), 200
 
-# RIDER LIST WITH SERVER-SIDE FILTERING AND PAGINATION
+
+# =========================================================
+# RIDER LIST
+# =========================================================
 
 @routes.get("/riders")
 @auth_required
@@ -440,7 +454,6 @@ def riders():
 
         if search:
             search_value = f"%{search}%"
-
             query = query.filter(
                 or_(
                     Rider.name.ilike(search_value),
@@ -452,14 +465,8 @@ def riders():
         if status:
             query = query.filter(Rider.status == status)
 
-        if availability in {
-            "available",
-            "busy",
-            "unavailable"
-        }:
-            query = query.filter(
-                Rider.availability == availability
-            )
+        if availability in {"available", "busy", "unavailable"}:
+            query = query.filter(Rider.availability == availability)
 
         sort_columns = {
             "id": Rider.id,
@@ -504,7 +511,10 @@ def riders():
         current_app.logger.exception("Unable to retrieve riders.")
         return error_response("Unable to retrieve riders.", 500)
 
+
+# =========================================================
 # CREATE RIDER
+# =========================================================
 
 @routes.post("/riders")
 @auth_required
@@ -513,8 +523,7 @@ def create_rider():
 
     if not isinstance(data, dict):
         return error_response(
-            "A valid JSON or form body is required.",
-            400
+            "A valid JSON or form body is required.", 400
         )
 
     errors, rider_data = validate_rider_data(data)
@@ -526,20 +535,14 @@ def create_rider():
             "errors": errors
         }), 400
 
-    if Rider.query.filter_by(
-        mobile=rider_data["mobile"]
-    ).first():
+    if Rider.query.filter_by(mobile=rider_data["mobile"]).first():
         return error_response(
-            "Mobile number already registered.",
-            409
+            "Mobile number already registered.", 409
         )
 
-    if Rider.query.filter_by(
-        email=rider_data["email"]
-    ).first():
+    if Rider.query.filter_by(email=rider_data["email"]).first():
         return error_response(
-            "Email already registered.",
-            409
+            "Email already registered.", 409
         )
 
     image_file = request.files.get("profile_image")
@@ -577,8 +580,10 @@ def create_rider():
         201
     )
 
-# AVAILABLE RIDERS FOR ORDER ASSIGNMENT
-# Keep this route before /riders/<int:rider_id>.
+
+# =========================================================
+# AVAILABLE RIDERS
+# =========================================================
 
 @routes.get("/riders/available")
 @auth_required
@@ -613,7 +618,10 @@ def available_riders():
             "Unable to retrieve available riders.", 500
         )
 
+
+# =========================================================
 # GET RIDER DETAILS
+# =========================================================
 
 @routes.get("/riders/<int:rider_id>")
 @auth_required
@@ -639,7 +647,10 @@ def get_rider(rider_id):
             "Unable to retrieve rider details.", 500
         )
 
+
+# =========================================================
 # UPDATE RIDER
+# =========================================================
 
 @routes.put("/riders/<int:rider_id>")
 @auth_required
@@ -653,8 +664,7 @@ def update_rider(rider_id):
 
     if not isinstance(data, dict):
         return error_response(
-            "A valid JSON or form body is required.",
-            400
+            "A valid JSON or form body is required.", 400
         )
 
     errors, rider_data = validate_rider_data(data)
@@ -729,7 +739,10 @@ def update_rider(rider_id):
         serialize_rider(rider)
     )
 
+
+# =========================================================
 # DELETE RIDER
+# =========================================================
 
 @routes.delete("/riders/<int:rider_id>")
 @auth_required
@@ -764,8 +777,11 @@ def delete_rider(rider_id):
         {"id": rider_id}
     )
 
+
+# =========================================================
 # ORDERS LIST
-# Server-side pagination, search, status and rider filtering
+# =========================================================
+
 @routes.get("/orders")
 @auth_required
 def orders():
@@ -784,16 +800,13 @@ def orders():
 
         if search:
             search_value = f"%{search}%"
-
             search_conditions = [
                 Order.customer_name.ilike(search_value),
                 Order.mobile.ilike(search_value)
             ]
 
             if search.isdigit():
-                search_conditions.append(
-                    Order.id == int(search)
-                )
+                search_conditions.append(Order.id == int(search))
 
             query = query.filter(or_(*search_conditions))
 
@@ -806,7 +819,8 @@ def orders():
             query = query.filter(Order.rider_id == rider_id)
 
         pagination = query.order_by(
-            Order.created_at.desc()
+            Order.created_at.desc(),
+            Order.id.desc()
         ).paginate(
             page=page,
             per_page=page_size,
@@ -832,8 +846,95 @@ def orders():
         current_app.logger.exception("Unable to retrieve orders.")
         return error_response("Unable to retrieve orders.", 500)
 
-# ORDER DETAILS BY ID
-# GET /orders/<order_id>
+
+# =========================================================
+# CREATE ORDER
+# POST /orders
+# =========================================================
+
+@routes.post("/orders")
+@auth_required
+def create_order():
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return error_response(
+            "A valid JSON object is required.", 400
+        )
+
+    customer_name = str(
+        data.get("customer_name", "")
+    ).strip()
+
+    mobile = str(data.get("mobile") or "").strip()
+    pickup = str(data.get("pickup") or "").strip()
+    delivery = str(data.get("delivery") or "").strip()
+    currency = str(data.get("currency") or "AED").strip().upper()
+
+    if not customer_name:
+        return error_response("Customer name is required.", 400)
+
+    if len(customer_name) > 100:
+        return error_response(
+            "Customer name cannot exceed 100 characters.", 400
+        )
+
+    if len(mobile) > 20:
+        return error_response(
+            "Mobile number cannot exceed 20 characters.", 400
+        )
+
+    if len(pickup) > 255 or len(delivery) > 255:
+        return error_response(
+            "Pickup and delivery must not exceed 255 characters.",
+            400
+        )
+
+    if not currency or len(currency) > 10:
+        return error_response("Invalid currency.", 400)
+
+    amount = data.get("amount")
+
+    if amount is not None:
+        try:
+            amount = float(amount)
+            if not math.isfinite(amount) or amount < 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return error_response(
+                "Amount must be a valid non-negative number.", 400
+            )
+
+    order = Order(
+        customer_name=customer_name,
+        mobile=mobile or None,
+        pickup=pickup or None,
+        delivery=delivery or None,
+        amount=amount,
+        currency=currency,
+        status="pending",
+        rider_id=None
+    )
+
+    try:
+        db.session.add(order)
+        db.session.commit()
+
+        return success_response(
+            "Order created successfully.",
+            serialize_order(order),
+            201
+        )
+
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Unable to create order.")
+        return error_response("Unable to create order.", 500)
+
+
+# =========================================================
+# ORDER DETAILS
+# =========================================================
 
 @routes.get("/orders/<int:order_id>")
 @auth_required
@@ -858,17 +959,11 @@ def get_order(order_id):
             "Unable to retrieve order details.", 500
         )
 
-# ASSIGN RIDER TO ORDER
-# POST /orders/<order_id>/assign-rider
-#
-# JSON body:
-# {"rider_id": 12}
-#
-# To unassign:
-# {"rider_id": null}
-#
-# PATCH is also retained for backward compatibility.
 
+# =========================================================
+# ASSIGN RIDER TO ORDER
+# POST/PATCH /orders/<order_id>/assign-rider
+# =========================================================
 
 @routes.post("/orders/<int:order_id>/assign-rider")
 @routes.patch("/orders/<int:order_id>/assign-rider")
@@ -893,14 +988,11 @@ def assign_rider(order_id):
 
         if requested_rider_id is None:
             order.rider_id = None
-
         else:
             try:
                 requested_rider_id = int(requested_rider_id)
-
                 if requested_rider_id <= 0:
                     raise ValueError
-
             except (TypeError, ValueError):
                 return error_response("Invalid rider ID.", 400)
 
@@ -916,14 +1008,12 @@ def assign_rider(order_id):
                 "on_order"
             }:
                 return error_response(
-                    "Only eligible riders can be assigned.",
-                    400
+                    "Only eligible riders can be assigned.", 400
                 )
 
             if rider.availability != "available":
                 return error_response(
-                    "Only available riders can be assigned.",
-                    400
+                    "Only available riders can be assigned.", 400
                 )
 
             order.rider_id = rider.id
@@ -956,6 +1046,9 @@ def assign_rider(order_id):
         return error_response("Unable to assign rider.", 500)
 
 
+# =========================================================
+# DASHBOARD
+# =========================================================
 
 @routes.get("/dashboard")
 @auth_required
@@ -1051,11 +1144,13 @@ def dashboard():
 
     except SQLAlchemyError:
         db.session.rollback()
-        current_app.logger.exception(
-            "Unable to retrieve dashboard."
-        )
+        current_app.logger.exception("Unable to retrieve dashboard.")
         return error_response("Unable to retrieve dashboard.", 500)
 
+
+# =========================================================
+# PROFILE
+# =========================================================
 
 @routes.get("/profile")
 @auth_required
@@ -1075,6 +1170,10 @@ def profile():
         }
     )
 
+
+# =========================================================
+# SETTINGS
+# =========================================================
 
 @routes.get("/settings")
 @auth_required

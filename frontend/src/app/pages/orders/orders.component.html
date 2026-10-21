@@ -1,27 +1,55 @@
 
 <div class="orders-page">
+  <!-- Page Heading -->
   <div class="page-heading">
     <div>
       <h1>Orders</h1>
       <p>Manage and create delivery orders</p>
     </div>
 
-    <button class="create-btn" type="button" (click)="openCreateOrder()">
+    <button
+      class="create-btn"
+      type="button"
+      (click)="openCreateOrder()"
+    >
       <span class="plus-icon">+</span>
       Create Order
     </button>
   </div>
 
-  <div class="alert alert-success alert-dismissible" *ngIf="successMessage">
+  <!-- Success Message -->
+  <div
+    class="alert alert-success alert-dismissible"
+    *ngIf="successMessage"
+    role="alert"
+  >
     {{ successMessage }}
-    <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="successMessage = ''"
+    ></button>
   </div>
 
-  <div class="alert alert-danger alert-dismissible" *ngIf="errorMessage && !showOrderModal">
+  <!-- Error Message -->
+  <div
+    class="alert alert-danger alert-dismissible"
+    *ngIf="errorMessage && !showOrderModal"
+    role="alert"
+  >
     {{ errorMessage }}
-    <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="errorMessage = ''"
+    ></button>
   </div>
 
+  <!-- Search and Filters -->
   <section class="filter-card">
     <div class="section-heading">
       <div>
@@ -29,16 +57,25 @@
         <p>Search and filter orders</p>
       </div>
 
-      <button type="button" class="clear-filters" (click)="clearFilters()">
+      <button
+        type="button"
+        class="clear-filters"
+        (click)="clearFilters()"
+      >
         Clear Filters
       </button>
     </div>
 
     <div class="row g-3">
+      <!-- Search -->
       <div class="col-12 col-lg-4">
-        <label for="orderSearch" class="form-label">Search</label>
+        <label for="orderSearch" class="form-label">
+          Search
+        </label>
+
         <input
           id="orderSearch"
+          name="orderSearch"
           class="form-control"
           type="search"
           placeholder="Search by order ID, customer..."
@@ -47,10 +84,15 @@
         />
       </div>
 
+      <!-- Status Filter -->
       <div class="col-12 col-sm-6 col-lg-2">
-        <label for="statusFilter" class="form-label">Status</label>
+        <label for="statusFilter" class="form-label">
+          Status
+        </label>
+
         <select
           id="statusFilter"
+          name="statusFilter"
           class="form-select"
           [(ngModel)]="selectedStatus"
           (ngModelChange)="onFilterChange()"
@@ -66,41 +108,60 @@
         </select>
       </div>
 
+      <!-- Rider Filter -->
       <div class="col-12 col-sm-6 col-lg-2">
-        <label for="riderFilter" class="form-label">Rider</label>
+        <label for="riderFilter" class="form-label">
+          Rider
+        </label>
+
         <select
           id="riderFilter"
+          name="riderFilter"
           class="form-select"
           [(ngModel)]="selectedRider"
           (ngModelChange)="onFilterChange()"
         >
           <option value="">All Riders</option>
-          <option *ngFor="let rider of riders" [value]="rider.id">
+
+          <option
+            *ngFor="let rider of riders"
+            [value]="rider.id"
+          >
             {{ rider.name }}
           </option>
         </select>
       </div>
 
+      <!-- Date Filter -->
       <div class="col-12 col-sm-6 col-lg-2">
-        <label for="dateFilter" class="form-label">Order Date</label>
+        <label for="dateFilter" class="form-label">
+          Order Date
+        </label>
+
         <input
           id="dateFilter"
+          name="dateFilter"
           type="date"
           class="form-control"
           [(ngModel)]="selectedDate"
           disabled
-          title="Date filtering is not available in the current API"
+          title="Date filtering is not currently supported by the API"
         />
       </div>
 
+      <!-- Sorting -->
       <div class="col-12 col-sm-6 col-lg-2">
-        <label for="sortFilter" class="form-label">Sort By</label>
+        <label for="sortFilter" class="form-label">
+          Sort By
+        </label>
+
         <select
           id="sortFilter"
+          name="sortFilter"
           class="form-select"
           [(ngModel)]="sortBy"
           disabled
-          title="Sorting is not available in the current API"
+          title="Sorting is not currently supported by the API"
         >
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
@@ -111,8 +172,13 @@
     </div>
   </section>
 
+  <!-- Orders List -->
   <section class="order-list-card">
-    <div class="alert alert-info" *ngIf="isLoading">
+    <div
+      class="alert alert-info m-3"
+      *ngIf="isLoading"
+      role="status"
+    >
       Loading orders...
     </div>
 
@@ -124,6 +190,7 @@
 
       <select
         class="form-select page-size-select"
+        name="pageSize"
         [ngModel]="pageSize"
         (ngModelChange)="changePageSize($event)"
         aria-label="Rows per page"
@@ -154,29 +221,47 @@
 
         <tbody>
           <tr *ngFor="let order of paginatedOrders">
-            <td class="order-id">ORD-JB{{ order.id }}</td>
-
-            <td>
-              <div class="customer-name">{{ order.customer }}</div>
-              <div class="customer-mobile">{{ order.mobile }}</div>
+            <!-- Order ID -->
+            <td class="order-id">
+              ORD-JB{{ order.id }}
             </td>
 
+            <!-- Customer -->
+            <td>
+              <div class="customer-name">
+                {{ order.customer }}
+              </div>
+
+              <div class="customer-mobile">
+                {{ order.mobile || '—' }}
+              </div>
+            </td>
+
+            <!-- Pickup -->
             <td>{{ order.pickup || '—' }}</td>
+
+            <!-- Delivery -->
             <td>{{ order.delivery || '—' }}</td>
 
+            <!-- Amount -->
             <td>
-              <div class="amount-currency">{{ order.currency }}</div>
+              <div class="amount-currency">
+                {{ order.currency }}
+              </div>
+
               <strong class="amount-value">
                 {{ order.amount | number:'1.0-2' }}
               </strong>
             </td>
 
+            <!-- Assigned Rider -->
             <td>
               <span [class.unassigned]="!order.riderId">
                 {{ order.rider }}
               </span>
             </td>
 
+            <!-- Status -->
             <td>
               <span
                 class="status-badge"
@@ -195,10 +280,16 @@
               </span>
             </td>
 
+            <!-- Created Date -->
             <td class="date-cell">
-              {{ order.date ? (order.date | date:'dd MMM yyyy') : '—' }}
+              {{
+                order.date
+                  ? (order.date | date:'dd MMM yyyy')
+                  : '—'
+              }}
             </td>
 
+            <!-- Assign Rider -->
             <td>
               <select
                 class="form-select assign-select"
@@ -209,10 +300,14 @@
                   order.status === 'Delivered' ||
                   order.status === 'Cancelled'
                 "
-                [attr.aria-label]="'Assign rider to ' + order.id"
+                [attr.aria-label]="'Assign rider to order ' + order.id"
               >
                 <option value="">Unassign Rider</option>
-                <option *ngFor="let rider of riders" [value]="rider.id">
+
+                <option
+                  *ngFor="let rider of riders"
+                  [value]="rider.id"
+                >
                   {{ rider.name }}
                 </option>
               </select>
@@ -222,6 +317,7 @@
               </small>
             </td>
 
+            <!-- Actions -->
             <td>
               <div class="action-buttons">
                 <button
@@ -245,10 +341,15 @@
             </td>
           </tr>
 
+          <!-- Empty State -->
           <tr *ngIf="!isLoading && totalRecords === 0">
             <td colspan="10" class="empty-state">
               <h5>No orders found</h5>
-              <p>Try changing your search or filters.</p>
+
+              <p>
+                Try changing your search or filters, or create a new order.
+              </p>
+
               <button
                 type="button"
                 class="btn btn-outline-danger btn-sm"
@@ -262,6 +363,7 @@
       </table>
     </div>
 
+    <!-- Pagination -->
     <div class="pagination-footer">
       <p>
         Showing {{ startRecord }}–{{ endRecord }}
@@ -297,4 +399,212 @@
       </div>
     </div>
   </section>
+</div>
+
+<!-- Create Order Modal -->
+<div
+  class="modal-backdrop-custom"
+  *ngIf="showOrderModal"
+  (click)="closeOrderModal()"
+>
+  <div
+    class="order-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="orderModalTitle"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Modal Header -->
+    <div class="modal-heading">
+      <div>
+        <h2 id="orderModalTitle">Create Order</h2>
+        <p>Enter the customer and delivery details below.</p>
+      </div>
+
+      <button
+        type="button"
+        class="modal-close"
+        aria-label="Close modal"
+        [disabled]="isSaving"
+        (click)="closeOrderModal()"
+      >
+        &times;
+      </button>
+    </div>
+
+    <!-- Create Order Form -->
+    <form
+      #orderForm="ngForm"
+      (ngSubmit)="saveOrder()"
+      novalidate
+    >
+      <div class="modal-body-custom">
+        <!-- Modal Error -->
+        <div
+          class="alert alert-danger"
+          *ngIf="errorMessage"
+          role="alert"
+        >
+          {{ errorMessage }}
+        </div>
+
+        <!-- Customer Name -->
+        <div class="mb-3">
+          <label for="customerName" class="form-label">
+            Customer Name *
+          </label>
+
+          <input
+            id="customerName"
+            name="customer"
+            class="form-control"
+            type="text"
+            [(ngModel)]="newOrder.customer"
+            #customerName="ngModel"
+            required
+            maxlength="100"
+            placeholder="Enter customer name"
+          />
+
+          <small
+            class="text-danger"
+            *ngIf="
+              customerName.invalid &&
+              (customerName.dirty || customerName.touched)
+            "
+          >
+            Customer name is required and must be at most 100 characters.
+          </small>
+        </div>
+
+        <!-- Mobile Number -->
+        <div class="mb-3">
+          <label for="customerMobile" class="form-label">
+            Mobile Number
+          </label>
+
+          <input
+            id="customerMobile"
+            name="mobile"
+            class="form-control"
+            type="tel"
+            [(ngModel)]="newOrder.mobile"
+            #customerMobile="ngModel"
+            maxlength="20"
+            placeholder="Enter mobile number"
+          />
+
+          <small
+            class="text-danger"
+            *ngIf="customerMobile.errors?.['maxlength']"
+          >
+            Mobile number cannot exceed 20 characters.
+          </small>
+        </div>
+
+        <!-- Pickup Address -->
+        <div class="mb-3">
+          <label for="pickupAddress" class="form-label">
+            Pickup Address
+          </label>
+
+          <input
+            id="pickupAddress"
+            name="pickup"
+            class="form-control"
+            type="text"
+            [(ngModel)]="newOrder.pickup"
+            maxlength="255"
+            placeholder="Enter pickup address"
+          />
+        </div>
+
+        <!-- Delivery Address -->
+        <div class="mb-3">
+          <label for="deliveryAddress" class="form-label">
+            Delivery Address
+          </label>
+
+          <input
+            id="deliveryAddress"
+            name="delivery"
+            class="form-control"
+            type="text"
+            [(ngModel)]="newOrder.delivery"
+            maxlength="255"
+            placeholder="Enter delivery address"
+          />
+        </div>
+
+        <!-- Amount and Currency -->
+        <div class="row g-3">
+          <div class="col-12 col-sm-6">
+            <label for="orderAmount" class="form-label">
+              Amount *
+            </label>
+
+            <input
+              id="orderAmount"
+              name="amount"
+              class="form-control"
+              type="number"
+              [(ngModel)]="newOrder.amount"
+              #orderAmount="ngModel"
+              required
+              min="0"
+              step="0.01"
+            />
+
+            <small
+              class="text-danger"
+              *ngIf="
+                orderAmount.invalid &&
+                (orderAmount.dirty || orderAmount.touched)
+              "
+            >
+              Enter a valid non-negative amount.
+            </small>
+          </div>
+
+          <div class="col-12 col-sm-6">
+            <label for="orderCurrency" class="form-label">
+              Currency *
+            </label>
+
+            <select
+              id="orderCurrency"
+              name="currency"
+              class="form-select"
+              [(ngModel)]="newOrder.currency"
+              required
+            >
+              <option value="AED">AED</option>
+              <option value="INR">INR</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer-custom">
+        <button
+          type="button"
+          class="cancel-btn"
+          [disabled]="isSaving"
+          (click)="closeOrderModal()"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          class="create-btn"
+          [disabled]="isSaving || orderForm.invalid"
+        >
+          {{ isSaving ? 'Creating...' : 'Create Order' }}
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
