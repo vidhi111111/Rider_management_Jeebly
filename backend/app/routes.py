@@ -692,13 +692,28 @@ def orders():
 
         if search:
             value = f"%{search}%"
+            
             conditions = [
                 Order.customer_name.ilike(value),
                 Order.mobile.ilike(value)
             ]
-            if search.isdigit():
-                conditions.append(Order.id == int(search))
-            query = query.filter(or_(*conditions))
+
+            order_prefix = "ORD-JB"
+            search_id = search.strip().upper()
+
+            if search_id.isdigit():
+                conditions.append(Order.id == int(search_id))
+
+            elif order_prefix.startswith(search_id):
+                conditions.append(Order.id.isnot(None))
+
+            elif order_prefix.startswith(order_prefix):
+                suffix = search_id[len(order_prefix):]
+                if suffix.isdigit():
+                    conditions.append(Order.id == int(suffix))
+
+            query = query.filter(or_(*conditions))        
+
 
         if status:
             query = query.filter(db.func.lower(Order.status) == status)
