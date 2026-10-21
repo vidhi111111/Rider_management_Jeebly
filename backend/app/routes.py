@@ -26,7 +26,6 @@ ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 MAX_IMAGE_SIZE = 5 * 1024 * 1024
 TERMINAL_STATUSES = {"delivered", "cancelled", "completed"}
 
-# Business workflow statuses. Keep these consistent with the frontend.
 ORDER_STATUSES = {
     "pending", "accepted", "picked_up", "in_transit",
     "delivered", "cancelled"
@@ -37,9 +36,7 @@ def register_routes(app: Flask) -> None:
     app.register_blueprint(routes)
 
 
-# =========================================================
-# IMAGE HELPERS: CLOUDINARY OPTIONAL, LOCAL FALLBACK
-# =========================================================
+# IMAGE HELPERS
 
 def cloudinary_enabled():
     return bool(
@@ -324,20 +321,10 @@ def refresh_rider_availability(rider):
 
     active_orders = Order.query.filter(
         Order.rider_id == rider.id,
-        db.func.lower(Order.status).notin_(
-            ["delivered", "cancelled", "completed"]
-        )
+        db.func.lower(Order.status).notin_(list(TERMINAL_STATUSES))
     ).count()
 
     if active_orders > 0:
-        rider.availability = "busy"
-        rider.status = "on_order"
-    else:
-        rider.availability = "available"
-        if rider.status == "on_order":
-            rider.status = "active"
-
-    if active_orders:
         rider.availability = "busy"
         if rider.status in {"active", "available"}:
             rider.status = "on_order"
@@ -802,13 +789,19 @@ def create_order():
         return error_response("Unable to create order.", 500)
 
 
+
 @routes.get("/orders/<int:order_id>")
 @auth_required
 def get_order(order_id):
     order = db.session.get(Order, order_id)
+
     if order is None:
         return error_response("Order not found.", 404)
-    return success_response("Order details retrieved successfully.", serialize_order(order))
+
+    return success_response(
+        "Order details retrieved successfully.",
+        serialize_order(order)
+    )
 
 
 @routes.patch("/orders/<int:order_id>/status")
@@ -816,22 +809,39 @@ def get_order(order_id):
 def update_order_status(order_id):
     try:
         order = db.session.get(Order, order_id)
+
         if order is None:
             return error_response("Order not found.", 404)
 
         data = request.get_json(silent=True)
+
         if not isinstance(data, dict):
             return error_response("A valid JSON body is required.", 400)
 
         new_status = str(data.get("status", "")).strip().lower()
+
         if new_status not in ORDER_STATUSES:
             return error_response("Invalid order status.", 400)
 
         current_status = str(order.status or "").strip().lower()
+
         if current_status in TERMINAL_STATUSES:
             return error_response(
                 "Delivered or cancelled orders cannot be changed.", 409
             )
+        
+        allowed_transitions = {
+          "pending": {"accepted", "cancelled"},
+          "accepted": {"picked_up", "cancelled"},
+          "picked_up": {"in_transit", "cancelled"},
+           "in_transit": {"delivered", "cancelled"},
+         }
+
+        if new_status not in allowed_transitions.get(current_status, set()):
+           return error_response(
+               f"Cannot change status from {current_status} to {new_status}.",
+               409
+         )
 
         order.status = new_status
         db.session.flush()
@@ -840,13 +850,137 @@ def update_order_status(order_id):
             refresh_rider_availability(order.rider)
 
         db.session.commit()
+
         return success_response(
-            "Order status updated successfully.", serialize_order(order)
+            "Order status updated successfully.",
+            serialize_order(order)
         )
+
     except SQLAlchemyError:
         db.session.rollback()
         current_app.logger.exception("Unable to update order status.")
+
         return error_response("Unable to update order status.", 500)
+
+
+@routes.put("/orders/<int:order_id>")
+@auth_required
+def update_order(order_id):
+    try:
+        order = db.session.get(Order, order_id)
+
+        if order is None:
+            return error_response("Order not found.", 404)
+
+        if str(order.status or "").strip().lower() in TERMINAL_STATUSES:
+            return error_response(
+                "Delivered or cancelled orders cannot be edited.", 409
+            )
+
+        data = request.get_json(silent=True)
+
+        if not isinstance(data, dict):
+            return error_response("A valid JSON object is required.", 400)
+
+        customer_name = str(
+            data.get("customer_name", order.customer_name) or ""
+        ).strip()
+
+        mobile = str(data.get("mobile", order.mobile) or "").strip()
+        pickup = str(data.get("pickup", order.pickup) or "").strip()
+        delivery = str(data.get("delivery", order.delivery) or "").strip()
+
+        currency = str(
+            data.get("currency", order.currency or "AED") or ""
+        ).strip().upper()
+
+        if not customer_name:
+            return error_response("Customer name is required.", 400)
+
+        if len(customer_name) > 100:
+            return error_response(
+                "Customer name cannot exceed 100 characters.", 400
+            )
+
+        if len(mobile) > 20:
+            return error_response(
+                "Mobile number cannot exceed 20 characters.", 400
+            )
+
+        if len(pickup) > 255 or len(delivery) > 255:
+            return error_response(
+                "Pickup and delivery must not exceed 255 characters.", 400
+            )
+
+        if not currency or len(currency) > 10:
+            return error_response("Invalid currency.", 400)
+
+        amount = data.get("amount", order.amount)
+
+        if amount is not None:
+            try:
+                amount = float(amount)
+
+                if not math.isfinite(amount) or amount < 0:
+                    raise ValueError
+
+            except (TypeError, ValueError):
+                return error_response(
+                    "Amount must be a valid non-negative number.", 400
+                )
+
+        order.customer_name = customer_name
+        order.mobile = mobile or None
+        order.pickup = pickup or None
+        order.delivery = delivery or None
+        order.amount = amount
+        order.currency = currency
+
+        db.session.commit()
+
+        return success_response(
+            "Order updated successfully.",
+            serialize_order(order)
+        )
+
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Unable to update order.")
+
+        return error_response("Unable to update order.", 500)
+
+
+
+@routes.delete("/orders/<int:order_id>")
+@auth_required
+def delete_order(order_id):
+    try:
+        order = db.session.get(Order, order_id)
+
+        if order is None:
+            return error_response("Order not found.", 404)
+
+        assigned_rider = order.rider
+
+        db.session.delete(order)
+        db.session.flush()
+        if assigned_rider:
+            refresh_rider_availability(assigned_rider)
+
+        db.session.commit()
+
+        return success_response(
+            "Order deleted successfully.",
+            {"id": order_id}
+        )
+
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception("Unable to delete order.")
+
+        return error_response(
+            "Unable to delete order. Check database constraints.", 500
+        )
 
 
 @routes.post("/orders/<int:order_id>/assign-rider")
@@ -882,7 +1016,7 @@ def assign_rider(order_id):
             if rider is None:
                 return error_response("Rider not found.", 404)
 
-            # Do not reassign an order to its current rider as a duplicate.
+            # Keep the current assignment unchanged if the same rider is selected.
             if order.rider_id != rider.id:
                 if rider.status in {"inactive", "absent", "scheduled_break", "on_order"}:
                     return error_response("Only eligible riders can be assigned.", 409)
@@ -890,9 +1024,24 @@ def assign_rider(order_id):
                 if rider.availability != "available":
                     return error_response("Only available riders can be assigned.", 409)
 
+                # Verify database orders too; availability can be stale.
+                existing_order = Order.query.filter(
+                    Order.rider_id == rider.id,
+                    Order.id != order.id,
+                    db.func.lower(Order.status).notin_(list(TERMINAL_STATUSES))
+                ).first()
+
+                if existing_order:
+                    refresh_rider_availability(rider)
+                    db.session.commit()
+                    return error_response(
+                        "This rider already has an active order.", 409
+                    )
+
             order.rider_id = rider.id
 
         db.session.flush()
+
 
         if previous_rider:
             refresh_rider_availability(previous_rider)
@@ -910,7 +1059,10 @@ def assign_rider(order_id):
         current_app.logger.exception("Unable to assign rider.")
         return error_response("Unable to assign rider.", 500)
 
+
+# =========================================================
 # DASHBOARD
+# =========================================================
 
 @routes.get("/dashboard")
 @auth_required

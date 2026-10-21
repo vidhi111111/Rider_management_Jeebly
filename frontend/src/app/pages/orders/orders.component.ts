@@ -25,7 +25,7 @@ interface Order {
   rider: string;
   riderId: string;
   status: string;
-  date: string;
+  createdAt: string;
 }
 
 @Component({
@@ -36,6 +36,15 @@ interface Order {
   styleUrls: ['./orders.component.css']
 })
 export class OrdersComponent implements OnInit {
+  readonly orderStatuses = [
+    'Pending',
+    'Accepted',
+    'Picked Up',
+    'On The Way',
+    'Delivered',
+    'Cancelled'
+  ];
+
   searchText = '';
   selectedStatus = '';
   selectedRider = '';
@@ -50,15 +59,23 @@ export class OrdersComponent implements OnInit {
   isLoading = false;
   isSaving = false;
   assigningOrderId: number | null = null;
+  updatingStatusOrderId: number | null = null;
+  editingOrderId: number | null = null;
+  deletingOrderId: number | null = null;
 
   showOrderModal = false;
-  isEditing = false;
-  editingOrderId: number | null = null;
+  isEditMode = false;
+  modalOrderId: number | null = null;
 
   successMessage = '';
   errorMessage = '';
 
   orders: Order[] = [];
+
+  // All riders are used by the filter dropdown.
+  allRiders: RiderOption[] = [];
+
+  // Only available riders are used by assignment dropdowns.
   riders: RiderOption[] = [];
 
   newOrder = this.emptyOrder();
@@ -67,6 +84,7 @@ export class OrdersComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadOrders();
+    this.loadAllRiders();
     this.loadRiders();
   }
 
@@ -77,9 +95,7 @@ export class OrdersComponent implements OnInit {
       pickup: '',
       delivery: '',
       amount: 0,
-      currency: 'AED',
-      status: 'Pending',
-      date: new Date().toISOString().slice(0, 10)
+      currency: 'AED'
     };
   }
 
@@ -92,16 +108,21 @@ export class OrdersComponent implements OnInit {
 
     const statusMap: Record<string, string> = {
       pending: 'Pending',
+      created: 'Pending',
+      assigned: 'Accepted',
+      accept: 'Accepted',
       accepted: 'Accepted',
       picked_up: 'Picked Up',
       'picked up': 'Picked Up',
+      dispatch: 'On The Way',
       on_the_way: 'On The Way',
       'on the way': 'On The Way',
-      in_transit: 'In Transit',
-      'in transit': 'In Transit',
+      in_transit: 'On The Way',
+      'in transit': 'On The Way',
       delivered: 'Delivered',
       completed: 'Delivered',
-      cancelled: 'Cancelled'
+      cancelled: 'Cancelled',
+      canceled: 'Cancelled'
     };
 
     return statusMap[value] ??
@@ -110,8 +131,22 @@ export class OrdersComponent implements OnInit {
         : 'Pending');
   }
 
+  private statusForApi(status: string): string {
+    const map: Record<string, string> = {
+      Pending: 'pending',
+      Accepted: 'accepted',
+      'Picked Up': 'picked_up',
+      'On The Way': 'in_transit',
+      Delivered: 'delivered',
+      Cancelled: 'cancelled'
+    };
+
+    return map[status] ?? status.toLowerCase();
+  }
+
   private mapOrder(item: any): Order {
     const rider = item?.rider ?? null;
+    const riderId = item?.rider_id ?? rider?.id ?? null;
 
     return {
       id: Number(item.id),
@@ -121,12 +156,10 @@ export class OrdersComponent implements OnInit {
       delivery: item.delivery ?? '',
       amount: Number(item.amount ?? 0),
       currency: item.currency ?? 'AED',
-      rider: rider?.name ?? 'Unassigned',
-      riderId: item.rider_id != null ? String(item.rider_id) : '',
+      rider: rider?.name ?? item.rider_name ?? 'Unassigned',
+      riderId: riderId != null ? String(riderId) : '',
       status: this.normalizeStatus(item.status),
-      date: item.created_at
-        ? String(item.created_at).slice(0, 10)
-        : ''
+      createdAt: item.created_at ?? item.createdAt ?? ''
     };
   }
 
@@ -138,8 +171,12 @@ export class OrdersComponent implements OnInit {
       page: this.currentPage,
       pageSize: this.pageSize,
       search: this.searchText,
-      status: this.selectedStatus,
-      rider_id: this.selectedRider
+      status: this.selectedStatus
+        ? this.statusForApi(this.selectedStatus)
+        : '',
+      rider_id: this.selectedRider,
+      order_date: this.selectedDate,
+      sortBy: this.sortBy
     })
     .pipe(finalize(() => {
       this.isLoading = false;
@@ -150,48 +187,75 @@ export class OrdersComponent implements OnInit {
 
         const items = Array.isArray(data?.orders)
           ? data.orders
-          : Array.isArray(data)
-            ? data
-            : [];
+          : Array.isArray(data?.items)
+            ? data.items
+            : Array.isArray(data)
+              ? data
+              : [];
 
-        this.orders = items.map(
-          (item: any) => this.mapOrder(item)
-        );
+        this.orders = items.map((item: any) => this.mapOrder(item));
 
         this.totalRecords = Number(
-          data?.totalRecords ?? this.orders.length
+          data?.totalRecords ??
+          data?.total_records ??
+          data?.total ??
+          this.orders.length
         );
 
         this.totalPages = Math.max(
           1,
           Number(
             data?.totalPages ??
+            data?.total_pages ??
             Math.ceil(this.totalRecords / this.pageSize)
           )
         );
 
-        this.currentPage = Number(
-          data?.page ?? this.currentPage
-        );
+        this.currentPage = Number(data?.page ?? this.currentPage);
 
-        if (
-          this.totalRecords > 0 &&
-          this.currentPage > this.totalPages
-        ) {
+        if (this.currentPage > this.totalPages) {
           this.currentPage = this.totalPages;
           this.loadOrders();
         }
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Orders API error:', error);
-
         this.orders = [];
         this.totalRecords = 0;
         this.totalPages = 1;
-
         this.errorMessage = error?.status === 401
           ? 'Session expired. Please log in again.'
-          : 'Unable to load orders from the backend.';
+          : error?.error?.message ?? 'Unable to load orders.';
+      }
+    });
+  }
+
+  loadAllRiders(): void {
+    this.orderService.getRiders().subscribe({
+      next: (response: any) => {
+        const data = this.getPayload(response);
+        const items = Array.isArray(data?.riders)
+          ? data.riders
+          : Array.isArray(data)
+            ? data
+            : [];
+
+        const unique = new Map<string, RiderOption>();
+
+        items.forEach((item: any) => {
+          if (item?.id == null) return;
+
+          const id = String(item.id);
+          unique.set(id, {
+            id,
+            name: String(item.name ?? `Rider ${id}`)
+          });
+        });
+
+        this.allRiders = Array.from(unique.values());
+      },
+      error: (error: any) => {
+        console.error('All riders API error:', error);
       }
     });
   }
@@ -200,41 +264,45 @@ export class OrdersComponent implements OnInit {
     this.orderService.getAvailableRiders().subscribe({
       next: (response: any) => {
         const data = this.getPayload(response);
-
         const items = Array.isArray(data?.riders)
           ? data.riders
           : Array.isArray(data)
             ? data
             : [];
 
-        const uniqueRiders = new Map<string, RiderOption>();
+        const unique = new Map<string, RiderOption>();
 
-        for (const item of items) {
-          if (item?.id == null) {
-            continue;
-          }
+        items.forEach((item: any) => {
+          if (item?.id == null) return;
 
           const id = String(item.id);
+          unique.set(id, {
+            id,
+            name: String(item.name ?? `Rider ${id}`)
+          });
+        });
 
-          if (!uniqueRiders.has(id)) {
-            uniqueRiders.set(id, {
-              id,
-              name: String(item.name ?? `Rider ${id}`)
+        this.riders = Array.from(unique.values());
+
+        // Keep a currently assigned rider visible in the row dropdown
+        // even if the API now marks that rider as busy.
+        this.orders.forEach(order => {
+          if (
+            order.riderId &&
+            order.rider !== 'Unassigned' &&
+            !this.riders.some(rider => rider.id === order.riderId)
+          ) {
+            this.riders.push({
+              id: order.riderId,
+              name: order.rider
             });
           }
-        }
-
-        this.riders = Array.from(uniqueRiders.values());
+        });
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Available riders API error:', error);
-
-        if (error?.status === 401) {
-          this.errorMessage = 'Session expired. Please log in again.';
-        } else {
-          this.errorMessage =
-            'Unable to load available riders from the backend.';
-        }
+        this.errorMessage =
+          error?.error?.message ?? 'Unable to load available riders.';
       }
     });
   }
@@ -254,9 +322,13 @@ export class OrdersComponent implements OnInit {
   }
 
   get endRecord(): number {
-    return Math.min(
-      this.currentPage * this.pageSize,
-      this.totalRecords
+    return Math.min(this.currentPage * this.pageSize, this.totalRecords);
+  }
+
+  get pageNumbers(): number[] {
+    return Array.from(
+      { length: this.totalPages },
+      (_, index) => index + 1
     );
   }
 
@@ -276,7 +348,7 @@ export class OrdersComponent implements OnInit {
   }
 
   changePage(page: number): void {
-    if (page < 1 || page > this.totalPages) {
+    if (page < 1 || page > this.totalPages || this.isLoading) {
       return;
     }
 
@@ -296,17 +368,83 @@ export class OrdersComponent implements OnInit {
     this.loadOrders();
   }
 
+  isTerminalStatus(status: string): boolean {
+    const value = (status || '').trim().toLowerCase();
+
+    return [
+      'delivered',
+      'completed',
+      'cancelled',
+      'canceled'
+    ].includes(value);
+  }
+
+  statusClass(status: string): string {
+    if (status === 'Pending') return 'status-pending';
+    if (status === 'Delivered') return 'status-delivered';
+    if (status === 'Cancelled') return 'status-cancelled';
+    return 'status-transit';
+  }
+
+  updateStatus(order: Order, newStatus: string): void {
+    if (
+      !this.orderStatuses.includes(newStatus) ||
+      newStatus === order.status ||
+      this.updatingStatusOrderId === order.id ||
+      this.isTerminalStatus(order.status)
+    ) {
+      return;
+    }
+
+    const previousStatus = order.status;
+    this.clearMessages();
+    this.updatingStatusOrderId = order.id;
+
+    this.orderService.updateOrderStatus(
+      order.id,
+      this.statusForApi(newStatus)
+    )
+    .pipe(finalize(() => {
+      this.updatingStatusOrderId = null;
+    }))
+    .subscribe({
+      next: (response: any) => {
+        this.successMessage =
+          response?.message ?? 'Order status updated successfully.';
+        this.loadOrders();
+        this.loadRiders();
+        this.loadAllRiders();
+      },
+      error: (error: any) => {
+        console.error('Update order status API error:', error);
+        order.status = previousStatus;
+        this.errorMessage =
+          error?.error?.message ?? 'Unable to update order status.';
+        this.loadOrders();
+      }
+    });
+  }
+
   assignRider(order: Order, riderId: string): void {
+    if (
+      this.isTerminalStatus(order.status) ||
+      this.assigningOrderId === order.id
+    ) {
+      return;
+    }
+
     const parsedRiderId = riderId ? Number(riderId) : null;
 
     if (
       riderId &&
-      (!Number.isInteger(parsedRiderId) ||
-        Number(parsedRiderId) <= 0)
+      (!Number.isInteger(parsedRiderId) || Number(parsedRiderId) <= 0)
     ) {
       this.errorMessage = 'Please select a valid rider.';
       return;
     }
+
+    const previousRiderId = order.riderId;
+    const previousRiderName = order.rider;
 
     this.assigningOrderId = order.id;
     this.clearMessages();
@@ -317,35 +455,50 @@ export class OrdersComponent implements OnInit {
       }))
       .subscribe({
         next: (response: any) => {
+          const data = this.getPayload(response);
+          const assigned = data?.rider ?? data?.order?.rider;
+
+          if (parsedRiderId === null) {
+            order.riderId = '';
+            order.rider = 'Unassigned';
+          } else {
+            const selected = this.allRiders.find(
+              rider => rider.id === String(parsedRiderId)
+            ) ?? this.riders.find(
+              rider => rider.id === String(parsedRiderId)
+            );
+
+            order.riderId = String(parsedRiderId);
+            order.rider =
+              assigned?.name ?? selected?.name ?? previousRiderName;
+          }
+
           this.successMessage =
-            response?.message ??
-            'Rider assignment updated successfully.';
+            response?.message ?? 'Rider assignment updated successfully.';
 
           this.loadOrders();
           this.loadRiders();
+          this.loadAllRiders();
         },
-        error: (error) => {
-          console.error('Assign Rider API error:', error);
-
+        error: (error: any) => {
+          console.error('Assign rider API error:', error);
+          order.riderId = previousRiderId;
+          order.rider = previousRiderName;
           this.errorMessage =
             error?.error?.message ??
-            'Unable to assign rider. Check availability and try again.';
+            'Unable to assign rider. Check rider availability.';
+          this.loadOrders();
+          this.loadRiders();
         }
       });
   }
 
   openCreateOrder(): void {
     this.clearMessages();
-    this.isEditing = false;
-    this.editingOrderId = null;
+    this.isEditMode = false;
+    this.modalOrderId = null;
     this.newOrder = this.emptyOrder();
     this.showOrderModal = true;
-  }
-
-  openEditOrder(order: Order): void {
-    this.clearMessages();
-    this.errorMessage =
-      'Edit Order API is not implemented in the backend yet.';
   }
 
   saveOrder(): void {
@@ -359,23 +512,19 @@ export class OrdersComponent implements OnInit {
     }
 
     if (customerName.length > 100) {
-      this.errorMessage =
-        'Customer name cannot exceed 100 characters.';
+      this.errorMessage = 'Customer name cannot exceed 100 characters.';
       return;
     }
 
     if (this.newOrder.mobile.trim().length > 20) {
-      this.errorMessage =
-        'Mobile number cannot exceed 20 characters.';
+      this.errorMessage = 'Mobile number cannot exceed 20 characters.';
       return;
     }
 
-    if (
-      !Number.isFinite(Number(this.newOrder.amount)) ||
-      Number(this.newOrder.amount) < 0
-    ) {
-      this.errorMessage =
-        'Amount must be a valid non-negative number.';
+    const amount = Number(this.newOrder.amount);
+
+    if (!Number.isFinite(amount) || amount < 0) {
+      this.errorMessage = 'Amount must be a valid non-negative number.';
       return;
     }
 
@@ -384,50 +533,106 @@ export class OrdersComponent implements OnInit {
       mobile: this.newOrder.mobile.trim(),
       pickup: this.newOrder.pickup.trim(),
       delivery: this.newOrder.delivery.trim(),
-      amount: Number(this.newOrder.amount),
+      amount,
       currency: this.newOrder.currency.trim() || 'AED'
     };
 
     this.isSaving = true;
 
-    this.orderService.createOrder(payload)
+    const request = this.isEditMode && this.modalOrderId !== null
+      ? this.orderService.updateOrder(this.modalOrderId, payload)
+      : this.orderService.createOrder(payload);
+
+    request.pipe(finalize(() => {
+      this.isSaving = false;
+    }))
+    .subscribe({
+      next: (response: any) => {
+        this.successMessage = response?.message ??
+          (this.isEditMode
+            ? 'Order updated successfully.'
+            : 'Order created successfully.');
+
+        this.showOrderModal = false;
+        this.newOrder = this.emptyOrder();
+        this.isEditMode = false;
+        this.modalOrderId = null;
+        this.currentPage = 1;
+        this.loadOrders();
+      },
+      error: (error: any) => {
+        console.error('Save order API error:', error);
+        this.errorMessage =
+          error?.error?.message ?? 'Unable to save order.';
+      }
+    });
+  }
+
+  openEditOrder(order: Order): void {
+    if (this.isTerminalStatus(order.status)) {
+      this.errorMessage = 'Delivered or Cancelled orders cannot be edited.';
+      return;
+    }
+
+    this.clearMessages();
+    this.isEditMode = true;
+    this.modalOrderId = order.id;
+
+    this.newOrder = {
+      customer: order.customer,
+      mobile: order.mobile,
+      pickup: order.pickup,
+      delivery: order.delivery,
+      amount: order.amount,
+      currency: order.currency || 'AED'
+    };
+
+    this.showOrderModal = true;
+  }
+
+  deleteOrder(order: Order): void {
+    if (this.deletingOrderId === order.id) return;
+
+    if (!confirm(`Are you sure you want to delete ORD-JB${order.id}?`)) {
+      return;
+    }
+
+    this.clearMessages();
+    this.deletingOrderId = order.id;
+
+    this.orderService.deleteOrder(order.id)
       .pipe(finalize(() => {
-        this.isSaving = false;
+        this.deletingOrderId = null;
       }))
       .subscribe({
         next: (response: any) => {
           this.successMessage =
-            response?.message ?? 'Order created successfully.';
+            response?.message ?? 'Order deleted successfully.';
 
-          this.showOrderModal = false;
-          this.resetForm();
-          this.currentPage = 1;
+          if (this.orders.length === 1 && this.currentPage > 1) {
+            this.currentPage--;
+          }
+
           this.loadOrders();
+          this.loadRiders();
+          this.loadAllRiders();
         },
-        error: (error) => {
-          console.error('Create Order API error:', error);
-
+        error: (error: any) => {
+          console.error('Delete order API error:', error);
           this.errorMessage =
-            error?.error?.message ??
-            'Unable to create order. Please check the backend logs.';
+            error?.error?.message ?? 'Unable to delete order.';
         }
       });
   }
 
-  deleteOrder(order: Order): void {
-    this.clearMessages();
-    this.errorMessage =
-      'Delete Order API is not implemented in the backend yet.';
-  }
-
   closeOrderModal(): void {
-    this.showOrderModal = false;
-    this.resetForm();
-    this.clearMessages();
-  }
+    if (this.isSaving) return;
 
-  resetForm(): void {
+    this.showOrderModal = false;
     this.newOrder = this.emptyOrder();
+    this.isEditMode = false;
+    this.modalOrderId = null;
+    this.clearMessages();
   }
 
   clearMessages(): void {

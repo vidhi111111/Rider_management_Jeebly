@@ -10,6 +10,8 @@ export interface OrderFilters {
   search?: string;
   status?: string;
   rider_id?: string;
+  order_date?: string;
+  sortBy?: string;
 }
 
 export interface CreateOrderPayload {
@@ -21,15 +23,12 @@ export interface CreateOrderPayload {
   currency?: string;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class OrderService {
   private readonly apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
-  // Get orders with server-side pagination and filters
   getOrders(filters: OrderFilters): Observable<any> {
     let params = new HttpParams()
       .set('page', String(filters.page))
@@ -38,41 +37,60 @@ export class OrderService {
     if (filters.search?.trim()) {
       params = params.set('search', filters.search.trim());
     }
-
     if (filters.status) {
       params = params.set('status', filters.status);
     }
-
     if (filters.rider_id) {
       params = params.set('rider_id', filters.rider_id);
+    }
+    if (filters.order_date) {
+      params = params.set('order_date', filters.order_date);
+    }
+    if (filters.sortBy) {
+      params = params.set('sortBy', filters.sortBy);
     }
 
     return this.http.get(`${this.apiUrl}/orders`, { params });
   }
 
-  // Create an order in PostgreSQL
   createOrder(order: CreateOrderPayload): Observable<any> {
     return this.http.post(`${this.apiUrl}/orders`, order);
   }
 
-  // Get riders available for assignment
   getAvailableRiders(): Observable<any> {
     return this.http.get(`${this.apiUrl}/riders/available`);
   }
 
-  // Get one order by ID
-  getOrderById(orderId: number): Observable<any> {
-    return this.http.get(`${this.apiUrl}/orders/${orderId}`);
+  getRiders(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/riders?page=1&pageSize=100`);
   }
 
-  // Assign or unassign a rider
-  assignRider(
-    orderId: number,
-    riderId: number | null
-  ): Observable<any> {
+  getOrderById(id: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/orders/${id}`);
+  }
+
+  assignRider(orderId: number, riderId: number | null): Observable<any> {
     return this.http.post(
       `${this.apiUrl}/orders/${orderId}/assign-rider`,
       { rider_id: riderId }
     );
+  }
+
+  updateOrderStatus(orderId: number, status: string): Observable<any> {
+    return this.http.patch(
+      `${this.apiUrl}/orders/${orderId}/status`,
+      { status }
+    );
+  }
+
+  updateOrder(
+    orderId: number,
+    payload: Partial<CreateOrderPayload>
+  ): Observable<any> {
+    return this.http.put(`${this.apiUrl}/orders/${orderId}`, payload);
+  }
+
+  deleteOrder(orderId: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/orders/${orderId}`);
   }
 }
