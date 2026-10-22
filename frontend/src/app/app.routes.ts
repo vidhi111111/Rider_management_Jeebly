@@ -72,12 +72,12 @@ export const routes: Routes = [
           )
       },
       {
-        path: 'settings',
+        path: 'change-password',
         loadComponent: () =>
-          import('./pages/settings/settings.component').then(
-            m => m.SettingsComponent
-          )
-      }
+          import('./pages/change-password/change-password.component').then(
+            m => m.ChangePasswordComponent
+    )
+}
     ]
   },
   {

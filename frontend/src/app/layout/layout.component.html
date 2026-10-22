@@ -5,8 +5,7 @@
         type="button"
         class="menu-button"
         (click)="toggleSidebar()"
-        aria-label="Toggle menu"
-      >
+        aria-label="Toggle menu">
         <span></span>
         <span></span>
         <span></span>
@@ -17,40 +16,103 @@
       </div>
     </div>
 
-    <div class="header-right">
-      <span class="welcome-text" *ngIf="currentUser">
-        Welcome, {{ currentUser.name }}
+   
+<div class="header-right">
+  <span class="welcome-text" *ngIf="currentUser">
+    Welcome, {{ currentUser.name }}
+  </span>
+
+  <div class="profile-menu">
+    <button
+      type="button"
+      class="profile-trigger"
+      (click)="toggleProfileMenu()"
+      [attr.aria-expanded]="isProfileMenuOpen"
+      aria-label="Open profile menu">
+
+      <span class="profile-avatar">
+        {{ getUserInitial() }}
       </span>
+    </button>
+
+    <div
+      class="profile-dropdown"
+      *ngIf="isProfileMenuOpen">
 
       <button
         type="button"
-        class="theme-button"
-        (click)="toggleTheme()"
-      >
-        {{ isDarkMode ? 'Light Theme' : 'Dark Theme' }}
+        class="dropdown-item"
+        (click)="openProfile()">
+        <span class="dropdown-icon">♙</span>
+        <span class="dropdown-label">
+          <strong>Profile</strong>
+          <small>View and edit your account</small>
+        </span>
+        <span class="item-chevron">›</span>
       </button>
 
       <button
         type="button"
-        class="logout-button"
-        (click)="logout()"
-      >
-        Logout
+        class="dropdown-item"
+        (click)="openChangePassword()">
+        <span class="dropdown-icon">♧</span>
+        <span class="dropdown-label">
+          <strong>Change Password</strong>
+          <small>Update your password</small>
+        </span>
+        <span class="item-chevron">›</span>
+      </button>
+
+      <button
+        type="button"
+        class="dropdown-item"
+        (click)="toggleTheme()">
+        <span class="dropdown-icon">
+          {{ isDarkMode ? '☀' : '☾' }}
+        </span>
+        <span class="dropdown-label">
+          <strong>
+            {{ isDarkMode ? 'Light Theme' : 'Dark Theme' }}
+          </strong>
+          <small>
+            {{ isDarkMode ? 'Switch to light appearance' : 'Switch to dark appearance' }}
+          </small>
+        </span>
+        <span
+          class="theme-switch"
+          [class.theme-switch-active]="isDarkMode">
+          <span></span>
+        </span>
+      </button>
+
+      <div class="dropdown-divider"></div>
+
+      <button
+        type="button"
+        class="dropdown-item logout-dropdown-item"
+        (click)="logout()">
+        <span class="dropdown-icon">⇥</span>
+        <span class="dropdown-label">
+          <strong>Logout</strong>
+          <small>Sign out of your account</small>
+        </span>
       </button>
     </div>
-  </header>
+  </div>
+</div>
+</header>
 
   <div
     class="sidebar-overlay"
     [class.show]="isSidebarOpen"
-    (click)="closeSidebar()"
-  ></div>
+    (click)="closeSidebar()">
+  </div>
 
   <div class="body-container">
     <aside
       class="sidebar"
-      [class.sidebar-open]="isSidebarOpen"
-    >
+      [class.sidebar-open]="isSidebarOpen">
+
       <div class="sidebar-heading">
         MENU
       </div>
@@ -60,41 +122,22 @@
           routerLink="/dashboard"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: true }"
-          (click)="closeSidebar()"
-        >
+          (click)="closeSidebar()">
           <span>Dashboard</span>
-        </a>
-
-        <a
-          routerLink="/riders"
-          routerLinkActive="active"
-          (click)="closeSidebar()"
-        >
-          <span>Riders</span>
         </a>
 
         <a
           routerLink="/orders"
           routerLinkActive="active"
-          (click)="closeSidebar()"
-        >
+          (click)="closeSidebar()">
           <span>Orders</span>
         </a>
 
         <a
-          routerLink="/profile"
+          routerLink="/riders"
           routerLinkActive="active"
-          (click)="closeSidebar()"
-        >
-          <span>Profile</span>
-        </a>
-
-        <a
-          routerLink="/settings"
-          routerLinkActive="active"
-          (click)="closeSidebar()"
-        >
-          <span>Settings</span>
+          (click)="closeSidebar()">
+          <span>Riders</span>
         </a>
       </nav>
     </aside>

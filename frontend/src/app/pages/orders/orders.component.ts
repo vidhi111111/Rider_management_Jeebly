@@ -425,73 +425,73 @@ export class OrdersComponent implements OnInit {
     });
   }
 
-  assignRider(order: Order, riderId: string): void {
-    if (
-      this.isTerminalStatus(order.status) ||
-      this.assigningOrderId === order.id
-    ) {
-      return;
-    }
-
-    const parsedRiderId = riderId ? Number(riderId) : null;
-
-    if (
-      riderId &&
-      (!Number.isInteger(parsedRiderId) || Number(parsedRiderId) <= 0)
-    ) {
-      this.errorMessage = 'Please select a valid rider.';
-      return;
-    }
-
-    const previousRiderId = order.riderId;
-    const previousRiderName = order.rider;
-
-    this.assigningOrderId = order.id;
-    this.clearMessages();
-
-    this.orderService.assignRider(order.id, parsedRiderId)
-      .pipe(finalize(() => {
-        this.assigningOrderId = null;
-      }))
-      .subscribe({
-        next: (response: any) => {
-          const data = this.getPayload(response);
-          const assigned = data?.rider ?? data?.order?.rider;
-
-          if (parsedRiderId === null) {
-            order.riderId = '';
-            order.rider = 'Unassigned';
-          } else {
-            const selected = this.allRiders.find(
-              rider => rider.id === String(parsedRiderId)
-            ) ?? this.riders.find(
-              rider => rider.id === String(parsedRiderId)
-            );
-
-            order.riderId = String(parsedRiderId);
-            order.rider =
-              assigned?.name ?? selected?.name ?? previousRiderName;
-          }
-
-          this.successMessage =
-            response?.message ?? 'Rider assignment updated successfully.';
-
-          this.loadOrders();
-          this.loadRiders();
-          this.loadAllRiders();
-        },
-        error: (error: any) => {
-          console.error('Assign rider API error:', error);
-          order.riderId = previousRiderId;
-          order.rider = previousRiderName;
-          this.errorMessage =
-            error?.error?.message ??
-            'Unable to assign rider. Check rider availability.';
-          this.loadOrders();
-          this.loadRiders();
-        }
-      });
+  
+assignRider(order: Order, riderId: string): void {
+  if (this.isTerminalStatus(order.status) ||
+      this.assigningOrderId === order.id) {
+    return;
   }
+
+  const parsedRiderId = riderId ? Number(riderId) : null;
+
+  if (riderId &&
+      (!Number.isInteger(parsedRiderId) || Number(parsedRiderId) <= 0)) {
+    this.errorMessage = 'Please select a valid rider.';
+    return;
+  }
+
+  const previousRiderId = order.riderId;
+  const previousRiderName = order.rider;
+
+  this.clearMessages();
+  this.assigningOrderId = order.id;
+
+  this.orderService.assignRider(order.id, parsedRiderId)
+    .pipe(finalize(() => {
+      this.assigningOrderId = null;
+    }))
+    .subscribe({
+      next: (response: any) => {
+        const data = this.getPayload(response);
+        const updatedOrder = data?.order ?? data;
+
+        if (updatedOrder && updatedOrder.id != null) {
+          const mapped = this.mapOrder(updatedOrder);
+          order.riderId = mapped.riderId;
+          order.rider = mapped.rider;
+          order.status = mapped.status;
+        } else if (parsedRiderId === null) {
+          order.riderId = '';
+          order.rider = 'Unassigned';
+        } else {
+          const selected = [...this.allRiders, ...this.riders]
+            .find(r => r.id === String(parsedRiderId));
+
+          order.riderId = String(parsedRiderId);
+          order.rider = selected?.name ?? 'Assigned rider';
+        }
+
+        this.successMessage =
+          response?.message ?? 'Rider assignment updated successfully.';
+
+        this.loadOrders();
+        this.loadRiders();
+        this.loadAllRiders();
+      },
+      error: (error: any) => {
+        console.error('Assign rider API error:', error);
+        order.riderId = previousRiderId;
+        order.rider = previousRiderName;
+
+        this.errorMessage = error?.error?.message ??
+          'Unable to assign rider. Check rider availability.';
+
+        this.loadOrders();
+        this.loadRiders();
+      }
+    });
+}
+
 
   openCreateOrder(): void {
     this.clearMessages();

@@ -17,8 +17,7 @@ export class BreadcrumbComponent {
     dashboard: 'Dashboard',
     riders: 'Riders',
     orders: 'Orders',
-    profile: 'Profile',
-    settings: 'Settings'
+    profile: 'Profile'
   };
 
  constructor(public readonly router: Router) {

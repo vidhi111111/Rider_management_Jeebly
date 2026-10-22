@@ -179,10 +179,7 @@ def rider_upload(filename):
         filename
     )
 
-
-# =========================================================
 # SERIALIZATION
-# =========================================================
 
 def serialize_rider(rider):
     image = rider.profile_image
@@ -231,9 +228,7 @@ def serialize_order(order):
     }
 
 
-# =========================================================
 # REQUEST HELPERS
-# =========================================================
 
 def read_request_data():
     if request.is_json:
@@ -246,10 +241,7 @@ def read_request_data():
 def get_user_id():
     return getattr(request, "user_id", None)
 
-
-# =========================================================
 # RIDER VALIDATION AND AVAILABILITY
-# =========================================================
 
 def validate_rider_data(data):
     errors = {}
@@ -333,10 +325,7 @@ def refresh_rider_availability(rider):
         if rider.status == "on_order":
             rider.status = "active"
 
-
-# =========================================================
 # HEALTH, REGISTRATION AND LOGIN
-# =========================================================
 
 @routes.get("/health")
 def health():
@@ -440,10 +429,8 @@ def login():
         }
     }), 200
 
-
-# =========================================================
 # RIDER LIST AND DETAILS
-# =========================================================
+
 
 @routes.get("/riders")
 @auth_required
@@ -671,10 +658,7 @@ def delete_rider(rider_id):
     delete_rider_image(image)
     return success_response("Rider deleted successfully.", {"id": rider_id})
 
-
-# =========================================================
 # ORDERS: SERVER-SIDE SEARCH, FILTERS, SORTING, PAGINATION
-# =========================================================
 
 @routes.get("/orders")
 @auth_required
@@ -1053,7 +1037,8 @@ def assign_rider(order_id):
                         "This rider already has an active order.", 409
                     )
 
-            order.rider_id = rider.id
+            order.rider = rider
+
 
         db.session.flush()
 
@@ -1075,10 +1060,7 @@ def assign_rider(order_id):
         return error_response("Unable to assign rider.", 500)
 
 
-# =========================================================
 # DASHBOARD
-# =========================================================
-
 @routes.get("/dashboard")
 @auth_required
 def dashboard():
@@ -1136,9 +1118,7 @@ def dashboard():
         return error_response("Unable to retrieve dashboard.", 500)
 
 
-# =========================================================
 # PROFILE AND CHANGE PASSWORD
-# =========================================================
 
 @routes.get("/profile")
 @auth_required
@@ -1231,9 +1211,7 @@ def change_password():
     return success_response("Password changed successfully.", None)
 
 
-# =========================================================
 # SETTINGS
-# =========================================================
 
 @routes.get("/settings")
 @auth_required

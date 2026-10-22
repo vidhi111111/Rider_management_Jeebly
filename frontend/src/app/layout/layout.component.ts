@@ -18,6 +18,7 @@ import { AuthService } from '../core/services/auth.service';
 export class LayoutComponent implements OnInit {
   isDarkMode = false;
   isSidebarOpen = false;
+  isProfileMenuOpen = false;
 
   constructor(
     private readonly authService: AuthService,
@@ -27,14 +28,18 @@ export class LayoutComponent implements OnInit {
   ngOnInit(): void {
     const savedTheme = localStorage.getItem('theme');
 
-    if (savedTheme === 'dark') {
-      this.isDarkMode = true;
-      document.body.classList.add('dark-mode');
-    }
+    this.isDarkMode = savedTheme === 'dark';
+
+    document.body.classList.toggle('dark-mode', this.isDarkMode);
   }
 
   get currentUser() {
     return this.authService.getUser();
+  }
+
+  getUserInitial(): string {
+    const name = this.currentUser?.name || 'User';
+    return name.charAt(0).toUpperCase();
   }
 
   toggleSidebar(): void {
@@ -45,22 +50,40 @@ export class LayoutComponent implements OnInit {
     this.isSidebarOpen = false;
   }
 
+  toggleProfileMenu(): void {
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+  }
+
+  openProfile(): void {
+    this.isProfileMenuOpen = false;
+    this.router.navigate(['/profile']);
+  }
+
+  openChangePassword(): void {
+  this.isProfileMenuOpen = false;
+  this.router.navigate(['/change-password']);
+}
+
   toggleTheme(): void {
     this.isDarkMode = !this.isDarkMode;
 
-    if (this.isDarkMode) {
-      document.body.classList.add('dark-mode');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.body.classList.remove('dark-mode');
-      localStorage.setItem('theme', 'light');
-    }
+    document.body.classList.toggle('dark-mode', this.isDarkMode);
+
+    localStorage.setItem(
+      'theme',
+      this.isDarkMode ? 'dark' : 'light'
+    );
   }
 
   logout(): void {
+    this.isProfileMenuOpen = false;
+    this.isSidebarOpen = false;
+
     this.authService.logout();
+
     localStorage.removeItem('theme');
     document.body.classList.remove('dark-mode');
+
     this.router.navigate(['/login']);
   }
 }

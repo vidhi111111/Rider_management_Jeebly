@@ -1,0 +1,254 @@
+:host {
+  display: block;
+  min-width: 0;
+  color: #173b5c;
+}
+
+.profile-page {
+  min-height: 100%;
+  background: #f4f7fb;
+  color: #173b5c;
+}
+
+.breadcrumb {
+  font-size: 15px;
+}
+
+.breadcrumb-item a {
+  color: #667d96;
+  text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+  color: #e71948;
+}
+
+.breadcrumb-item.active {
+  color: #173b5c;
+  font-weight: 600;
+}
+
+.page-heading h1 {
+  color: #173b5c;
+  font-size: clamp(28px, 3vw, 42px);
+  letter-spacing: -0.8px;
+}
+
+.page-heading p {
+  font-size: 18px;
+}
+
+.profile-card {
+  border: 1px solid #dce5f0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(23, 59, 92, 0.04);
+}
+
+.profile-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: #fde8ed;
+  color: #e71948;
+  font-size: 44px;
+  font-weight: 700;
+}
+
+.user-name {
+  color: #173b5c;
+  font-size: 30px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.user-summary p {
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.account-badge {
+  padding: 9px 18px;
+  background: #f0f4f8;
+  color: #173b5c;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.section-divider {
+  border-color: #dce5f0;
+  opacity: 1;
+}
+
+.section-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 13px;
+  background: #fde8ed;
+  color: #e71948;
+  font-size: 36px;
+}
+
+
+
+.section-title {
+  color: #173b5c;
+  font-size: 23px;
+  font-weight: 700;
+}
+
+.profile-card .text-muted {
+  color: #687f98 !important;
+}
+
+.form-label {
+  margin-bottom: 10px;
+  color: #173b5c;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.required-star {
+  color: #e71948;
+}
+
+.profile-input-group {
+  min-height: 56px;
+  border: 1px solid #c8d6e6;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.profile-input-group:focus-within {
+  border-color: #173b5c;
+  box-shadow: 0 0 0 3px rgba(23, 59, 92, 0.09);
+}
+
+.profile-input-group .input-group-text {
+  justify-content: center;
+  min-width: 56px;
+  border: 0;
+  background: #fff;
+  color: #687f98;
+  font-size: 21px;
+}
+
+.profile-input-group .form-control {
+  min-width: 0;
+  border: 0;
+  box-shadow: none;
+  padding: 13px 10px;
+  color: #173b5c;
+  font-size: 16px;
+}
+
+.profile-input-group .form-control::placeholder {
+  color: #94a3b8;
+}
+
+.profile-input-group .form-control:focus {
+  box-shadow: none;
+}
+
+.profile-input-group .form-control.is-invalid {
+  background-image: none;
+}
+
+.profile-input-group:has(.form-control.is-invalid) {
+  border-color: #dc3545;
+}
+
+
+.validation-message {
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.btn-profile-primary,
+.btn-password-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding: 12px 25px;
+  border: 1px solid #e71948;
+  border-radius: 12px;
+  background: #e71948;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  transition: background 0.2s, transform 0.2s;
+}
+
+
+.profile-spinner {
+  color: #e71948;
+}
+
+.alert {
+  border-radius: 10px;
+}
+
+@media (max-width: 767.98px) {
+  .profile-page {
+    padding: 20px 14px !important;
+  }
+
+  .profile-card .card-body {
+    padding: 22px !important;
+  }
+
+  .profile-avatar {
+    width: 82px;
+    height: 82px;
+    font-size: 32px;
+  }
+
+  .user-name {
+    font-size: 24px;
+  }
+
+  .section-icon {
+    width: 54px;
+    height: 54px;
+    font-size: 28px;
+  }
+
+  .section-title {
+    font-size: 19px;
+  }
+
+  .page-heading p {
+    font-size: 16px;
+  }
+
+  .btn-profile-primary,
+  .btn-password-primary {
+    width: 100%;
+  }
+
+  .profile-summary {
+    gap: 16px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .profile-card .card-body {
+    padding: 16px !important;
+  }
+
+  .profile-input-group .input-group-text {
+    min-width: 42px;
+  }
+
+}

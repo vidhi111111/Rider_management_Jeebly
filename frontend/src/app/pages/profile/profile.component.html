@@ -1,1 +1,171 @@
-<p>profile works!</p>
+<div class="container-fluid profile-page py-4 px-3 px-lg-5">
+
+
+  <div class="page-heading mb-4">
+    <h1 class="fw-bold mb-2">User Profile</h1>
+    <p class="text-muted mb-0">
+      Manage your personal information and account security.
+    </p>
+  </div>
+  <div *ngIf="loadingProfile" class="text-center py-5">
+    <div class="spinner-border profile-spinner" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="text-muted mt-3">Loading profile...</p>
+  </div>
+
+  <div *ngIf="successMessage"
+       class="alert alert-success alert-dismissible fade show"
+       role="alert">
+    {{ successMessage }}
+    <button type="button"
+            class="btn-close"
+            aria-label="Close"
+            (click)="successMessage = ''"></button>
+  </div>
+
+  <div *ngIf="errorMessage"
+       class="alert alert-danger alert-dismissible fade show"
+       role="alert">
+    {{ errorMessage }}
+    <button type="button"
+            class="btn-close"
+            aria-label="Close"
+            (click)="errorMessage = ''"></button>
+  </div>
+
+  <ng-container *ngIf="!loadingProfile">
+    <section class="card profile-card mb-4">
+
+      <div class="card-body p-4 p-lg-5">
+
+        <div class="d-flex align-items-center gap-4 flex-wrap profile-summary">
+          <div class="profile-avatar">
+            {{ getInitial() }}
+          </div>
+
+          <div class="user-summary">
+            <h2 class="user-name mb-1">
+              {{ userName || profileForm.get('name')?.value || 'User' }}
+            </h2>
+
+            <p class="text-muted mb-2">
+              {{ userEmail || 'Email not available' }}
+            </p>
+
+            <span class="badge rounded-pill account-badge">
+              Account Profile
+            </span>
+          </div>
+        </div>
+
+        <hr class="section-divider my-4">
+
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <div class="section-icon">
+            <span class="user-icon">♙</span>
+          </div>
+
+          <div>
+            <h3 class="section-title mb-1">Profile Information</h3>
+            <p class="text-muted mb-0">
+              Update your name and mobile number.
+            </p>
+          </div>
+        </div>
+
+             <form [formGroup]="profileForm"
+              (ngSubmit)="updateProfile()"
+              novalidate>
+
+          <div class="mb-4">
+            <label for="profileName" class="form-label">
+              Name <span class="required-star">*</span>
+            </label>
+
+            <div class="input-group profile-input-group">
+              <span class="input-group-text">♙</span>
+
+              <input
+                id="profileName"
+                type="text"
+                class="form-control"
+                formControlName="name"
+                placeholder="Enter your name"
+                maxlength="100"
+                [class.is-invalid]="
+                  profileForm.get('name')?.touched &&
+                  profileForm.get('name')?.invalid
+                "
+              >
+            </div>
+
+            <div class="text-danger validation-message"
+                 *ngIf="profileForm.get('name')?.touched &&
+                        profileForm.get('name')?.hasError('required')">
+              Name is required.
+            </div>
+
+            <div class="text-danger validation-message"
+                 *ngIf="profileForm.get('name')?.touched &&
+                        profileForm.get('name')?.hasError('maxlength')">
+              Name cannot exceed 100 characters.
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label for="profileMobile" class="form-label">
+              Mobile Number <span class="required-star">*</span>
+            </label>
+
+            <div class="input-group profile-input-group">
+              <span class="input-group-text">☎</span>
+
+              <input
+                id="profileMobile"
+                type="tel"
+                class="form-control"
+                formControlName="mobile"
+                placeholder="Enter 10-digit mobile number"
+                maxlength="10"
+                inputmode="numeric"
+                [class.is-invalid]="
+                  profileForm.get('mobile')?.touched &&
+                  profileForm.get('mobile')?.invalid
+                "
+              >
+            </div>
+
+            <div class="text-danger validation-message"
+                 *ngIf="profileForm.get('mobile')?.touched &&
+                        profileForm.get('mobile')?.hasError('required')">
+              Mobile number is required.
+            </div>
+
+            <div class="text-danger validation-message"
+                 *ngIf="profileForm.get('mobile')?.touched &&
+                        profileForm.get('mobile')?.hasError('pattern')">
+              Enter a valid 10-digit mobile number.
+            </div>
+          </div>
+
+   
+          <div class="d-flex justify-content-end pt-2">
+            <button
+              type="submit"
+              class="btn btn-profile-primary"
+              [disabled]="updatingProfile || profileForm.invalid">
+
+              <span *ngIf="updatingProfile"
+                    class="spinner-border spinner-border-sm me-2"
+                    aria-hidden="true"></span>
+
+              <span *ngIf="!updatingProfile" class="me-2">▣</span>
+
+              {{ updatingProfile ? 'Updating...' : 'Update Profile' }}
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </section>
