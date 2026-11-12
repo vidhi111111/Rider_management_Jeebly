@@ -85,6 +85,7 @@ export class RidersComponent implements OnInit, OnDestroy {
   selectedImageFile: File | null = null;
   imagePreviewUrl: string | null = null;
   currentImageUrl: string | null = null;
+  photoRemoved = false;
 
   riderForm: FormGroup;
 
@@ -495,6 +496,7 @@ export class RidersComponent implements OnInit, OnDestroy {
 
     this.selectedImageFile = file;
     this.imagePreviewUrl = null;
+    this.photoRemoved = false;
 
     const reader = new FileReader();
 
@@ -520,6 +522,7 @@ export class RidersComponent implements OnInit, OnDestroy {
     this.selectedImageFile = null;
     this.imagePreviewUrl = null;
     this.currentImageUrl = null;
+    this.photoRemoved = true;
 
     const fileInput = document.getElementById('riderProfileImage') as HTMLInputElement;
     if (fileInput) {
@@ -531,6 +534,7 @@ export class RidersComponent implements OnInit, OnDestroy {
     this.selectedImageFile = null;
     this.imagePreviewUrl = null;
     this.currentImageUrl = null;
+    this.photoRemoved = false;
 
     const fileInput = document.getElementById('riderProfileImage') as HTMLInputElement;
     if (fileInput) {
@@ -598,6 +602,8 @@ export class RidersComponent implements OnInit, OnDestroy {
 
     if (this.selectedImageFile) {
       formData.append('profile_image', this.selectedImageFile, this.selectedImageFile.name);
+    } else if (this.photoRemoved && !isCreating) {
+      formData.append('remove_photo', 'true');
     }
 
     this.isSaving = true;

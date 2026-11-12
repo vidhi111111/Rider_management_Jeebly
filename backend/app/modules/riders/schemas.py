@@ -85,6 +85,8 @@ def validate_rider_data(data: Dict[str, Any]) -> Tuple[Dict[str, str], Dict[str,
     elif status == "on_order":
         availability = "busy"
 
+    remove_photo = str(data.get("remove_photo", "")).strip().lower() in ("true", "1", "yes")
+
     return errors, {
         "name": name,
         "mobile": mobile,
@@ -92,5 +94,6 @@ def validate_rider_data(data: Dict[str, Any]) -> Tuple[Dict[str, str], Dict[str,
         "vehicle": vehicle,
         "status": status,
         "availability": availability,
-        "date": parsed_date
+        "date": parsed_date,
+        "remove_photo": remove_photo
     }

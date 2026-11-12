@@ -153,6 +153,9 @@ class RiderService:
         if new_image:
             old_image = rider.profile_image
             rider.profile_image = new_image["url"]
+        elif values.get("remove_photo"):
+            old_image = rider.profile_image
+            rider.profile_image = None
         else:
             old_image = None
 
