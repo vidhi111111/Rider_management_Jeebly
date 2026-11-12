@@ -76,6 +76,7 @@ export class RidersComponent implements OnInit, OnDestroy {
   showRiderModal = false;
   showViewModal = false;
   showDeleteDialog = false;
+  showCreateConfirmation = false;
 
   editingRiderId: number | null = null;
   selectedRider: Rider | null = null;
@@ -167,23 +168,25 @@ export class RidersComponent implements OnInit, OnDestroy {
     this.searchInput$.complete();
   }
 
-  showNotification(message: string, type: ToastType): void {
+  showNotification(message: string, type: ToastType, durationMs = 2500): void {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+
     this.toastMessage = message;
     this.toastType = type;
     this.showToast = true;
 
-    if (this.toastTimer) {
-      clearTimeout(this.toastTimer);
-    }
-
     this.toastTimer = setTimeout(() => {
-      this.showToast = false;
-      this.toastTimer = null;
-    }, 4000);
+      this.dismissToast();
+    }, durationMs);
   }
 
   dismissToast(): void {
     this.showToast = false;
+    this.toastMessage = '';
+    this.successMessage = '';
 
     if (this.toastTimer) {
       clearTimeout(this.toastTimer);
@@ -365,8 +368,10 @@ export class RidersComponent implements OnInit, OnDestroy {
 
   openAddRider(): void {
     this.closeActionMenu();
+    this.dismissToast();
     this.resetImageSelection();
     this.editingRiderId = null;
+    this.showCreateConfirmation = false;
     this.formError = '';
 
     this.riderForm.reset({
@@ -384,8 +389,10 @@ export class RidersComponent implements OnInit, OnDestroy {
 
   openEditRider(rider: Rider): void {
     this.closeActionMenu();
+    this.dismissToast();
     this.resetImageSelection();
     this.editingRiderId = rider.id;
+    this.showCreateConfirmation = false;
     this.currentImageUrl = rider.profile_image || null;
     this.formError = '';
 
@@ -452,6 +459,7 @@ export class RidersComponent implements OnInit, OnDestroy {
     }
 
     this.showRiderModal = false;
+    this.showCreateConfirmation = false;
     this.editingRiderId = null;
     this.formError = '';
     this.resetImageSelection();
@@ -508,16 +516,46 @@ export class RidersComponent implements OnInit, OnDestroy {
     reader.readAsDataURL(file);
   }
 
+  removePhoto(): void {
+    this.selectedImageFile = null;
+    this.imagePreviewUrl = null;
+    this.currentImageUrl = null;
+
+    const fileInput = document.getElementById('riderProfileImage') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  }
+
   private resetImageSelection(): void {
     this.selectedImageFile = null;
     this.imagePreviewUrl = null;
     this.currentImageUrl = null;
+
+    const fileInput = document.getElementById('riderProfileImage') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  }
+
+  cancelCreateRider(): void {
+    if (this.isSaving) {
+      return;
+    }
+    this.showCreateConfirmation = false;
+  }
+
+  confirmCreateRider(): void {
+    if (this.isSaving) {
+      return;
+    }
+    this.showCreateConfirmation = false;
+    this.executeSaveRider();
   }
 
   saveRider(): void {
     this.riderForm.markAllAsTouched();
     this.formError = '';
-    this.successMessage = '';
 
     if (this.riderForm.invalid) {
       this.formError = 'Please correct the highlighted fields.';
@@ -529,6 +567,20 @@ export class RidersComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.editingRiderId === null) {
+      this.showCreateConfirmation = true;
+      return;
+    }
+
+    this.executeSaveRider();
+  }
+
+  executeSaveRider(): void {
+    if (this.isSaving) {
+      return;
+    }
+
+    const isCreating = this.editingRiderId === null;
     const value = this.riderForm.getRawValue();
     const status = this.normalizeStatus(value.status);
     const availability = status === 'inactive'
@@ -550,7 +602,7 @@ export class RidersComponent implements OnInit, OnDestroy {
 
     this.isSaving = true;
 
-    const request$ = this.editingRiderId !== null
+    const request$ = !isCreating
       ? this.http.put<ApiResponse<Rider>>(`${this.apiUrl}/${this.editingRiderId}`, formData)
       : this.http.post<ApiResponse<Rider>>(this.apiUrl, formData);
 
@@ -558,7 +610,9 @@ export class RidersComponent implements OnInit, OnDestroy {
       .pipe(
         timeout(15000),
         takeUntil(this.destroy$),
-        finalize(() => this.isSaving = false)
+        finalize(() => {
+          this.isSaving = false;
+        })
       )
       .subscribe({
         next: response => {
@@ -571,8 +625,12 @@ export class RidersComponent implements OnInit, OnDestroy {
           this.showRiderModal = false;
           this.editingRiderId = null;
           this.resetImageSelection();
-          this.successMessage = response?.message || 'Rider saved successfully.';
-          this.showNotification(this.successMessage, 'success');
+
+          const successMsg = isCreating
+            ? 'Rider created successfully'
+            : 'Rider updated successfully';
+
+          this.showNotification(successMsg, 'success', 2500);
           this.currentPage = 1;
           this.loadRiders();
         },
@@ -640,8 +698,8 @@ export class RidersComponent implements OnInit, OnDestroy {
         next: response => {
           this.showDeleteDialog = false;
           this.deletingRider = null;
-          this.successMessage = response?.message || 'Rider deleted successfully.';
-          this.showNotification(this.successMessage, 'success');
+          const msg = response?.message || 'Rider deleted successfully.';
+          this.showNotification(msg, 'success', 2500);
 
           if (this.riders.length === 1 && this.currentPage > 1) {
             this.currentPage--;
@@ -663,6 +721,10 @@ export class RidersComponent implements OnInit, OnDestroy {
   @HostListener('document:keydown.escape')
   onEscape(): void {
     if (!this.isSaving && !this.isDeleting) {
+      if (this.showCreateConfirmation) {
+        this.cancelCreateRider();
+        return;
+      }
       this.closeRiderModal();
       this.closeViewModal();
       this.closeActionMenu();

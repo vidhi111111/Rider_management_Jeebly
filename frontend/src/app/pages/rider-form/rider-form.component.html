@@ -92,9 +92,30 @@
         </button>
         <button type="submit" class="btn-save"
                 [disabled]="isSaving || riderForm.invalid">
-          {{ isSaving ? 'Saving...' : (isEditMode ? 'Update Rider' : 'Add Rider') }}
+          {{ isSaving ? 'Saving...' : (isEditMode ? 'Update Rider' : 'Create Rider') }}
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Create Confirmation Modal -->
+<div *ngIf="showCreateConfirmation" class="confirm-backdrop" (click)="cancelCreate()">
+  <div class="confirm-dialog" (click)="$event.stopPropagation()">
+    <div class="confirm-header">
+      <h3>Create Rider</h3>
+      <button type="button" class="btn-close" [disabled]="isSaving" (click)="cancelCreate()">×</button>
+    </div>
+    <div class="confirm-body">
+      <p>Are you sure you want to create this rider?</p>
+    </div>
+    <div class="confirm-actions">
+      <button type="button" class="btn-cancel" [disabled]="isSaving" (click)="cancelCreate()">
+        No
+      </button>
+      <button type="button" class="btn-save" [disabled]="isSaving" (click)="confirmCreate()">
+        {{ isSaving ? 'Creating...' : 'Yes' }}
+      </button>
+    </div>
   </div>
 </div>

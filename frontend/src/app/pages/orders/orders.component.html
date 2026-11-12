@@ -1,3 +1,10 @@
+<app-toast
+  [message]="toastMessage"
+  [type]="toastType"
+  [visible]="showToast"
+  (dismissed)="dismissToast()"
+></app-toast>
+
 
 <div class="orders-page">
   <div class="page-heading">
@@ -12,19 +19,7 @@
     </button>
   </div>
 
-  <div
-    *ngIf="successMessage"
-    class="alert alert-success alert-dismissible"
-    role="alert"
-  >
-    {{ successMessage }}
-    <button
-      type="button"
-      class="btn-close"
-      aria-label="Close"
-      (click)="successMessage = ''"
-    ></button>
-  </div>
+
 
   <div
     *ngIf="errorMessage && !showOrderModal"
@@ -288,7 +283,7 @@
                 <button
                   type="button"
                   class="action-btn delete-btn"
-                  (click)="deleteOrder(order)"
+                  (click)="requestDeleteOrder(order)"
                   [disabled]="deletingOrderId === order.id"
                 >
                   {{
@@ -549,5 +544,114 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Create Order Confirmation Modal -->
+<div
+  *ngIf="showCreateConfirmation"
+  class="modal-backdrop-custom confirmation-backdrop"
+  (click)="cancelCreateOrder()"
+>
+  <div
+    class="order-modal confirm-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="confirmCreateOrderTitle"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="modal-heading">
+      <div>
+        <h2 id="confirmCreateOrderTitle">Create Order</h2>
+        <p>Please confirm order creation.</p>
+      </div>
+      <button
+        type="button"
+        class="btn-close"
+        [disabled]="isSaving"
+        (click)="cancelCreateOrder()"
+        aria-label="Close"
+      ></button>
+    </div>
+
+    <div class="modal-body-custom">
+      <p class="mb-0">Are you sure you want to create this order?</p>
+    </div>
+
+    <div class="modal-footer-custom">
+      <button
+        type="button"
+        class="cancel-btn"
+        [disabled]="isSaving"
+        (click)="cancelCreateOrder()"
+      >
+        No
+      </button>
+
+      <button
+        type="button"
+        class="create-btn"
+        [disabled]="isSaving"
+        (click)="confirmCreateOrder()"
+      >
+        {{ isSaving ? 'Creating...' : 'Yes' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Order Confirmation Modal -->
+<div
+  *ngIf="showDeleteDialog"
+  class="modal-backdrop-custom confirmation-backdrop"
+  (click)="cancelDeleteOrder()"
+>
+  <div
+    class="order-modal confirm-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="confirmDeleteOrderTitle"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="modal-heading">
+      <div>
+        <h2 id="confirmDeleteOrderTitle">Delete Order?</h2>
+        <p>This action cannot be undone.</p>
+      </div>
+      <button
+        type="button"
+        class="btn-close"
+        [disabled]="deletingOrderId !== null"
+        (click)="cancelDeleteOrder()"
+        aria-label="Close"
+      ></button>
+    </div>
+
+    <div class="modal-body-custom">
+      <p class="mb-0" *ngIf="deletingOrder">
+        Are you sure you want to delete
+        <strong>ORD-JB{{ deletingOrder.id }}</strong> ({{ deletingOrder.customer }})?
+      </p>
+    </div>
+
+    <div class="modal-footer-custom">
+      <button
+        type="button"
+        class="cancel-btn"
+        [disabled]="deletingOrderId !== null"
+        (click)="cancelDeleteOrder()"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="delete-confirm-btn"
+        [disabled]="deletingOrderId !== null"
+        (click)="confirmDeleteOrder()"
+      >
+        {{ deletingOrderId !== null ? 'Deleting...' : 'Delete Order' }}
+      </button>
+    </div>
   </div>
 </div>

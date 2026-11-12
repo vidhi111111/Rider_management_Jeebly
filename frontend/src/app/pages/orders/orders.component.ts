@@ -1,5 +1,5 @@
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
@@ -8,6 +8,7 @@ import {
   OrderService,
   CreateOrderPayload
 } from '../../core/services/order.service';
+import { ToastComponent, ToastType } from '../../shared/toast/toast.component';
 
 interface RiderOption {
   id: string;
@@ -31,11 +32,11 @@ interface Order {
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ToastComponent],
   templateUrl: './orders.component.html',
   styleUrls: ['./orders.component.css']
 })
-export class OrdersComponent implements OnInit {
+export class OrdersComponent implements OnInit, OnDestroy {
   readonly orderStatuses = [
     'Pending',
     'Accepted',
@@ -70,6 +71,15 @@ export class OrdersComponent implements OnInit {
   successMessage = '';
   errorMessage = '';
 
+  toastMessage = '';
+  toastType: ToastType = 'success';
+  showToast = false;
+  private toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+  showCreateConfirmation = false;
+  showDeleteDialog = false;
+  deletingOrder: Order | null = null;
+
   orders: Order[] = [];
 
   // All riders are used by the filter dropdown.
@@ -81,6 +91,40 @@ export class OrdersComponent implements OnInit {
   newOrder = this.emptyOrder();
 
   constructor(private orderService: OrderService) {}
+
+
+  showNotification(message: string, type: ToastType = 'success', durationMs = 2500): void {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+
+    this.toastMessage = message;
+    this.toastType = type;
+    this.showToast = true;
+
+    this.toastTimer = setTimeout(() => {
+      this.dismissToast();
+    }, durationMs);
+  }
+
+  dismissToast(): void {
+    this.showToast = false;
+    this.toastMessage = '';
+    this.successMessage = '';
+
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+  }
 
   ngOnInit(): void {
     this.loadOrders();
@@ -409,8 +453,8 @@ export class OrdersComponent implements OnInit {
     }))
     .subscribe({
       next: (response: any) => {
-        this.successMessage =
-          response?.message ?? 'Order status updated successfully.';
+        const msg = response?.message ?? 'Order status updated successfully.';
+        this.showNotification(msg, 'success', 2500);
         this.loadOrders();
         this.loadRiders();
         this.loadAllRiders();
@@ -471,8 +515,8 @@ assignRider(order: Order, riderId: string): void {
           order.rider = selected?.name ?? 'Assigned rider';
         }
 
-        this.successMessage =
-          response?.message ?? 'Rider assignment updated successfully.';
+        const msg = response?.message ?? 'Order assignment updated successfully.';
+        this.showNotification(msg, 'success', 2500);
 
         this.loadOrders();
         this.loadRiders();
@@ -499,6 +543,17 @@ assignRider(order: Order, riderId: string): void {
     this.modalOrderId = null;
     this.newOrder = this.emptyOrder();
     this.showOrderModal = true;
+  }
+
+  cancelCreateOrder(): void {
+    if (this.isSaving) return;
+    this.showCreateConfirmation = false;
+  }
+
+  confirmCreateOrder(): void {
+    if (this.isSaving) return;
+    this.showCreateConfirmation = false;
+    this.executeSaveOrder();
   }
 
   saveOrder(): void {
@@ -528,6 +583,24 @@ assignRider(order: Order, riderId: string): void {
       return;
     }
 
+    if (this.isSaving) {
+      return;
+    }
+
+    if (!this.isEditMode) {
+      this.showCreateConfirmation = true;
+      return;
+    }
+
+    this.executeSaveOrder();
+  }
+
+  executeSaveOrder(): void {
+    if (this.isSaving) return;
+
+    const customerName = this.newOrder.customer.trim();
+    const amount = Number(this.newOrder.amount);
+
     const payload: CreateOrderPayload = {
       customer_name: customerName,
       mobile: this.newOrder.mobile.trim(),
@@ -548,10 +621,12 @@ assignRider(order: Order, riderId: string): void {
     }))
     .subscribe({
       next: (response: any) => {
-        this.successMessage = response?.message ??
+        const msg = response?.message ??
           (this.isEditMode
             ? 'Order updated successfully.'
             : 'Order created successfully.');
+
+        this.showNotification(msg, 'success', 2500);
 
         this.showOrderModal = false;
         this.newOrder = this.emptyOrder();
@@ -590,13 +665,21 @@ assignRider(order: Order, riderId: string): void {
     this.showOrderModal = true;
   }
 
-  deleteOrder(order: Order): void {
-    if (this.deletingOrderId === order.id) return;
+  requestDeleteOrder(order: Order): void {
+    this.deletingOrder = order;
+    this.showDeleteDialog = true;
+  }
 
-    if (!confirm(`Are you sure you want to delete ORD-JB${order.id}?`)) {
-      return;
-    }
+  cancelDeleteOrder(): void {
+    if (this.deletingOrderId !== null) return;
+    this.showDeleteDialog = false;
+    this.deletingOrder = null;
+  }
 
+  confirmDeleteOrder(): void {
+    if (!this.deletingOrder || this.deletingOrderId !== null) return;
+
+    const order = this.deletingOrder;
     this.clearMessages();
     this.deletingOrderId = order.id;
 
@@ -606,8 +689,11 @@ assignRider(order: Order, riderId: string): void {
       }))
       .subscribe({
         next: (response: any) => {
-          this.successMessage =
+          this.showDeleteDialog = false;
+          this.deletingOrder = null;
+          const msg =
             response?.message ?? 'Order deleted successfully.';
+          this.showNotification(msg, 'success', 2500);
 
           if (this.orders.length === 1 && this.currentPage > 1) {
             this.currentPage--;
@@ -621,8 +707,13 @@ assignRider(order: Order, riderId: string): void {
           console.error('Delete order API error:', error);
           this.errorMessage =
             error?.error?.message ?? 'Unable to delete order.';
+          this.showNotification(this.errorMessage, 'error', 4000);
         }
       });
+  }
+
+  deleteOrder(order: Order): void {
+    this.requestDeleteOrder(order);
   }
 
   closeOrderModal(): void {

@@ -702,3 +702,29 @@
   border-color: var(--border-color);
   color: var(--text-color);
 }
+
+.confirmation-backdrop {
+  z-index: 1100;
+}
+
+.confirm-modal {
+  max-width: 460px;
+  margin: auto;
+  align-self: center;
+}
+
+.delete-confirm-btn {
+  background-color: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 0 20px;
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .15s ease;
+}
+
+.delete-confirm-btn:hover:not(:disabled) {
+  background-color: #b91c1c;
+}

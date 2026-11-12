@@ -31,16 +31,6 @@
       </div>
     </header>
 
-    <div *ngIf="successMessage" class="alert alert-success" role="status">
-      {{ successMessage }}
-      <button
-        type="button"
-        (click)="successMessage = ''"
-        aria-label="Dismiss">
-        ×
-      </button>
-    </div>
-
     <div *ngIf="errorMessage" class="alert alert-error" role="alert">
       {{ errorMessage }}
       <button type="button" (click)="loadRiders()">Retry</button>
@@ -472,11 +462,20 @@
               alt="Rider profile preview"
               class="rider-image-preview">
 
-            <span>
-              {{ imagePreviewUrl
-                ? 'New image selected'
-                : 'Current profile image' }}
-            </span>
+            <div class="image-preview-actions">
+              <span class="image-preview-text">
+                {{ imagePreviewUrl
+                  ? 'New image selected'
+                  : 'Current profile image' }}
+              </span>
+
+              <button
+                type="button"
+                class="btn-remove-photo"
+                (click)="removePhoto()">
+                Remove Photo
+              </button>
+            </div>
           </div>
 
           <small>
@@ -502,7 +501,7 @@
             ? 'Saving…'
             : editingRiderId !== null
               ? 'Update Rider'
-              : 'Save Rider' }}
+              : 'Create Rider' }}
         </button>
       </footer>
     </form>
@@ -664,6 +663,59 @@
         [disabled]="isDeleting"
         (click)="confirmDeleteRider()">
         {{ isDeleting ? 'Deleting…' : 'Delete Rider' }}
+      </button>
+    </footer>
+  </section>
+</div>
+
+<!-- Create Rider Confirmation Dialog -->
+<div
+  *ngIf="showCreateConfirmation"
+  class="drawer-backdrop confirmation-backdrop"
+  (click)="cancelCreateRider()">
+
+  <section
+    class="rider-drawer delete-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="createRiderConfirmTitle"
+    (click)="$event.stopPropagation()">
+
+    <header class="modal-header">
+      <div>
+        <h2 id="createRiderConfirmTitle">Create Rider</h2>
+        <p>Please confirm rider creation.</p>
+      </div>
+
+      <button
+        type="button"
+        class="modal-close"
+        [disabled]="isSaving"
+        (click)="cancelCreateRider()"
+        aria-label="Close dialog">
+        ×
+      </button>
+    </header>
+
+    <div class="delete-dialog-content">
+      <p>Are you sure you want to create this rider?</p>
+    </div>
+
+    <footer class="modal-footer">
+      <button
+        type="button"
+        class="btn-outline"
+        [disabled]="isSaving"
+        (click)="cancelCreateRider()">
+        No
+      </button>
+
+      <button
+        type="button"
+        class="btn-primary"
+        [disabled]="isSaving"
+        (click)="confirmCreateRider()">
+        {{ isSaving ? 'Creating…' : 'Yes' }}
       </button>
     </footer>
   </section>

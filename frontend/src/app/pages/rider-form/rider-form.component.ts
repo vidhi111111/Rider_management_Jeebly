@@ -20,6 +20,7 @@ export class RiderFormComponent implements OnInit {
   isEditMode = false;
   isLoading = false;
   isSaving = false;
+  showCreateConfirmation = false;
   errorMessage = '';
   successMessage = '';
 
@@ -92,11 +93,33 @@ export class RiderFormComponent implements OnInit {
     });
   }
 
+  cancelCreate(): void {
+    if (this.isSaving) return;
+    this.showCreateConfirmation = false;
+  }
+
+  confirmCreate(): void {
+    if (this.isSaving) return;
+    this.showCreateConfirmation = false;
+    this.executeSave();
+  }
+
   saveRider(): void {
     if (this.riderForm.invalid || this.isSaving) {
       this.riderForm.markAllAsTouched();
       return;
     }
+
+    if (!this.isEditMode) {
+      this.showCreateConfirmation = true;
+      return;
+    }
+
+    this.executeSave();
+  }
+
+  private executeSave(): void {
+    if (this.isSaving) return;
 
     this.isSaving = true;
     this.errorMessage = '';
@@ -117,11 +140,13 @@ export class RiderFormComponent implements OnInit {
         }
 
         this.successMessage = this.isEditMode
-          ? 'Rider updated successfully!'
-          : 'Rider added successfully!';
+          ? 'Rider updated successfully'
+          : 'Rider created successfully';
 
         this.isSaving = false;
-        this.router.navigate(['/riders']);
+        setTimeout(() => {
+          this.router.navigate(['/riders']);
+        }, 2500);
       },
       error: (error: any) => {
         this.errorMessage =

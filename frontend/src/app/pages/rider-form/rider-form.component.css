@@ -148,3 +148,63 @@
     flex-direction: column;
   }
 }
+
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 31, 50, 0.62);
+  backdrop-filter: blur(3px);
+}
+
+.confirm-dialog {
+  background: var(--surface, #ffffff);
+  border-radius: 12px;
+  width: min(440px, calc(100% - 32px));
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.confirm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, #dfe3e8);
+}
+
+.confirm-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary, #163758);
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-secondary, #6b7280);
+}
+
+.confirm-body {
+  padding: 20px;
+  font-size: 14px;
+  color: var(--text-primary, #163758);
+  line-height: 1.5;
+}
+
+.confirm-body p {
+  margin: 0;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border, #dfe3e8);
+}
