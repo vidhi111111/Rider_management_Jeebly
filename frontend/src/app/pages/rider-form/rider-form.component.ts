@@ -1,6 +1,4 @@
-
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import {
   FormBuilder,
@@ -8,7 +6,7 @@ import {
   Validators
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { environment } from '../../../environments/environment';
+import { RiderService } from '../../core/services/rider.service';
 
 @Component({
   selector: 'app-rider-form',
@@ -25,8 +23,6 @@ export class RiderFormComponent implements OnInit {
   errorMessage = '';
   successMessage = '';
 
-  private readonly apiUrl = `${environment.apiUrl}/riders`;
-
   riderForm = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
     mobile: ['', [
@@ -42,7 +38,7 @@ export class RiderFormComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private http: HttpClient,
+    private riderService: RiderService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
@@ -63,7 +59,7 @@ export class RiderFormComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.http.get<any>(`${this.apiUrl}/${this.riderId}`).subscribe({
+    this.riderService.getRiderById(this.riderId).subscribe({
       next: (response) => {
         const rider = response?.data?.rider
           ?? response?.data
@@ -109,11 +105,11 @@ export class RiderFormComponent implements OnInit {
     const payload = this.riderForm.getRawValue();
 
     const request = this.isEditMode && this.riderId
-      ? this.http.put<any>(`${this.apiUrl}/${this.riderId}`, payload)
-      : this.http.post<any>(this.apiUrl, payload);
+      ? this.riderService.updateRider(this.riderId, payload)
+      : this.riderService.createRider(payload);
 
     request.subscribe({
-      next: (response) => {
+      next: (response: any) => {
         if (response?.success === false) {
           this.errorMessage = response.message || 'Unable to save rider.';
           this.isSaving = false;
@@ -127,7 +123,7 @@ export class RiderFormComponent implements OnInit {
         this.isSaving = false;
         this.router.navigate(['/riders']);
       },
-      error: (error) => {
+      error: (error: any) => {
         this.errorMessage =
           error.error?.message || 'Unable to save rider. Please try again.';
         this.isSaving = false;

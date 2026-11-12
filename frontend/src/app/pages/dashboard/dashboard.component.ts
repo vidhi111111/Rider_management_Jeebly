@@ -1,5 +1,4 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import {
   Component,
   OnDestroy,
@@ -7,43 +6,22 @@ import {
 } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import {
+  DashboardService,
+  DashboardResponse,
+  DashboardSummary,
+  RiderSummary,
+  RecentOrder,
+  AvailableRider
+} from '../../core/services/dashboard.service';
 
-interface DashboardSummary {
-  total_orders: number;
-  delivered_orders: number;
-  cancelled_orders: number;
-  in_progress_orders: number;
-}
-
-interface RiderSummary {
-  available: number;
-  on_order: number;
-  scheduled_break: number;
-  absent: number;
-}
-
-interface RecentOrder {
-  id: number | string;
-  status: string;
-  customer: string;
-}
-
-interface AvailableRider {
-  id?: number;
-  name: string;
-  status?: string;
-}
-
-interface DashboardResponse {
-  success: boolean;
-  message: string;
-  data: {
-    summary: DashboardSummary;
-    rider_summary: RiderSummary;
-    recent_orders: RecentOrder[];
-    available_riders: AvailableRider[];
-  };
-}
+export {
+  DashboardSummary,
+  RiderSummary,
+  RecentOrder,
+  AvailableRider,
+  DashboardResponse
+};
 
 @Component({
   selector: 'app-dashboard',
@@ -76,7 +54,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   recentOrders: RecentOrder[] = [];
   availableRiderList: AvailableRider[] = [];
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(private readonly dashboardService: DashboardService) {}
 
   ngOnInit(): void {
     this.loadDashboard();
@@ -86,10 +64,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.http
-      .get<DashboardResponse>(
-        'https://rider-management-jeebly-backend.onrender.com/dashboard'
-      )
+    this.dashboardService
+      .getDashboardData()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
@@ -129,26 +105,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private calculatePercentages(): void {
-    if (this.totalOrders === 0) {
-      this.totalOrdersPercentage = 0;
-      this.deliveredPercentage = 0;
-      this.cancelledPercentage = 0;
-      this.inProgressPercentage = 0;
-      return;
-    }
+    const total = this.totalOrders || 1;
 
-    this.totalOrdersPercentage = 100;
-
+    this.totalOrdersPercentage = Math.round(
+      (this.totalOrders / total) * 100
+    );
     this.deliveredPercentage = Math.round(
-      (this.deliveredOrders / this.totalOrders) * 100
+      (this.deliveredOrders / total) * 100
     );
-
     this.cancelledPercentage = Math.round(
-      (this.cancelledOrders / this.totalOrders) * 100
+      (this.cancelledOrders / total) * 100
     );
-
     this.inProgressPercentage = Math.round(
-      (this.inProgressOrders / this.totalOrders) * 100
+      (this.inProgressOrders / total) * 100
     );
   }
 

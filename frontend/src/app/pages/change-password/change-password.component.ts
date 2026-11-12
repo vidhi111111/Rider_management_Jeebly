@@ -8,9 +8,8 @@ import {
   AbstractControl,
   ValidationErrors
 } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
-import { environment } from '../../../environments/environment';
+import { ProfileService } from '../../core/services/profile.service';
 
 function passwordMatchValidator(
   control: AbstractControl
@@ -37,8 +36,6 @@ function passwordMatchValidator(
 export class ChangePasswordComponent {
   passwordForm: FormGroup;
 
-  private apiUrl = environment.apiUrl;
-
   changingPassword = false;
   successMessage = '';
   errorMessage = '';
@@ -49,7 +46,7 @@ export class ChangePasswordComponent {
 
   constructor(
     private fb: FormBuilder,
-    private http: HttpClient
+    private profileService: ProfileService
   ) {
     this.passwordForm = this.fb.group({
       current_password: ['', Validators.required],
@@ -91,21 +88,18 @@ export class ChangePasswordComponent {
 
     this.changingPassword = true;
 
-    this.http.put<any>(
-      `${this.apiUrl}/change-password`,
-      {
-        current_password,
-        new_password
-      }
-    ).subscribe({
-      next: (response) => {
+    this.profileService.changePassword({
+      current_password,
+      new_password
+    }).subscribe({
+      next: (response: any) => {
         this.successMessage =
           response?.message || 'Password changed successfully.';
 
         this.passwordForm.reset();
         this.changingPassword = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         this.errorMessage =
           error?.error?.message || 'Unable to change password.';
         this.changingPassword = false;

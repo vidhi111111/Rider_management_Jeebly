@@ -6,8 +6,7 @@ import {
   Validators,
   ReactiveFormsModule
 } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
+import { ProfileService } from '../../core/services/profile.service';
 
 @Component({
   selector: 'app-profile',
@@ -18,8 +17,6 @@ import { environment } from '../../../environments/environment';
 })
 export class ProfileComponent implements OnInit {
   profileForm!: FormGroup;
-
-  private apiUrl = environment.apiUrl;
 
   loadingProfile = false;
   updatingProfile = false;
@@ -32,7 +29,7 @@ export class ProfileComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private http: HttpClient
+    private profileService: ProfileService
   ) {}
 
   ngOnInit(): void {
@@ -54,8 +51,8 @@ export class ProfileComponent implements OnInit {
     this.loadingProfile = true;
     this.clearMessages();
 
-    this.http.get<any>(`${this.apiUrl}/profile`).subscribe({
-      next: (response) => {
+    this.profileService.getProfile().subscribe({
+      next: (response: any) => {
         const user = response?.user ?? response?.data ?? response;
 
         this.profileForm.patchValue({
@@ -97,11 +94,8 @@ export class ProfileComponent implements OnInit {
       mobile: String(this.profileForm.value.mobile || '').trim()
     };
 
-    this.http.put<any>(
-      `${this.apiUrl}/profile`,
-      payload
-    ).subscribe({
-      next: (response) => {
+    this.profileService.updateProfile(payload).subscribe({
+      next: (response: any) => {
         const responseUser =
           response?.user ?? response?.data ?? response;
 
