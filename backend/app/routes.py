@@ -988,76 +988,125 @@ def delete_order(order_id):
 def assign_rider(order_id):
     try:
         order = db.session.get(Order, order_id)
+
         if order is None:
             return error_response("Order not found.", 404)
 
-        if str(order.status or "").lower() in TERMINAL_STATUSES:
-            return error_response("Cannot assign a rider to a terminal order.", 409)
+        order_status = str(order.status or "").strip().lower()
+
+        if order_status in TERMINAL_STATUSES:
+            return error_response(
+                "Cannot assign a rider to a completed or cancelled order.",
+                409
+            )
 
         data = request.get_json(silent=True)
+
         if not isinstance(data, dict) or "rider_id" not in data:
-            return error_response("A JSON object containing rider_id is required.", 400)
+            return error_response(
+                "A JSON object containing rider_id is required.",
+                400
+            )
 
         previous_rider = order.rider
         requested_id = data.get("rider_id")
 
+        
         if requested_id is None:
             order.rider_id = None
+
         else:
             try:
                 requested_id = int(requested_id)
+
                 if requested_id <= 0:
                     raise ValueError
+
             except (TypeError, ValueError):
                 return error_response("Invalid rider ID.", 400)
 
             rider = db.session.get(Rider, requested_id)
+
             if rider is None:
                 return error_response("Rider not found.", 404)
 
-            # Keep the current assignment unchanged if the same rider is selected.
+            
             if order.rider_id != rider.id:
-                if rider.status in {"inactive", "absent", "scheduled_break", "on_order"}:
-                    return error_response("Only eligible riders can be assigned.", 409)
 
-                if rider.availability != "available":
-                    return error_response("Only available riders can be assigned.", 409)
+                rider_status = str(
+                    rider.status or ""
+                ).strip().lower()
 
-                # Verify database orders too; availability can be stale.
+                if rider_status in {
+                    "inactive",
+                    "absent",
+                    "scheduled_break",
+                    "on_order"
+                }:
+                    return error_response(
+                        "This rider is not eligible for assignment.",
+                        409
+                    )
+
                 existing_order = Order.query.filter(
                     Order.rider_id == rider.id,
                     Order.id != order.id,
-                    db.func.lower(Order.status).notin_(list(TERMINAL_STATUSES))
+                    db.func.lower(
+                        db.func.trim(Order.status)
+                    ).notin_(list(TERMINAL_STATUSES))
                 ).first()
 
                 if existing_order:
-                    refresh_rider_availability(rider)
-                    db.session.commit()
                     return error_response(
-                        "This rider already has an active order.", 409
+                        "This rider already has an active order.",
+                        409
                     )
 
-            order.rider = rider
+                
+                availability = str(
+                    rider.availability or ""
+                ).strip().lower()
 
+                if availability != "available":
+                    return error_response(
+                        "This rider is currently unavailable. "
+                        "Please select an available rider.",
+                        409
+                    )
+
+            order.rider_id = rider.id
 
         db.session.flush()
 
-
+  
         if previous_rider:
             refresh_rider_availability(previous_rider)
 
+     
         current_rider = order.rider
+
         if current_rider:
             refresh_rider_availability(current_rider)
 
         db.session.commit()
+
         return success_response(
-            "Order assignment updated successfully.", serialize_order(order)
+            "Order assignment updated successfully.",
+            serialize_order(order)
         )
+
     except SQLAlchemyError:
         db.session.rollback()
-        current_app.logger.exception("Unable to assign rider.")
-        return error_response("Unable to assign rider.", 500)
+
+        current_app.logger.exception(
+            "Unable to assign rider to order %s.",
+            order_id
+        )
+
+        return error_response(
+            "Unable to assign rider.",
+            500
+        )
 
 
 # DASHBOARD

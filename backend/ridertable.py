@@ -105,6 +105,3 @@ with app.app_context():
     )
 
     db.session.commit()
-
-    print("Rider table updated successfully.")
-    print("Rider test data updated successfully.")

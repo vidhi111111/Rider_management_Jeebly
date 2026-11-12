@@ -1,4 +1,3 @@
-
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
@@ -6,6 +5,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, finalize, takeUntil, timeout } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { ToastComponent, ToastType } from '../../shared/toast/toast.component';
 
 type RiderStatus = 'active' | 'inactive';
 type RiderAvailability = 'available' | 'busy' | 'unavailable';
@@ -40,7 +40,7 @@ interface RidersData {
 @Component({
   selector: 'app-riders',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ToastComponent],
   templateUrl: './riders.component.html',
   styleUrls: ['./riders.component.css']
 })
@@ -53,6 +53,12 @@ export class RidersComponent implements OnInit, OnDestroy {
   errorMessage = '';
   successMessage = '';
   formError = '';
+
+  // Toast notification state
+  toastMessage = '';
+  toastType: ToastType = 'success';
+  showToast = false;
+  private toastTimer: ReturnType<typeof setTimeout> | null = null;
 
   currentPage = 1;
   pageSize = 10;
@@ -150,9 +156,39 @@ export class RidersComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.requestId++;
     this.resetImageSelection();
+
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+
     this.destroy$.next();
     this.destroy$.complete();
     this.searchInput$.complete();
+  }
+
+  showNotification(message: string, type: ToastType): void {
+    this.toastMessage = message;
+    this.toastType = type;
+    this.showToast = true;
+
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+    }
+
+    this.toastTimer = setTimeout(() => {
+      this.showToast = false;
+      this.toastTimer = null;
+    }, 4000);
+  }
+
+  dismissToast(): void {
+    this.showToast = false;
+
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
   }
 
   private today(): string {
@@ -295,6 +331,7 @@ export class RidersComponent implements OnInit, OnDestroy {
             this.totalRecords = 0;
             this.totalPages = 0;
             this.errorMessage = 'Unexpected response from the riders API.';
+            this.showNotification(this.errorMessage, 'error');
             return;
           }
 
@@ -312,6 +349,8 @@ export class RidersComponent implements OnInit, OnDestroy {
           this.errorMessage = error.name === 'TimeoutError'
             ? 'The riders request timed out. Check whether Flask is responding.'
             : error.error?.message || 'Unable to load riders. Check your login and backend.';
+
+          this.showNotification(this.errorMessage, 'error');
         }
       });
   }
@@ -375,6 +414,7 @@ export class RidersComponent implements OnInit, OnDestroy {
 
           if (!details || details.id == null) {
             this.formError = 'Unable to refresh rider details.';
+            this.showNotification(this.formError, 'error');
             return;
           }
 
@@ -392,6 +432,7 @@ export class RidersComponent implements OnInit, OnDestroy {
         },
         error: error => {
           this.formError = error.error?.message || 'Could not refresh rider details.';
+          this.showNotification(this.formError, 'error');
         }
       });
   }
@@ -432,12 +473,14 @@ export class RidersComponent implements OnInit, OnDestroy {
 
     if (!allowedTypes.includes(file.type)) {
       this.formError = 'Only JPG, PNG and WEBP images are allowed.';
+      this.showNotification(this.formError, 'error');
       input.value = '';
       return;
     }
 
     if (file.size === 0 || file.size > 5 * 1024 * 1024) {
       this.formError = 'Image must not be empty or exceed 5 MB.';
+      this.showNotification(this.formError, 'error');
       input.value = '';
       return;
     }
@@ -452,12 +495,14 @@ export class RidersComponent implements OnInit, OnDestroy {
         this.imagePreviewUrl = reader.result;
       } else {
         this.formError = 'Unable to preview this image.';
+        this.showNotification(this.formError, 'error');
       }
     };
 
     reader.onerror = () => {
       this.imagePreviewUrl = null;
       this.formError = 'Unable to read this image. Please select another file.';
+      this.showNotification(this.formError, 'error');
     };
 
     reader.readAsDataURL(file);
@@ -476,6 +521,7 @@ export class RidersComponent implements OnInit, OnDestroy {
 
     if (this.riderForm.invalid) {
       this.formError = 'Please correct the highlighted fields.';
+      this.showNotification(this.formError, 'warning');
       return;
     }
 
@@ -518,6 +564,7 @@ export class RidersComponent implements OnInit, OnDestroy {
         next: response => {
           if (response?.success === false) {
             this.formError = response.message || 'Unable to save rider.';
+            this.showNotification(this.formError, 'error');
             return;
           }
 
@@ -525,6 +572,7 @@ export class RidersComponent implements OnInit, OnDestroy {
           this.editingRiderId = null;
           this.resetImageSelection();
           this.successMessage = response?.message || 'Rider saved successfully.';
+          this.showNotification(this.successMessage, 'success');
           this.currentPage = 1;
           this.loadRiders();
         },
@@ -540,6 +588,8 @@ export class RidersComponent implements OnInit, OnDestroy {
           } else {
             this.formError = error.error?.message || 'Unable to save rider. Check the API response.';
           }
+
+          this.showNotification(this.formError, 'error');
         }
       });
   }
@@ -591,6 +641,7 @@ export class RidersComponent implements OnInit, OnDestroy {
           this.showDeleteDialog = false;
           this.deletingRider = null;
           this.successMessage = response?.message || 'Rider deleted successfully.';
+          this.showNotification(this.successMessage, 'success');
 
           if (this.riders.length === 1 && this.currentPage > 1) {
             this.currentPage--;
@@ -604,6 +655,7 @@ export class RidersComponent implements OnInit, OnDestroy {
         },
         error: error => {
           this.errorMessage = error.error?.message || 'Unable to delete rider.';
+          this.showNotification(this.errorMessage, 'error');
         }
       });
   }

@@ -1,0 +1,19 @@
+
+<div
+  *ngIf="visible && message"
+  class="toast-message"
+  [ngClass]="'toast-' + type"
+  role="alert"
+  aria-live="polite"
+>
+  <span class="toast-text">{{ message }}</span>
+
+  <button
+    type="button"
+    class="toast-close"
+    aria-label="Close notification"
+    (click)="closeToast()"
+  >
+    &times;
+  </button>
+</div>
