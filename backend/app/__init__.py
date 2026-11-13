@@ -8,19 +8,23 @@ from dotenv import load_dotenv
 
 from .extensions import db, bcrypt
 from .routes import register_routes
+from .config import Config
 
 
-def create_app() -> Flask:
-
-    load_dotenv()
+def create_app(config_class=None) -> Flask:
 
     app = Flask(__name__)
+
+    if config_class:
+        app.config.from_object(config_class)
+    else:
+        app.config.from_object(Config)
 
     frontend_url = os.getenv(
         "FRONTEND_URL",
         "http://localhost:4200"
     )
-    database_url = os.getenv("DATABASE_URL")
+    database_url = os.getenv("DATABASE_URL") or app.config.get("SQLALCHEMY_DATABASE_URI")
 
     if not database_url:
         raise RuntimeError(
@@ -45,7 +49,7 @@ def create_app() -> Flask:
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # Secret key configuration
-    secret_key = os.getenv("SECRET_KEY")
+    secret_key = os.getenv("SECRET_KEY") or app.config.get("SECRET_KEY")
 
     if not secret_key:
         raise RuntimeError(

@@ -32,15 +32,4 @@ def register_routes(app: Flask) -> None:
     app.register_blueprint(routes)
 
 
-# REQUEST HELPERS
-
-def read_request_data():
-    if request.is_json:
-        return request.get_json(silent=True)
-    if request.form:
-        return request.form.to_dict()
-    return None
-
-
-def get_user_id():
-    return getattr(request, "user_id", None)
+from .common.utils import read_request_data, get_user_id

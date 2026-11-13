@@ -2,9 +2,9 @@ from typing import Tuple, Any
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
 
-from ..riders.services import refresh_rider_availability
 from ..riders.schemas import serialize_rider
 from .repositories import DashboardRepository
+from .schemas import dashboard_data_schema
 
 
 class DashboardService:
@@ -16,8 +16,22 @@ class DashboardService:
             total_orders, delivered, cancelled, in_progress = self.dashboard_repo.get_order_summary_counts()
 
             riders_list = self.dashboard_repo.get_all_riders()
+            active_counts = self.dashboard_repo.get_active_order_counts_by_rider()
+
+            # In-memory batch availability refresh (O(1) queries instead of O(N) database calls)
             for rider in riders_list:
-                refresh_rider_availability(rider)
+                active_orders = active_counts.get(rider.id, 0)
+                if rider.status in {"inactive", "absent", "scheduled_break"}:
+                    rider.availability = "unavailable"
+                elif active_orders > 0:
+                    rider.availability = "busy"
+                    if rider.status in {"active", "available"}:
+                        rider.status = "on_order"
+                else:
+                    rider.availability = "available"
+                    if rider.status == "on_order":
+                        rider.status = "active"
+
             self.dashboard_repo.commit()
 
             available_riders = [
@@ -27,7 +41,7 @@ class DashboardService:
 
             recent_orders = self.dashboard_repo.get_recent_orders(limit=5)
 
-            data = {
+            raw_data = {
                 "summary": {
                     "total_orders": total_orders,
                     "delivered_orders": delivered,
@@ -50,7 +64,10 @@ class DashboardService:
                 "available_riders": [serialize_rider(r) for r in available_riders[:10]]
             }
 
-            return True, "Dashboard data retrieved successfully.", data, 200
+            # Serialize through Marshmallow
+            serialized_data = dashboard_data_schema.dump(raw_data)
+
+            return True, "Dashboard data retrieved successfully.", serialized_data, 200
 
         except SQLAlchemyError:
             self.dashboard_repo.rollback()

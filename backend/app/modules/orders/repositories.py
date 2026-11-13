@@ -21,7 +21,8 @@ class OrderRepository:
         page: int = 1,
         page_size: int = 10
     ):
-        query = Order.query
+        # Eager load rider relationship to eliminate N+1 queries during serialization
+        query = Order.query.options(db.joinedload(Order.rider))
 
         if search:
             value = f"%{search}%"
@@ -35,8 +36,6 @@ class OrderRepository:
 
             if search_id.isdigit():
                 conditions.append(Order.id == int(search_id))
-            elif order_prefix.startswith(search_id):
-                conditions.append(Order.id.isnot(None))
             elif search_id.startswith(order_prefix):
                 suffix = search_id[len(order_prefix):]
                 if suffix.isdigit():
@@ -51,8 +50,14 @@ class OrderRepository:
             query = query.filter(Order.rider_id == rider_id)
 
         if order_date:
-            parsed_date = datetime.strptime(order_date, "%Y-%m-%d").date()
-            query = query.filter(db.func.date(Order.created_at) == parsed_date)
+            try:
+                parsed_date = datetime.strptime(order_date, "%Y-%m-%d").date()
+                start_dt = datetime.combine(parsed_date, datetime.min.time())
+                end_dt = datetime.combine(parsed_date, datetime.max.time())
+                # Range filter utilizes index on created_at efficiently
+                query = query.filter(Order.created_at >= start_dt, Order.created_at <= end_dt)
+            except (ValueError, TypeError):
+                pass
 
         if sort_by == "oldest":
             query = query.order_by(Order.created_at.asc(), Order.id.asc())
@@ -83,9 +88,7 @@ class OrderRepository:
         return Order.query.filter(
             Order.rider_id == rider_id,
             Order.id != exclude_order_id,
-            db.func.lower(
-                db.func.trim(Order.status)
-            ).notin_(list(TERMINAL_STATUSES))
+            db.func.lower(Order.status).notin_(list(TERMINAL_STATUSES))
         ).first()
 
     @staticmethod
