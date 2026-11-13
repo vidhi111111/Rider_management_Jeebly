@@ -35,6 +35,30 @@
   min-width: 0;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+}
+
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.brand-logo {
+  height: 48px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.brand-link:hover .brand-logo {
+  transform: scale(1.03);
+}
+
 .brand h2 {
   margin: 0;
   color: var(--brand-text, #163758);
@@ -445,6 +469,11 @@
     font-size: 21px;
   }
 
+  .brand-logo {
+    height: 40px;
+    max-width: 100px;
+  }
+
   .profile-trigger {
     padding: 0;
     gap: 0;
@@ -477,6 +506,11 @@
 
   .brand h2 {
     font-size: 19px;
+  }
+
+  .brand-logo {
+    height: 34px;
+    max-width: 85px;
   }
 
   .menu-button {
@@ -519,6 +553,12 @@ body.dark-mode .header {
 body.dark-mode .brand h2,
 body.dark-mode .welcome-text {
   color: var(--text-primary);
+}
+
+body.dark-mode .brand-logo {
+  background: #ffffff;
+  padding: 2px 6px;
+  border-radius: 6px;
 }
 
 body.dark-mode .menu-button span {
