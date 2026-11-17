@@ -24,9 +24,9 @@ SWAGGER_CONFIG = {
 SWAGGER_TEMPLATE = {
     "swagger": "2.0",
     "info": {
-        "title": "Jeebly Delivery Management API",
+        "title": "Jeebly Rider Management API",
         "description": (
-            "Complete and strictly verified Swagger documentation for the Jeebly Delivery "
+            "Complete and strictly verified Swagger documentation for the Jeebly Rider "
             "Management backend application. Covers all 23 endpoints across auth, dashboard, "
             "riders, orders, profile, and settings modules with JWT Bearer authentication."
         ),
