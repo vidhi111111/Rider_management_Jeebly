@@ -48,19 +48,14 @@
                   <span *ngIf="password?.errors?.['required']">Password is required.</span>
                 </div>
               </div>
-              <div class="d-flex justify-content-between align-items-center mb-4">
-                <div class="form-check">
-                  <input
-                    id="rememberMe"
-                    type="checkbox"
-                    class="form-check-input"
-                    formControlName="rememberMe"
-                  />
-                  <label for="rememberMe" class="form-check-label">Remember Me</label>
-                </div>
-                <a href="javascript:void(0)" (click)="showForgotPasswordPopup = true">
-                  Forgot Password?
-                </a>
+              <div class="form-check mb-4">
+                <input
+                  id="rememberMe"
+                  type="checkbox"
+                  class="form-check-input"
+                  formControlName="rememberMe"
+                />
+                <label for="rememberMe" class="form-check-label">Remember Me</label>
               </div>
               <div class="login-error" *ngIf="loginError">
                 {{ loginError }}
@@ -77,31 +72,5 @@
         </div>
       </div>
     </div>
-  </div>
-</div>
-
-<div
-  class="popup-overlay"
-  *ngIf="showForgotPasswordPopup"
-  (click)="showForgotPasswordPopup = false"
->
-  <div class="popup-card" (click)="$event.stopPropagation()">
-    <button
-      type="button"
-      class="popup-close"
-      (click)="showForgotPasswordPopup = false"
-    >
-      ×
-    </button>
-    <div class="popup-icon">🔒</div>
-    <h3>Feature Coming Soon</h3>
-    <p>Forgot Password functionality will be available soon.</p>
-    <button
-      type="button"
-      class="btn btn-primary popup-button"
-      (click)="showForgotPasswordPopup = false"
-    >
-      Okay
-    </button>
   </div>
 </div>

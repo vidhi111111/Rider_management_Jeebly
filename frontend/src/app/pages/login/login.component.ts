@@ -20,7 +20,6 @@ export class LoginComponent {
   loginError = '';
   isLoading = false;
   showPassword = false;
-  showForgotPasswordPopup = false;
 
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],

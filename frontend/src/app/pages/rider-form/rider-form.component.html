@@ -26,7 +26,7 @@
     <form *ngIf="!isLoading" [formGroup]="riderForm" (ngSubmit)="saveRider()">
       <div class="form-grid">
         <div class="form-field">
-          <label for="name">Full Name *</label>
+          <label for="name">Full Name <span class="required-asterisk">*</span></label>
           <input id="name" type="text" formControlName="name"
                  placeholder="Enter rider name">
           <small *ngIf="f.name.touched && f.name.invalid">
@@ -35,7 +35,7 @@
         </div>
 
         <div class="form-field">
-          <label for="mobile">Mobile Number *</label>
+          <label for="mobile">Mobile Number <span class="required-asterisk">*</span></label>
           <input id="mobile" type="tel" formControlName="mobile"
                  placeholder="Enter mobile number">
           <small *ngIf="f.mobile.touched && f.mobile.invalid">
@@ -44,7 +44,7 @@
         </div>
 
         <div class="form-field">
-          <label for="email">Email *</label>
+          <label for="email">Email <span class="required-asterisk">*</span></label>
           <input id="email" type="email" formControlName="email"
                  placeholder="Enter email">
           <small *ngIf="f.email.touched && f.email.invalid">
@@ -53,7 +53,7 @@
         </div>
 
         <div class="form-field">
-          <label for="vehicle">Vehicle *</label>
+          <label for="vehicle">Vehicle <span class="required-asterisk">*</span></label>
           <select id="vehicle" formControlName="vehicle">
             <option value="Bike">Bike</option>
             <option value="Scooter">Scooter</option>
@@ -63,7 +63,7 @@
         </div>
 
         <div class="form-field">
-          <label for="status">Status *</label>
+          <label for="status">Status <span class="required-asterisk">*</span></label>
           <select id="status" formControlName="status">
             <option value="Available">Available</option>
             <option value="On Order">On Order</option>
@@ -73,7 +73,7 @@
         </div>
 
         <div class="form-field">
-          <label for="availability">Availability *</label>
+          <label for="availability">Availability <span class="required-asterisk">*</span></label>
           <select id="availability" formControlName="availability">
             <option value="Available">Available</option>
             <option value="Unavailable">Unavailable</option>
@@ -81,7 +81,7 @@
         </div>
 
         <div class="form-field">
-          <label for="date">Date *</label>
+          <label for="date">Date <span class="required-asterisk">*</span></label>
           <input id="date" type="date" formControlName="date">
         </div>
       </div>
