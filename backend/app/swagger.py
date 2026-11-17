@@ -26,9 +26,9 @@ SWAGGER_TEMPLATE = {
     "info": {
         "title": "Jeebly Rider Management API",
         "description": (
-            "Complete and strictly verified Swagger documentation for the Jeebly Rider "
-            "Management backend application. Covers all 23 endpoints across auth, dashboard, "
-            "riders, orders, profile, and settings modules with JWT Bearer authentication."
+            "API documentation for the Rider Management System,"
+            " featuring authentication, dashboard metrics, rider "
+            "fleet management, order dispatch, and user profile management."
         ),
         "version": "1.0.0",
         "contact": {
