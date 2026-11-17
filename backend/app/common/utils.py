@@ -23,12 +23,7 @@ def get_user_id() -> Optional[int]:
 
 
 def format_marshmallow_errors(errors: Dict[str, Any]) -> Dict[str, str]:
-    """
-    Convert Marshmallow's error structure into a clean, flat dictionary of field -> error message.
-    Preserves exact contract expected by frontend components.
-    Example:
-        {'name': ['Name is required.']} -> {'name': 'Name is required.'}
-    """
+
     formatted = {}
     for field, message_data in errors.items():
         if isinstance(message_data, list) and len(message_data) > 0:
