@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 from .extensions import db, bcrypt
 from .routes import register_routes
+from .swagger import init_swagger
 from .config import Config
 
 
@@ -81,6 +82,9 @@ def create_app(config_class=None) -> Flask:
 
     # Register API routes
     register_routes(app)
+
+    # Initialize Swagger UI & Documentation centrally
+    init_swagger(app)
 
     # Error handlers
     @app.errorhandler(400)
