@@ -111,6 +111,45 @@ export class RegisterComponent {
     return this.registerForm.get('confirmPassword');
   }
 
+  get passwordErrorMessage(): string {
+    const control = this.password;
+    if (!control || !control.invalid || (!control.dirty && !control.touched)) {
+      return '';
+    }
+
+    if (control.hasError('required')) {
+      return 'Password is required.';
+    }
+
+    const errors: string[] = [];
+
+    if (control.hasError('minlength')) {
+      errors.push('At least 8 characters');
+    }
+
+    if (control.hasError('uppercase')) {
+      errors.push('At least 1 uppercase letter');
+    }
+
+    if (control.hasError('lowercase')) {
+      errors.push('At least 1 lowercase letter');
+    }
+
+    if (control.hasError('number')) {
+      errors.push('At least 1 number');
+    }
+
+    if (control.hasError('special')) {
+      errors.push('At least 1 special character');
+    }
+
+    if (control.hasError('space')) {
+      errors.push('Must not contain spaces');
+    }
+
+    return errors.join(', ');
+  }
+
   isInvalid(controlName: string): boolean {
     const control = this.registerForm.get(controlName);
 
