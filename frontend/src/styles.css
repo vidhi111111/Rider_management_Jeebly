@@ -1,6 +1,7 @@
 :root {
   --jeebly-red: #DC1D47;
   --jeebly-blue: #163758;
+  --required-color: #DC1D47;
 
   --background: #f5f7fa;
   --surface: #ffffff;
@@ -25,6 +26,21 @@ body.dark-mode {
   --border: #34485a;
 
   --shadow: rgba(0, 0, 0, 0.3);
+  --required-color: #ff4d6d;
+}
+
+.required-asterisk,
+.required-star {
+  color: var(--required-color, var(--jeebly-red, #DC1D47));
+}
+
+body.dark-mode .required-asterisk,
+body.dark-mode .required-star,
+.dark-theme .required-asterisk,
+.dark-theme .required-star,
+[data-theme="dark"] .required-asterisk,
+[data-theme="dark"] .required-star {
+  color: #ff4d6d;
 }
 
 * {
