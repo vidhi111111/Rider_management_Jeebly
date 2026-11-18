@@ -517,10 +517,7 @@ SWAGGER_TEMPLATE = {
 
 
 def init_swagger(app: Flask) -> Swagger:
-    """
-    Initialize Flasgger Swagger centrally on the Flask application instance.
-    Configures /docs for the Swagger UI and /apispec.json for the OpenAPI specification.
-    """
+
     swagger = Swagger(app, config=SWAGGER_CONFIG, template=SWAGGER_TEMPLATE)
 
     # Provide automatic redirect from /docs/ to /docs for seamless browser navigation
