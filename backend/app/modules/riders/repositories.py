@@ -40,15 +40,27 @@ class RiderRepository:
         ).count()
 
     @staticmethod
-    def filter_and_paginate(
+    def count_total_orders_for_rider(rider_id: int) -> int:
+        return Order.query.filter(Order.rider_id == rider_id).count()
+
+    @staticmethod
+    def count_delivered_orders_for_rider(rider_id: int) -> int:
+        return Order.query.filter(
+            Order.rider_id == rider_id,
+            db.func.lower(Order.status) == "delivered"
+        ).count()
+
+    @staticmethod
+    def _build_query(
         search: str = "",
         status: str = "",
         availability: str = "",
+        date_from: Optional[str] = "",
+        date_to: Optional[str] = "",
         sort_by: str = "id",
-        sort_order: str = "asc",
-        page: int = 1,
-        page_size: int = 10
+        sort_order: str = "asc"
     ):
+        from datetime import datetime
         query = Rider.query
 
         if search:
@@ -65,6 +77,29 @@ class RiderRepository:
         if availability in {"available", "busy", "unavailable"}:
             query = query.filter(Rider.availability == availability)
 
+        def _parse(val):
+            if not val:
+                return None
+            c = str(val).strip()
+            if "T" in c:
+                c = c.split("T")[0]
+            for fmt in ["%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%Y/%m/%d", "%m/%d/%Y"]:
+                try:
+                    return datetime.strptime(c, fmt).date()
+                except ValueError:
+                    continue
+            return None
+
+        if date_from:
+            d_from = _parse(date_from)
+            if d_from:
+                query = query.filter(Rider.date >= d_from)
+
+        if date_to:
+            d_to = _parse(date_to)
+            if d_to:
+                query = query.filter(Rider.date <= d_to)
+
         sort_columns = {
             "id": Rider.id,
             "name": Rider.name,
@@ -79,10 +114,53 @@ class RiderRepository:
         query = query.order_by(
             column.desc() if sort_order == "desc" else column.asc()
         )
+        return query
 
+    @staticmethod
+    def filter_and_paginate(
+        search: str = "",
+        status: str = "",
+        availability: str = "",
+        date_from: Optional[str] = "",
+        date_to: Optional[str] = "",
+        sort_by: str = "id",
+        sort_order: str = "asc",
+        page: int = 1,
+        page_size: int = 10
+    ):
+        query = RiderRepository._build_query(
+            search=search,
+            status=status,
+            availability=availability,
+            date_from=date_from,
+            date_to=date_to,
+            sort_by=sort_by,
+            sort_order=sort_order
+        )
         return query.paginate(
             page=page, per_page=page_size, error_out=False
         )
+
+    @staticmethod
+    def get_all_matching(
+        search: str = "",
+        status: str = "",
+        availability: str = "",
+        date_from: Optional[str] = "",
+        date_to: Optional[str] = "",
+        sort_by: str = "id",
+        sort_order: str = "asc"
+    ) -> List[Rider]:
+        query = RiderRepository._build_query(
+            search=search,
+            status=status,
+            availability=availability,
+            date_from=date_from,
+            date_to=date_to,
+            sort_by=sort_by,
+            sort_order=sort_order
+        )
+        return query.all()
 
     @staticmethod
     def create(data: dict, profile_image: Optional[str] = None) -> Rider:

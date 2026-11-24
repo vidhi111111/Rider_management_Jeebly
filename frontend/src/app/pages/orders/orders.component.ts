@@ -1,5 +1,5 @@
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
@@ -8,7 +8,11 @@ import {
   OrderService,
   CreateOrderPayload
 } from '../../core/services/order.service';
+import { LanguageService } from '../../core/services/language.service';
 import { ToastComponent, ToastType } from '../../shared/toast/toast.component';
+import * as XLSX from 'xlsx';
+
+declare const google: any;
 
 interface RiderOption {
   id: string;
@@ -50,6 +54,9 @@ export class OrdersComponent implements OnInit, OnDestroy {
   selectedStatus = '';
   selectedRider = '';
   selectedDate = '';
+  createdFrom = '';
+  createdTo = '';
+  dateRangeError = '';
   sortBy = 'newest';
 
   pageSize = 10;
@@ -67,6 +74,23 @@ export class OrdersComponent implements OnInit, OnDestroy {
   showOrderModal = false;
   isEditMode = false;
   modalOrderId: number | null = null;
+  selectedViewOrder: Order | null = null;
+  updatedOrderIds = new Set<number>();
+
+  openViewOrder(order: Order): void {
+    this.selectedViewOrder = order;
+  }
+
+  closeViewOrder(): void {
+    this.selectedViewOrder = null;
+  }
+
+  highlightOrder(orderId: number): void {
+    this.updatedOrderIds.add(orderId);
+    setTimeout(() => {
+      this.updatedOrderIds.delete(orderId);
+    }, 3000);
+  }
 
   successMessage = '';
   errorMessage = '';
@@ -90,7 +114,199 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   newOrder = this.emptyOrder();
 
-  constructor(private orderService: OrderService) {}
+  showDownloadDropdown = false;
+  isDownloadingReport = false;
+
+  constructor(
+    private orderService: OrderService,
+    public langService: LanguageService
+  ) {}
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.report-dropdown-wrapper')) {
+      this.showDownloadDropdown = false;
+    }
+  }
+
+  lastGeneratedReportUrl: string | null = null;
+  lastGeneratedReportName: string | null = null;
+
+  toggleDownloadDropdown(): void {
+    this.showDownloadDropdown = !this.showDownloadDropdown;
+  }
+
+  downloadReport(format: 'xlsx' | 'csv'): void {
+    this.showDownloadDropdown = false;
+    this.isDownloadingReport = true;
+
+    this.orderService.exportOrders({
+      search: this.searchText,
+      status: this.selectedStatus ? this.statusForApi(this.selectedStatus) : '',
+      rider_id: this.selectedRider,
+      order_date: this.selectedDate,
+      created_from: this.createdFrom,
+      created_to: this.createdTo,
+      sortBy: this.sortBy
+    }, format).subscribe({
+      next: (blob: Blob) => {
+        // Verify response is actually a binary blob and not an error JSON
+        if (blob.size > 0 && blob.type !== 'application/json') {
+          this.saveReportBlob(blob, format);
+        } else {
+          this.generateClientSideReport(format);
+        }
+      },
+      error: () => {
+        // Fallback to client-side report using complete order database records
+        this.generateClientSideReport(format);
+      }
+    });
+  }
+
+  saveReportBlob(blob: Blob, format: 'xlsx' | 'csv'): void {
+    this.isDownloadingReport = false;
+    const filename = `Jeebly_Order_Report.${format}`;
+    const url = window.URL.createObjectURL(blob);
+    this.lastGeneratedReportUrl = url;
+    this.lastGeneratedReportName = filename;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    setTimeout(() => {
+      if (this.lastGeneratedReportUrl === url) {
+        window.URL.revokeObjectURL(url);
+      }
+    }, 30000);
+
+    this.showNotification(`Order report downloaded successfully (${format.toUpperCase()}).`, 'success');
+  }
+
+  deleteGeneratedReport(): void {
+    this.showDownloadDropdown = false;
+    if (this.lastGeneratedReportUrl) {
+      window.URL.revokeObjectURL(this.lastGeneratedReportUrl);
+      this.lastGeneratedReportUrl = null;
+      const name = this.lastGeneratedReportName || 'report';
+      this.lastGeneratedReportName = null;
+      this.showNotification(`Generated file "${name}" has been deleted successfully.`, 'success');
+    } else {
+      this.showNotification('No active generated report file to delete.', 'info');
+    }
+  }
+
+  private generateClientSideReport(format: 'xlsx' | 'csv'): void {
+    this.orderService.getOrders({
+      page: 1,
+      pageSize: 5000,
+      search: this.searchText,
+      status: this.selectedStatus ? this.statusForApi(this.selectedStatus) : '',
+      rider_id: this.selectedRider,
+      order_date: this.selectedDate,
+      created_from: this.createdFrom,
+      created_to: this.createdTo,
+      sortBy: this.sortBy
+    }).subscribe({
+      next: (response: any) => {
+        const data = this.getPayload(response);
+        const rawItems = Array.isArray(data?.orders)
+          ? data.orders
+          : Array.isArray(data?.items)
+            ? data.items
+            : Array.isArray(data)
+              ? data
+              : [];
+
+        const headers = [
+          'Order ID',
+          'Customer Name',
+          'Customer Mobile',
+          'Pickup Location',
+          'Delivery Destination',
+          'Order Amount',
+          'Currency',
+          'Order Status',
+          'Order Created Date',
+          'Assigned Rider ID',
+          'Assigned Rider Name',
+          'Rider Contact Mobile',
+          'Rider Email',
+          'Rider Vehicle',
+          'Rider Status',
+          'Rider Availability'
+        ];
+
+        const rows = rawItems.map((item: any) => {
+          const rider = item?.rider ?? null;
+          const riderId = item?.rider_id ?? rider?.id ?? null;
+          return [
+            item?.id ? `ORD-JB${item.id}` : '',
+            item?.customer_name ?? item?.customer ?? '',
+            item?.mobile ?? '',
+            item?.pickup ?? '',
+            item?.delivery ?? '',
+            item?.amount != null ? Number(item.amount) : 0,
+            item?.currency ?? 'AED',
+            this.normalizeStatus(item?.status),
+            item?.created_at ?? item?.createdAt ?? '',
+            riderId != null ? `RIDER-${riderId}` : 'N/A',
+            rider?.name ?? item?.rider_name ?? 'Unassigned',
+            rider?.mobile ?? 'N/A',
+            rider?.email ?? 'N/A',
+            rider?.vehicle ?? 'N/A',
+            rider?.status ? String(rider.status).toUpperCase() : 'N/A',
+            rider?.availability ? String(rider.availability).toUpperCase() : 'N/A'
+          ];
+        });
+
+        if (format === 'xlsx') {
+          try {
+            const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+            const colWidths = headers.map((h: string, i: number) => {
+              const maxLen = Math.max(h.length, ...rows.map((r: any[]) => String(r[i] ?? '').length));
+              return { wch: Math.min(35, Math.max(12, maxLen + 3)) };
+            });
+            worksheet['!cols'] = colWidths;
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Orders Report');
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([excelBuffer], {
+              type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            this.saveReportBlob(blob, 'xlsx');
+          } catch (e) {
+            console.error('XLSX client generation error:', e);
+            this.downloadCsvDirect(headers, rows);
+          }
+        } else {
+          this.downloadCsvDirect(headers, rows);
+        }
+      },
+      error: (err: any) => {
+        this.isDownloadingReport = false;
+        console.error('Client-side order export fetch error:', err);
+        this.showNotification('Failed to generate order report. Please check your network.', 'error');
+      }
+    });
+  }
+
+  private downloadCsvDirect(headers: string[], rows: any[][]): void {
+    const csvContent = [
+      headers.map(h => `"${String(h).replace(/"/g, '""')}"`).join(','),
+      ...rows.map(row => row.map(val => `"${String(val ?? '').replace(/"/g, '""')}"`).join(','))
+    ].join('\r\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], {
+      type: 'text/csv;charset=utf-8;'
+    });
+    this.saveReportBlob(blob, 'csv');
+  }
 
 
   showNotification(message: string, type: ToastType = 'success', durationMs = 2500): void {
@@ -99,7 +315,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
       this.toastTimer = null;
     }
 
-    this.toastMessage = message;
+    this.toastMessage = this.langService.t(message);
     this.toastType = type;
     this.showToast = true;
 
@@ -220,6 +436,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
         : '',
       rider_id: this.selectedRider,
       order_date: this.selectedDate,
+      created_from: this.createdFrom,
+      created_to: this.createdTo,
       sortBy: this.sortBy
     })
     .pipe(finalize(() => {
@@ -327,21 +545,6 @@ export class OrdersComponent implements OnInit, OnDestroy {
         });
 
         this.riders = Array.from(unique.values());
-
-        // Keep a currently assigned rider visible in the row dropdown
-        // even if the API now marks that rider as busy.
-        this.orders.forEach(order => {
-          if (
-            order.riderId &&
-            order.rider !== 'Unassigned' &&
-            !this.riders.some(rider => rider.id === order.riderId)
-          ) {
-            this.riders.push({
-              id: order.riderId,
-              name: order.rider
-            });
-          }
-        });
       },
       error: (error: any) => {
         console.error('Available riders API error:', error);
@@ -349,6 +552,40 @@ export class OrdersComponent implements OnInit, OnDestroy {
           error?.error?.message ?? 'Unable to load available riders.';
       }
     });
+  }
+
+  getRiderOptionsForOrder(order: Order): RiderOption[] {
+    if (order.riderId && order.rider && order.rider !== 'Unassigned') {
+      const exists = this.riders.some(r => r.id === order.riderId);
+      if (!exists) {
+        return [{ id: order.riderId, name: order.rider }, ...this.riders];
+      }
+    }
+    return this.riders;
+  }
+
+  trackByOrderId(index: number, order: Order): number {
+    return order.id;
+  }
+
+  trackByRiderId(index: number, rider: RiderOption): string {
+    return rider.id;
+  }
+
+  onAssignRiderChange(order: Order, event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    const newRiderId = target.value;
+    if (newRiderId === order.riderId) {
+      return;
+    }
+    this.assignRider(order, newRiderId);
+  }
+
+  getStatusOptionsForOrder(order: Order): string[] {
+    if (order.riderId) {
+      return this.orderStatuses.filter(s => s !== 'Cancelled');
+    }
+    return this.orderStatuses;
   }
 
   get filteredOrders(): Order[] {
@@ -381,11 +618,23 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.loadOrders();
   }
 
+  onDateRangeChange(): void {
+    if (this.createdFrom && this.createdTo && this.createdFrom > this.createdTo) {
+      this.dateRangeError = 'Created From date cannot be later than Created To date.';
+      return;
+    }
+    this.dateRangeError = '';
+    this.onFilterChange();
+  }
+
   clearFilters(): void {
     this.searchText = '';
     this.selectedStatus = '';
     this.selectedRider = '';
     this.selectedDate = '';
+    this.createdFrom = '';
+    this.createdTo = '';
+    this.dateRangeError = '';
     this.sortBy = 'newest';
     this.currentPage = 1;
     this.loadOrders();
@@ -440,6 +689,12 @@ export class OrdersComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (newStatus === 'Cancelled' && order.riderId) {
+      this.errorMessage = 'An order cannot be cancelled once a rider has been assigned.';
+      this.showNotification(this.errorMessage, 'error', 3500);
+      return;
+    }
+
     const previousStatus = order.status;
     this.clearMessages();
     this.updatingStatusOrderId = order.id;
@@ -453,6 +708,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
     }))
     .subscribe({
       next: (response: any) => {
+        this.highlightOrder(order.id);
         const msg = response?.message ?? 'Order status updated successfully.';
         this.showNotification(msg, 'success', 2500);
         this.loadOrders();
@@ -515,6 +771,7 @@ assignRider(order: Order, riderId: string): void {
           order.rider = selected?.name ?? 'Assigned rider';
         }
 
+        this.highlightOrder(order.id);
         const msg = response?.message ?? 'Order assignment updated successfully.';
         this.showNotification(msg, 'success', 2500);
 
@@ -543,6 +800,100 @@ assignRider(order: Order, riderId: string): void {
     this.modalOrderId = null;
     this.newOrder = this.emptyOrder();
     this.showOrderModal = true;
+    setTimeout(() => this.initPlacesAutocomplete(), 200);
+  }
+
+  openEditOrder(order: Order): void {
+    if (this.isTerminalStatus(order.status)) {
+      this.errorMessage = 'Delivered or Cancelled orders cannot be edited.';
+      return;
+    }
+
+    this.clearMessages();
+    this.isEditMode = true;
+    this.modalOrderId = order.id;
+    this.newOrder = {
+      customer: order.customer,
+      mobile: order.mobile,
+      pickup: order.pickup,
+      delivery: order.delivery,
+      amount: order.amount,
+      currency: order.currency || 'AED'
+    };
+    this.showOrderModal = true;
+    setTimeout(() => this.initPlacesAutocomplete(), 200);
+  }
+
+  initPlacesAutocomplete(): void {
+    if (typeof google !== 'undefined' && google?.maps?.places) {
+      try {
+        const pickupInput = document.getElementById('pickupAddress') as HTMLInputElement;
+        const deliveryInput = document.getElementById('deliveryAddress') as HTMLInputElement;
+
+        if (pickupInput && !(pickupInput as any)._autocompleteInitialized) {
+          const pickupAuto = new google.maps.places.Autocomplete(pickupInput);
+          (pickupInput as any)._autocompleteInitialized = true;
+          pickupAuto.addListener('place_changed', () => {
+            const place = pickupAuto.getPlace();
+            if (place?.formatted_address) {
+              this.newOrder.pickup = place.formatted_address;
+            }
+          });
+        }
+
+        if (deliveryInput && !(deliveryInput as any)._autocompleteInitialized) {
+          const deliveryAuto = new google.maps.places.Autocomplete(deliveryInput);
+          (deliveryInput as any)._autocompleteInitialized = true;
+          deliveryAuto.addListener('place_changed', () => {
+            const place = deliveryAuto.getPlace();
+            if (place?.formatted_address) {
+              this.newOrder.delivery = place.formatted_address;
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Google Places autocomplete init warning:', e);
+      }
+    }
+  }
+
+  getTimelineStepState(order: Order | null, step: string): 'completed' | 'active' | 'pending' {
+    if (!order) return 'pending';
+    const status = order.status;
+
+    if (status === 'Cancelled') {
+      return step === 'placed' ? 'completed' : 'pending';
+    }
+
+    const orderStages = ['Pending', 'Accepted', 'Picked Up', 'On The Way', 'Delivered'];
+    const currentIdx = orderStages.indexOf(status);
+
+    switch (step) {
+      case 'placed':
+        return currentIdx >= 0 ? 'completed' : 'active';
+      case 'assigned':
+        if (order.riderId && order.rider && order.rider !== 'Unassigned') {
+          return currentIdx >= 1 ? 'completed' : 'active';
+        }
+        return currentIdx >= 1 ? 'completed' : 'pending';
+      case 'accepted':
+        if (currentIdx > 1) return 'completed';
+        if (currentIdx === 1) return 'active';
+        return 'pending';
+      case 'picked_up':
+        if (currentIdx > 2) return 'completed';
+        if (currentIdx === 2) return 'active';
+        return 'pending';
+      case 'on_the_way':
+        if (currentIdx > 3) return 'completed';
+        if (currentIdx === 3) return 'active';
+        return 'pending';
+      case 'delivered':
+        if (currentIdx === 4) return 'completed';
+        return 'pending';
+      default:
+        return 'pending';
+    }
   }
 
   cancelCreateOrder(): void {
@@ -560,7 +911,6 @@ assignRider(order: Order, riderId: string): void {
     this.clearMessages();
 
     const customerName = this.newOrder.customer.trim();
-
     if (!customerName) {
       this.errorMessage = 'Customer name is required.';
       return;
@@ -571,15 +921,48 @@ assignRider(order: Order, riderId: string): void {
       return;
     }
 
-    if (this.newOrder.mobile.trim().length > 20) {
-      this.errorMessage = 'Mobile number cannot exceed 20 characters.';
+    const mobile = this.newOrder.mobile.trim();
+    if (!mobile) {
+      this.errorMessage = 'Customer mobile number is required.';
+      return;
+    }
+
+    const digitsOnly = mobile.replace(/[^0-9]/g, '');
+    if (digitsOnly.length < 7 || mobile.length > 20) {
+      this.errorMessage = 'Please enter a valid customer contact number (10 digits).';
+      return;
+    }
+
+    const pickup = this.newOrder.pickup.trim();
+    if (!pickup) {
+      this.errorMessage = 'Pickup location address is required.';
+      return;
+    }
+
+    if (pickup.length > 255) {
+      this.errorMessage = 'Pickup address cannot exceed 255 characters.';
+      return;
+    }
+
+    const delivery = this.newOrder.delivery.trim();
+    if (!delivery) {
+      this.errorMessage = 'Delivery destination address is required.';
+      return;
+    }
+
+    if (delivery.length > 255) {
+      this.errorMessage = 'Delivery destination cannot exceed 255 characters.';
       return;
     }
 
     const amount = Number(this.newOrder.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      this.errorMessage = 'Order value / amount is required and must be greater than 0.';
+      return;
+    }
 
-    if (!Number.isFinite(amount) || amount < 0) {
-      this.errorMessage = 'Amount must be a valid non-negative number.';
+    if (!this.newOrder.currency || !this.newOrder.currency.trim()) {
+      this.errorMessage = 'Currency is required.';
       return;
     }
 
@@ -621,6 +1004,9 @@ assignRider(order: Order, riderId: string): void {
     }))
     .subscribe({
       next: (response: any) => {
+        if (this.modalOrderId) {
+          this.highlightOrder(this.modalOrderId);
+        }
         const msg = response?.message ??
           (this.isEditMode
             ? 'Order updated successfully.'
@@ -641,28 +1027,6 @@ assignRider(order: Order, riderId: string): void {
           error?.error?.message ?? 'Unable to save order.';
       }
     });
-  }
-
-  openEditOrder(order: Order): void {
-    if (this.isTerminalStatus(order.status)) {
-      this.errorMessage = 'Delivered or Cancelled orders cannot be edited.';
-      return;
-    }
-
-    this.clearMessages();
-    this.isEditMode = true;
-    this.modalOrderId = order.id;
-
-    this.newOrder = {
-      customer: order.customer,
-      mobile: order.mobile,
-      pickup: order.pickup,
-      delivery: order.delivery,
-      amount: order.amount,
-      currency: order.currency || 'AED'
-    };
-
-    this.showOrderModal = true;
   }
 
   requestDeleteOrder(order: Order): void {

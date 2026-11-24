@@ -1,9 +1,33 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from sqlalchemy import or_
 from ...extensions import db
 from ...models import Order, Rider
 from .schemas import TERMINAL_STATUSES
+
+
+def parse_date_safely(date_str: Optional[str]) -> Optional[datetime]:
+    if not date_str:
+        return None
+    cleaned = str(date_str).strip()
+    if not cleaned:
+        return None
+    if "T" in cleaned:
+        cleaned = cleaned.split("T")[0]
+    formats = [
+        "%Y-%m-%d",
+        "%d-%m-%Y",
+        "%d/%m/%Y",
+        "%Y/%m/%d",
+        "%m/%d/%Y",
+        "%m-%d-%Y"
+    ]
+    for fmt in formats:
+        try:
+            return datetime.strptime(cleaned, fmt)
+        except ValueError:
+            continue
+    return None
 
 
 class OrderRepository:
@@ -12,16 +36,15 @@ class OrderRepository:
         return db.session.get(Order, order_id)
 
     @staticmethod
-    def filter_and_paginate(
+    def _build_query(
         search: str = "",
         status: str = "",
         rider_id: Optional[int] = None,
         order_date: Optional[str] = "",
-        sort_by: str = "newest",
-        page: int = 1,
-        page_size: int = 10
+        created_from: Optional[str] = "",
+        created_to: Optional[str] = "",
+        sort_by: str = "newest"
     ):
-        # Eager load rider relationship to eliminate N+1 queries during serialization
         query = Order.query.options(db.joinedload(Order.rider))
 
         if search:
@@ -49,24 +72,76 @@ class OrderRepository:
         if rider_id is not None:
             query = query.filter(Order.rider_id == rider_id)
 
-        if order_date:
-            try:
-                parsed_date = datetime.strptime(order_date, "%Y-%m-%d").date()
-                start_dt = datetime.combine(parsed_date, datetime.min.time())
-                end_dt = datetime.combine(parsed_date, datetime.max.time())
-                # Range filter utilizes index on created_at efficiently
-                query = query.filter(Order.created_at >= start_dt, Order.created_at <= end_dt)
-            except (ValueError, TypeError):
-                pass
+        if created_from:
+            dt_from = parse_date_safely(created_from)
+            if dt_from:
+                start_boundary = datetime.combine(dt_from.date(), datetime.min.time())
+                query = query.filter(Order.created_at >= start_boundary)
+
+        if created_to:
+            dt_to = parse_date_safely(created_to)
+            if dt_to:
+                end_boundary = datetime.combine(dt_to.date(), datetime.max.time())
+                query = query.filter(Order.created_at <= end_boundary)
+        elif order_date and not created_from:
+            dt_single = parse_date_safely(order_date)
+            if dt_single:
+                start_boundary = datetime.combine(dt_single.date(), datetime.min.time())
+                end_boundary = datetime.combine(dt_single.date(), datetime.max.time())
+                query = query.filter(Order.created_at >= start_boundary, Order.created_at <= end_boundary)
 
         if sort_by == "oldest":
             query = query.order_by(Order.created_at.asc(), Order.id.asc())
         else:
             query = query.order_by(Order.created_at.desc(), Order.id.desc())
 
+        return query
+
+    @staticmethod
+    def filter_and_paginate(
+        search: str = "",
+        status: str = "",
+        rider_id: Optional[int] = None,
+        order_date: Optional[str] = "",
+        created_from: Optional[str] = "",
+        created_to: Optional[str] = "",
+        sort_by: str = "newest",
+        page: int = 1,
+        page_size: int = 10
+    ):
+        query = OrderRepository._build_query(
+            search=search,
+            status=status,
+            rider_id=rider_id,
+            order_date=order_date,
+            created_from=created_from,
+            created_to=created_to,
+            sort_by=sort_by
+        )
         return query.paginate(
             page=page, per_page=page_size, error_out=False
         )
+
+    @staticmethod
+    def get_all_matching(
+        search: str = "",
+        status: str = "",
+        rider_id: Optional[int] = None,
+        order_date: Optional[str] = "",
+        created_from: Optional[str] = "",
+        created_to: Optional[str] = "",
+        sort_by: str = "newest"
+    ) -> List[Order]:
+        query = OrderRepository._build_query(
+            search=search,
+            status=status,
+            rider_id=rider_id,
+            order_date=order_date,
+            created_from=created_from,
+            created_to=created_to,
+            sort_by=sort_by
+        )
+        return query.all()
 
     @staticmethod
     def create(data: dict) -> Order:

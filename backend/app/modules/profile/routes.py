@@ -167,3 +167,27 @@ def change_password():
           $ref: '#/definitions/ErrorResponse'
     """
     return controller.change_password()
+
+
+@profile_bp.post("/profile/avatar")
+@auth_required
+def upload_avatar():
+    """Upload user profile avatar"""
+    return controller.upload_avatar()
+
+
+@profile_bp.delete("/profile/avatar")
+@auth_required
+def remove_avatar():
+    """Remove user profile avatar"""
+    return controller.remove_avatar()
+
+
+@profile_bp.get("/profile-uploads/<path:filename>")
+def profile_upload_file(filename):
+    """Serve uploaded profile photo from server uploads directory"""
+    import os
+    from pathlib import Path
+    from flask import current_app, send_from_directory
+    folder = Path(current_app.root_path) / "uploads"
+    return send_from_directory(str(folder), filename)

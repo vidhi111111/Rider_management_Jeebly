@@ -77,5 +77,8 @@
       }
     }
   },
-  "defaultProject": "angular14-register"
+  "defaultProject": "angular14-register",
+  "cli": {
+    "analytics": "df97843b-321f-4525-8d78-3ac05c7d6925"
+  }
 }

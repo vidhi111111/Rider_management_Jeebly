@@ -7,6 +7,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RiderService } from '../../core/services/rider.service';
+import { LanguageService } from '../../core/services/language.service';
 
 @Component({
   selector: 'app-rider-form',
@@ -41,7 +42,8 @@ export class RiderFormComponent implements OnInit {
     private fb: FormBuilder,
     private riderService: RiderService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    public langService: LanguageService
   ) {}
 
   ngOnInit(): void {

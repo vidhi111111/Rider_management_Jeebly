@@ -1,13 +1,13 @@
 <nav class="breadcrumb" *ngIf="breadcrumbs.length">
   <ng-container *ngFor="let breadcrumb of breadcrumbs; let last = last">
     <a *ngIf="!last" [routerLink]="breadcrumb.url">
-      {{ breadcrumb.label }}
+      {{ langService.t(breadcrumb.label) }}
     </a>
 
     <span *ngIf="!last" class="separator">/</span>
 
     <span *ngIf="last" class="current">
-      {{ breadcrumb.label }}
+      {{ langService.t(breadcrumb.label) }}
     </span>
   </ng-container>
 </nav>

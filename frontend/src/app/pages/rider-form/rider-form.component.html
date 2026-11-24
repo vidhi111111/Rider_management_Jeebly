@@ -1,18 +1,17 @@
-
 <div class="rider-form-page">
   <div class="form-card">
     <div class="form-header">
       <div>
-        <h2>{{ isEditMode ? 'Edit Rider' : 'Add Rider' }}</h2>
-        <p>{{ isEditMode ? 'Update rider information' : 'Enter new rider information' }}</p>
+        <h2>{{ isEditMode ? langService.t('Edit Rider') : langService.t('Add Rider') }}</h2>
+        <p>{{ isEditMode ? langService.t('Update rider information') : langService.t('Enter new rider information') }}</p>
       </div>
       <button type="button" class="btn-cancel" (click)="cancel()">
-        Back to Riders
+        {{ langService.t('Back to Riders') }}
       </button>
     </div>
 
     <div *ngIf="isLoading" class="info-message">
-      Loading rider details...
+      {{ langService.t('Loading rider details...') }}
     </div>
 
     <div *ngIf="errorMessage" class="error-message">
@@ -26,96 +25,75 @@
     <form *ngIf="!isLoading" [formGroup]="riderForm" (ngSubmit)="saveRider()">
       <div class="form-grid">
         <div class="form-field">
-          <label for="name">Full Name <span class="required-asterisk">*</span></label>
+          <label for="name">{{ langService.t('Full Name') }} <span class="required-asterisk">*</span></label>
           <input id="name" type="text" formControlName="name"
-                 placeholder="Enter rider name">
+                 [placeholder]="langService.t('Enter rider name')">
           <small *ngIf="f.name.touched && f.name.invalid">
             Enter a name with at least 2 characters.
           </small>
         </div>
 
         <div class="form-field">
-          <label for="mobile">Mobile Number <span class="required-asterisk">*</span></label>
+          <label for="mobile">{{ langService.t('Mobile Number') }} <span class="required-asterisk">*</span></label>
           <input id="mobile" type="tel" formControlName="mobile"
-                 placeholder="Enter mobile number">
+                 [placeholder]="langService.t('Enter mobile number')">
           <small *ngIf="f.mobile.touched && f.mobile.invalid">
             Enter a valid 10–15 digit mobile number.
           </small>
         </div>
 
         <div class="form-field">
-          <label for="email">Email <span class="required-asterisk">*</span></label>
+          <label for="email">{{ langService.t('Email') }} <span class="required-asterisk">*</span></label>
           <input id="email" type="email" formControlName="email"
-                 placeholder="Enter email">
+                 [placeholder]="langService.t('Enter email')">
           <small *ngIf="f.email.touched && f.email.invalid">
             Enter a valid email address.
           </small>
         </div>
 
         <div class="form-field">
-          <label for="vehicle">Vehicle <span class="required-asterisk">*</span></label>
+          <label for="vehicle">{{ langService.t('Vehicle') }} <span class="required-asterisk">*</span></label>
           <select id="vehicle" formControlName="vehicle">
-            <option value="Bike">Bike</option>
-            <option value="Scooter">Scooter</option>
-            <option value="Car">Car</option>
-            <option value="Van">Van</option>
+            <option value="Bike">{{ langService.t('Bike') }}</option>
+            <option value="Scooter">{{ langService.t('Scooter') }}</option>
+            <option value="Car">{{ langService.t('Car') }}</option>
+            <option value="Van">{{ langService.t('Van') }}</option>
           </select>
         </div>
 
         <div class="form-field">
-          <label for="status">Status <span class="required-asterisk">*</span></label>
+          <label for="status">{{ langService.t('Status') }} <span class="required-asterisk">*</span></label>
           <select id="status" formControlName="status">
-            <option value="Available">Available</option>
-            <option value="On Order">On Order</option>
-            <option value="Scheduled Break">Scheduled Break</option>
-            <option value="Absent">Absent</option>
+            <option value="Available">{{ langService.t('Available') }}</option>
+            <option value="On Order">{{ langService.t('On Order') }}</option>
+            <option value="Scheduled Break">{{ langService.t('Scheduled Break') }}</option>
+            <option value="Absent">{{ langService.t('Absent') }}</option>
           </select>
         </div>
 
         <div class="form-field">
-          <label for="availability">Availability <span class="required-asterisk">*</span></label>
+          <label for="availability">{{ langService.t('Availability') }} <span class="required-asterisk">*</span></label>
           <select id="availability" formControlName="availability">
-            <option value="Available">Available</option>
-            <option value="Unavailable">Unavailable</option>
+            <option value="Available">{{ langService.t('Available') }}</option>
+            <option value="Unavailable">{{ langService.t('Unavailable') }}</option>
           </select>
         </div>
 
         <div class="form-field">
-          <label for="date">Date <span class="required-asterisk">*</span></label>
+          <label for="date">{{ langService.t('Date') }} <span class="required-asterisk">*</span></label>
           <input id="date" type="date" formControlName="date">
         </div>
       </div>
 
       <div class="form-actions">
         <button type="button" class="btn-cancel" (click)="cancel()">
-          Cancel
+          {{ langService.t('Cancel') }}
         </button>
         <button type="submit" class="btn-save"
                 [disabled]="isSaving || riderForm.invalid">
-          {{ isSaving ? 'Saving...' : (isEditMode ? 'Update Rider' : 'Create Rider') }}
+          {{ isSaving ? langService.t('Saving...') : (isEditMode ? langService.t('Update Rider') : langService.t('Create Rider')) }}
         </button>
       </div>
     </form>
-  </div>
-</div>
-
-<!-- Create Confirmation Modal -->
-<div *ngIf="showCreateConfirmation" class="confirm-backdrop" (click)="cancelCreate()">
-  <div class="confirm-dialog" (click)="$event.stopPropagation()">
-    <div class="confirm-header">
-      <h3>Create Rider</h3>
-      <button type="button" class="btn-close" [disabled]="isSaving" (click)="cancelCreate()">×</button>
-    </div>
-    <div class="confirm-body">
-      <p>Are you sure you want to create this rider?</p>
-    </div>
-    <div class="confirm-actions">
-      <button type="button" class="btn-cancel" [disabled]="isSaving" (click)="cancelCreate()">
-        No
-      </button>
-      <button type="button" class="btn-save" [disabled]="isSaving" (click)="confirmCreate()">
-        {{ isSaving ? 'Creating...' : 'Yes' }}
-      </button>
-    </div>
   </div>
 </div>

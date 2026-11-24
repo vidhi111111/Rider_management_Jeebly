@@ -7,6 +7,7 @@ import {
   ReactiveFormsModule
 } from '@angular/forms';
 import { ProfileService } from '../../core/services/profile.service';
+import { LanguageService } from '../../core/services/language.service';
 
 @Component({
   selector: 'app-profile',
@@ -27,12 +28,18 @@ export class ProfileComponent implements OnInit {
   userEmail = '';
   userName = '';
 
+  avatarPreview: string | null = null;
+  isFieldsUpdated = false;
+
   constructor(
     private fb: FormBuilder,
-    private profileService: ProfileService
+    private profileService: ProfileService,
+    public langService: LanguageService
   ) {}
 
   ngOnInit(): void {
+    this.avatarPreview = localStorage.getItem('profile_avatar') || null;
+
     this.profileForm = this.fb.group({
       name: ['', [
         Validators.required,
@@ -63,10 +70,20 @@ export class ProfileComponent implements OnInit {
         this.userName = user?.name || '';
         this.userEmail = user?.email || '';
 
+        const dbAvatar = user?.profile_image || user?.avatar || null;
+        if (dbAvatar) {
+          this.avatarPreview = dbAvatar;
+          localStorage.setItem('profile_avatar', dbAvatar);
+        } else {
+          this.avatarPreview = localStorage.getItem('profile_avatar') || null;
+        }
+
         this.updateStoredUser({
           name: this.userName,
           email: this.userEmail,
-          mobile: user?.mobile || ''
+          mobile: user?.mobile || '',
+          profile_image: this.avatarPreview,
+          avatar: this.avatarPreview
         });
 
         this.loadingProfile = false;
@@ -77,6 +94,71 @@ export class ProfileComponent implements OnInit {
         this.loadingProfile = false;
       }
     });
+  }
+
+  onAvatarSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+
+      if (!file.type.startsWith('image/')) {
+        this.errorMessage = 'Please select a valid image file.';
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        this.errorMessage = 'Image size should be less than 5MB.';
+        return;
+      }
+
+      // Show immediate local preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.avatarPreview = reader.result as string;
+      };
+      reader.readAsDataURL(file);
+
+      // Persist to backend server / database
+      this.profileService.uploadAvatar(file).subscribe({
+        next: (res: any) => {
+          const user = res?.data || res?.user || res;
+          const photoUrl = user?.profile_image || user?.avatar || this.avatarPreview;
+          if (photoUrl) {
+            this.avatarPreview = photoUrl;
+            localStorage.setItem('profile_avatar', photoUrl);
+            this.updateStoredUser({ profile_image: photoUrl, avatar: photoUrl });
+          }
+          this.clearMessages();
+          this.successMessage = 'Profile photo uploaded and saved successfully.';
+          this.triggerFieldHighlight();
+        },
+        error: (err) => {
+          this.errorMessage = err?.error?.message || 'Unable to upload profile photo.';
+        }
+      });
+    }
+  }
+
+  removeAvatar(): void {
+    this.profileService.removeAvatar().subscribe({
+      next: () => {
+        this.avatarPreview = null;
+        localStorage.removeItem('profile_avatar');
+        this.updateStoredUser({ profile_image: null, avatar: null });
+        this.clearMessages();
+        this.successMessage = 'Profile photo removed successfully.';
+      },
+      error: (err) => {
+        this.errorMessage = err?.error?.message || 'Unable to remove profile photo.';
+      }
+    });
+  }
+
+  triggerFieldHighlight(): void {
+    this.isFieldsUpdated = true;
+    setTimeout(() => {
+      this.isFieldsUpdated = false;
+    }, 3000);
   }
 
   updateProfile(): void {
@@ -111,13 +193,21 @@ export class ProfileComponent implements OnInit {
           mobile: updatedMobile
         });
 
+        if (responseUser?.profile_image) {
+          this.avatarPreview = responseUser.profile_image;
+          localStorage.setItem('profile_avatar', responseUser.profile_image);
+        }
+
         this.updateStoredUser({
           ...responseUser,
           name: updatedName,
           email: this.userEmail,
-          mobile: updatedMobile
+          mobile: updatedMobile,
+          profile_image: this.avatarPreview,
+          avatar: this.avatarPreview
         });
 
+        this.triggerFieldHighlight();
         this.successMessage =
           response?.message || 'Profile updated successfully.';
 

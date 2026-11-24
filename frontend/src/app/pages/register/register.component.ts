@@ -10,17 +10,7 @@ import {
 } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-
-function passwordsMatch(control: AbstractControl): ValidationErrors | null {
-  const password = control.get('password')?.value;
-  const confirmPassword = control.get('confirmPassword')?.value;
-
-  if (!password || !confirmPassword) {
-    return null;
-  }
-
-  return password === confirmPassword ? null : { passwordMismatch: true };
-}
+import { LanguageService } from '../../core/services/language.service';
 
 function passwordValidator(control: AbstractControl): ValidationErrors | null {
   const password = control.value;
@@ -54,6 +44,15 @@ function passwordValidator(control: AbstractControl): ValidationErrors | null {
   return Object.keys(errors).length ? errors : null;
 }
 
+function passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
+  const password = control.get('password')?.value;
+  const confirmPassword = control.get('confirmPassword')?.value;
+  if (!password || !confirmPassword) {
+    return null;
+  }
+  return password === confirmPassword ? null : { passwordMismatch: true };
+}
+
 @Component({
   selector: 'app-register',
   standalone: true,
@@ -68,27 +67,23 @@ export class RegisterComponent {
   showPassword = false;
   showConfirmPassword = false;
 
-  registerForm: FormGroup = this.fb.group(
-    {
-      name: ['', [Validators.required, Validators.minLength(2)]],
-      email: ['', [Validators.required, Validators.email]],
-      mobile: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
-      password: ['', [
-        Validators.required,
-        Validators.minLength(8),
-        passwordValidator
-      ]],
-      confirmPassword: ['', [Validators.required]]
-    },
-    {
-      validators: passwordsMatch
-    }
-  );
+  registerForm: FormGroup = this.fb.group({
+    name: ['', [Validators.required, Validators.minLength(2)]],
+    email: ['', [Validators.required, Validators.email]],
+    mobile: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
+    password: ['', [
+      Validators.required,
+      Validators.minLength(8),
+      passwordValidator
+    ]],
+    confirmPassword: ['', [Validators.required]]
+  }, { validators: passwordMatchValidator });
 
   constructor(
     private readonly fb: FormBuilder,
     private readonly authService: AuthService,
-    private readonly router: Router
+    private readonly router: Router,
+    public readonly langService: LanguageService
   ) {}
 
   get name() {
@@ -118,7 +113,18 @@ export class RegisterComponent {
     }
 
     if (control.hasError('required')) {
-      return 'Password is required.';
+      return this.langService.t('passwordRequired');
+    }
+
+    if (this.langService.isArabic) {
+      const arErrors: string[] = [];
+      if (control.hasError('minlength')) arErrors.push('8 أحرف على الأقل');
+      if (control.hasError('uppercase')) arErrors.push('حرف كبير واحد');
+      if (control.hasError('lowercase')) arErrors.push('حرف صغير واحد');
+      if (control.hasError('number')) arErrors.push('رقم واحد');
+      if (control.hasError('special')) arErrors.push('رمز خاص');
+      if (control.hasError('space')) arErrors.push('بدون مسافات');
+      return arErrors.join('، ');
     }
 
     const errors: string[] = [];
@@ -152,8 +158,12 @@ export class RegisterComponent {
 
   isInvalid(controlName: string): boolean {
     const control = this.registerForm.get(controlName);
-
     return !!control && control.invalid && (control.dirty || control.touched);
+  }
+
+  socialLogin(provider: string): void {
+    this.errorMessage = '';
+    this.successMessage = `${provider} sign-in integration will be enabled soon.`;
   }
 
   submit(): void {
@@ -167,7 +177,11 @@ export class RegisterComponent {
 
     this.isSubmitting = true;
 
-    const { name, email, mobile, password } = this.registerForm.value;
+    const formValues = this.registerForm.value;
+    const name = formValues.name;
+    const email = formValues.email;
+    const password = formValues.password;
+    const mobile = formValues.mobile.trim();
 
     this.authService.register({
       name,
@@ -179,7 +193,9 @@ export class RegisterComponent {
         this.isSubmitting = false;
         this.successMessage = response.message;
         this.registerForm.reset();
-        this.router.navigate(['/login']);
+        setTimeout(() => {
+          this.router.navigate(['/login']);
+        }, 1500);
       },
       error: (error) => {
         this.isSubmitting = false;

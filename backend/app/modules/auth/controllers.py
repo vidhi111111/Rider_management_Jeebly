@@ -35,7 +35,7 @@ class AuthController:
 
         name = str(validated["name"]).strip()
         email = str(validated["email"]).strip().lower()
-        mobile = str(validated["mobile"]).strip()
+        mobile = str(validated.get("mobile") or "").strip()
         password = str(validated["password"])
 
         success, message, user_data, status_code = self.auth_service.register(
@@ -74,6 +74,29 @@ class AuthController:
             password=validated["password"]
         )
 
+        if not success:
+            return error_response(message, status_code)
+
+        return jsonify({
+            "success": True,
+            "message": message,
+            "token": auth_data["token"],
+            "user": auth_data["user"]
+        }), status_code
+
+    def google_login(self):
+        if not request.is_json:
+            return error_response("Content-Type must be application/json.", 415)
+
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return error_response("A valid JSON object is required.", 400)
+
+        credential = str(data.get("credential", "") or data.get("token", "")).strip()
+        if not credential:
+            return error_response("Google credential token is required.", 400)
+
+        success, message, auth_data, status_code = self.auth_service.google_login(credential=credential)
         if not success:
             return error_response(message, status_code)
 

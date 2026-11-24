@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { LanguageService } from '../../core/services/language.service';
 
 @Component({
   selector: 'app-breadcrumb',
@@ -17,47 +18,44 @@ export class BreadcrumbComponent {
     dashboard: 'Dashboard',
     riders: 'Riders',
     orders: 'Orders',
-    profile: 'Profile'
+    profile: 'Account Profile',
+    'change-password': 'Security & Password'
   };
 
- constructor(public readonly router: Router) {
-  this.router.events
-    .pipe(
-      filter(event => event instanceof NavigationEnd)
-    )
-    .subscribe(() => {
-      this.generateBreadcrumbs();
-    });
+  constructor(
+    public readonly router: Router,
+    public readonly langService: LanguageService
+  ) {
+    this.router.events
+      .pipe(
+        filter(event => event instanceof NavigationEnd)
+      )
+      .subscribe(() => {
+        this.generateBreadcrumbs();
+      });
 
-  this.generateBreadcrumbs();
-}
+    this.generateBreadcrumbs();
+  }
 
   private generateBreadcrumbs(): void {
-  const url = this.router.url.split('?')[0];
-  const segments = url.split('/').filter(segment => segment);
+    const url = this.router.url.split('?')[0];
+    const segments = url.split('/').filter(segment => segment);
 
-  this.breadcrumbs = [
-    {
-      label: 'Home',
-      url: '/dashboard'
-    }
-  ];
+    this.breadcrumbs = [
+      {
+        label: 'Home',
+        url: '/dashboard'
+      }
+    ];
 
-  let currentUrl = '';
+    let currentUrl = '';
 
-  segments.forEach(segment => {
-    currentUrl += `/${segment}`;
-
-    this.breadcrumbs.push({
-      label: this.routeLabels[segment] || this.formatLabel(segment),
-      url: currentUrl
+    segments.forEach(segment => {
+      currentUrl += `/${segment}`;
+      this.breadcrumbs.push({
+        label: this.routeLabels[segment] || segment,
+        url: currentUrl
+      });
     });
-  });
-}
-
-  private formatLabel(segment: string): string {
-    return segment
-      .replace(/-/g, ' ')
-      .replace(/\b\w/g, character => character.toUpperCase());
   }
 }

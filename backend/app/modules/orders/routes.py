@@ -6,6 +6,12 @@ orders_bp = Blueprint("orders", __name__)
 controller = OrderController()
 
 
+@orders_bp.get("/orders/export")
+@auth_required
+def export_orders():
+    return controller.export()
+
+
 @orders_bp.get("/orders")
 @auth_required
 def orders():

@@ -1,46 +1,32 @@
 :root {
   --jeebly-red: #DC1D47;
-  --jeebly-blue: #163758;
-  --required-color: #DC1D47;
+  --jeebly-red-hover: #b81438;
+  --jeebly-red-light: rgba(220, 29, 71, 0.08);
+  --jeebly-red-border: rgba(220, 29, 71, 0.2);
 
-  --background: #f5f7fa;
+  --jeebly-blue: #163758;
+  --jeebly-blue-hover: #0e243a;
+  --jeebly-blue-light: rgba(22, 55, 88, 0.06);
+  --jeebly-blue-border: rgba(22, 55, 88, 0.15);
+
+  --font-header: 'Montserrat', sans-serif;
+  --font-body: 'Poppins', sans-serif;
+
+  --background: #f4f7fb;
   --surface: #ffffff;
-  --surface-secondary: #eef2f6;
+  --surface-hover: #f8fafc;
+  --border: #e2e8f0;
+  --border-focus: #163758;
 
   --text-primary: #163758;
-  --text-secondary: #6b7280;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
 
-  --border: #dfe3e8;
+  --shadow-sm: 0 1px 3px rgba(22, 55, 88, 0.06);
+  --shadow-md: 0 4px 14px rgba(22, 55, 88, 0.08);
+  --shadow-lg: 0 10px 25px rgba(22, 55, 88, 0.12);
 
-  --shadow: rgba(22, 55, 88, 0.08);
-}
-
-body.dark-mode {
-  --background: #101820;
-  --surface: #182736;
-  --surface-secondary: #203448;
-
-  --text-primary: #ffffff;
-  --text-secondary: #c5ced8;
-
-  --border: #34485a;
-
-  --shadow: rgba(0, 0, 0, 0.3);
-  --required-color: #ff4d6d;
-}
-
-.required-asterisk,
-.required-star {
-  color: var(--required-color, var(--jeebly-red, #DC1D47));
-}
-
-body.dark-mode .required-asterisk,
-body.dark-mode .required-star,
-.dark-theme .required-asterisk,
-.dark-theme .required-star,
-[data-theme="dark"] .required-asterisk,
-[data-theme="dark"] .required-star {
-  color: #ff4d6d;
+  --required-color: #DC1D47;
 }
 
 * {
@@ -55,11 +41,13 @@ body {
 }
 
 body {
-  font-family: 'Nexa', Arial, sans-serif;
+  font-family: var(--font-body);
   font-weight: 400;
   background: var(--background);
   color: var(--text-primary);
-  transition: background-color 0.25s ease, color 0.25s ease;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1,
@@ -68,21 +56,220 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'Nexa', Arial, sans-serif;
+  font-family: var(--font-header);
   font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 0;
 }
 
-button,
-input,
-select,
-textarea {
-  font-family: 'Nexa', Arial, sans-serif;
+p, span, label, input, select, textarea, button {
+  font-family: var(--font-body);
 }
 
-.form-control {
-  min-height: 48px;
+.required-asterisk,
+.required-star {
+  color: var(--jeebly-red);
+  font-weight: 700;
+  margin-left: 2px;
 }
 
-.btn {
-  min-height: 48px;
+select option {
+  background-color: #ffffff !important;
+  color: #163758 !important;
+}
+
+/* 3-Second Updated Field Highlight */
+@keyframes fieldHighlightGlow {
+  0% {
+    box-shadow: 0 0 0 3px rgba(220, 29, 71, 0.35);
+    border-color: var(--jeebly-red) !important;
+  }
+  60% {
+    box-shadow: 0 0 0 3px rgba(22, 55, 88, 0.25);
+    border-color: var(--jeebly-blue) !important;
+  }
+  100% {
+    box-shadow: none;
+    border-color: inherit;
+  }
+}
+
+.field-updated-highlight {
+  animation: fieldHighlightGlow 3s ease-in-out forwards !important;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Tooltip helper */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background: #163758;
+  color: #ffffff;
+  font-size: 11px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  white-space: nowrap;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 1100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+/* ==========================================================================
+   RTL (Right-to-Left) Arabic Support
+   ========================================================================== */
+[dir="rtl"],
+body.rtl-mode {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir="rtl"] .required-asterisk,
+[dir="rtl"] .required-star {
+  margin-left: 0;
+  margin-right: 3px;
+}
+
+/* Layout adjustments in RTL */
+[dir="rtl"] .sidebar {
+  left: auto !important;
+  right: 0 !important;
+  border-right: none !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[dir="rtl"] .content {
+  margin-left: 0 !important;
+  margin-right: 250px !important;
+}
+
+[dir="rtl"] .content.content-collapsed {
+  margin-left: 0 !important;
+  margin-right: 74px !important;
+}
+
+[dir="rtl"] .user-greeting {
+  text-align: left;
+}
+
+[dir="rtl"] .profile-dropdown {
+  right: auto !important;
+  left: 0 !important;
+  text-align: right;
+}
+
+[dir="rtl"] .dropdown-item {
+  text-align: right;
+}
+
+[dir="rtl"] .dropdown-item .item-chevron {
+  transform: rotate(180deg);
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .report-dropdown-menu {
+  right: auto !important;
+  left: 0 !important;
+  text-align: right;
+}
+
+[dir="rtl"] .report-dropdown-item {
+  text-align: right;
+}
+
+/* Forms & Inputs in RTL */
+[dir="rtl"] .input-icon-wrap .input-icon,
+[dir="rtl"] .input-with-icon .field-icon {
+  left: auto !important;
+  right: 14px !important;
+}
+
+[dir="rtl"] input.with-icon,
+[dir="rtl"] .input-icon-wrap input,
+[dir="rtl"] .input-with-icon input {
+  padding-left: 14px !important;
+  padding-right: 42px !important;
+}
+
+[dir="rtl"] .custom-password-input {
+  padding-right: 14px !important;
+  padding-left: 46px !important;
+}
+
+[dir="rtl"] .password-eye-btn {
+  right: auto !important;
+  left: 8px !important;
+}
+
+[dir="rtl"] .custom-select-wrap .select-arrow {
+  right: auto !important;
+  left: 14px !important;
+}
+
+[dir="rtl"] .custom-select {
+  padding-right: 14px !important;
+  padding-left: 36px !important;
+}
+
+/* Drawers in RTL - slide from left */
+[dir="rtl"] .drawer-panel {
+  right: auto !important;
+  left: 0 !important;
+  transform: translateX(-100%) !important;
+}
+
+[dir="rtl"] .drawer-panel.drawer-open {
+  transform: translateX(0) !important;
+}
+
+[dir="rtl"] .drawer-close-btn {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+/* Tables in RTL */
+[dir="rtl"] .custom-table th,
+[dir="rtl"] .custom-table td,
+[dir="rtl"] table th,
+[dir="rtl"] table td {
+  text-align: right;
+}
+
+[dir="rtl"] .btn-upload-avatar {
+  right: auto;
+  left: 0;
 }

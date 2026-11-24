@@ -11,6 +11,8 @@ export interface OrderFilters {
   status?: string;
   rider_id?: string;
   order_date?: string;
+  created_from?: string;
+  created_to?: string;
   sortBy?: string;
 }
 
@@ -45,6 +47,12 @@ export class OrderService {
     }
     if (filters.order_date) {
       params = params.set('order_date', filters.order_date);
+    }
+    if (filters.created_from) {
+      params = params.set('created_from', filters.created_from);
+    }
+    if (filters.created_to) {
+      params = params.set('created_to', filters.created_to);
     }
     if (filters.sortBy) {
       params = params.set('sortBy', filters.sortBy);
@@ -88,6 +96,35 @@ export class OrderService {
     payload: Partial<CreateOrderPayload>
   ): Observable<any> {
     return this.http.put(`${this.apiUrl}/orders/${orderId}`, payload);
+  }
+
+  exportOrders(filters: Partial<OrderFilters>, format: 'xlsx' | 'csv'): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (filters.search?.trim()) {
+      params = params.set('search', filters.search.trim());
+    }
+    if (filters.status) {
+      params = params.set('status', filters.status);
+    }
+    if (filters.rider_id) {
+      params = params.set('rider_id', filters.rider_id);
+    }
+    if (filters.order_date) {
+      params = params.set('order_date', filters.order_date);
+    }
+    if (filters.created_from) {
+      params = params.set('created_from', filters.created_from);
+    }
+    if (filters.created_to) {
+      params = params.set('created_to', filters.created_to);
+    }
+    if (filters.sortBy) {
+      params = params.set('sortBy', filters.sortBy);
+    }
+    return this.http.get(`${this.apiUrl}/orders/export`, {
+      params,
+      responseType: 'blob'
+    });
   }
 
   deleteOrder(orderId: number): Observable<any> {

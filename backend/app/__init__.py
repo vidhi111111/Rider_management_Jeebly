@@ -137,4 +137,23 @@ def create_app(config_class=None) -> Flask:
 
     from .models import User, Rider, Order
 
+    # Auto-migration safety check: ensure profile_image columns exist on user and rider tables
+    with app.app_context():
+        try:
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            table_names = inspector.get_table_names()
+            if "user" in table_names:
+                user_cols = [c["name"] for c in inspector.get_columns("user")]
+                if "profile_image" not in user_cols:
+                    db.session.execute(text('ALTER TABLE "user" ADD COLUMN profile_image TEXT;'))
+                    db.session.commit()
+            if "rider" in table_names:
+                rider_cols = [c["name"] for c in inspector.get_columns("rider")]
+                if "profile_image" not in rider_cols:
+                    db.session.execute(text('ALTER TABLE "rider" ADD COLUMN profile_image TEXT;'))
+                    db.session.commit()
+        except Exception:
+            app.logger.warning("Auto-migration schema check skipped or encountered non-critical error.")
+
     return app

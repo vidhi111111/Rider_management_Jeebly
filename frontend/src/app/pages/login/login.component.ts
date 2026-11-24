@@ -8,6 +8,7 @@ import {
 } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { LanguageService } from '../../core/services/language.service';
 
 @Component({
   selector: 'app-login',
@@ -18,6 +19,7 @@ import { AuthService } from '../../core/services/auth.service';
 })
 export class LoginComponent {
   loginError = '';
+  loginSuccess = '';
   isLoading = false;
   showPassword = false;
 
@@ -30,7 +32,8 @@ export class LoginComponent {
   constructor(
     private readonly fb: FormBuilder,
     private readonly authService: AuthService,
-    private readonly router: Router
+    private readonly router: Router,
+    public readonly langService: LanguageService
   ) {}
 
   get email() {
@@ -41,8 +44,19 @@ export class LoginComponent {
     return this.loginForm.get('password');
   }
 
+  isInvalid(controlName: string): boolean {
+    const control = this.loginForm.get(controlName);
+    return !!control && control.invalid && (control.dirty || control.touched);
+  }
+
+  socialLogin(provider: string): void {
+    this.loginError = '';
+    this.loginSuccess = `${provider} sign-in integration will be enabled soon.`;
+  }
+
   submit(): void {
     this.loginError = '';
+    this.loginSuccess = '';
 
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
@@ -73,7 +87,7 @@ export class LoginComponent {
         if (error.status === 401) {
           this.loginError = 'Invalid email or password.';
         } else {
-          this.loginError = 'Something went wrong. Please try again.';
+          this.loginError = error?.error?.message || 'Something went wrong. Please try again.';
         }
       }
     });

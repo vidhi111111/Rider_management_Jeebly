@@ -24,7 +24,9 @@ class OrderService:
         status: str,
         rider_id: Optional[int],
         order_date: str,
-        sort_by: str
+        sort_by: str,
+        created_from: Optional[str] = "",
+        created_to: Optional[str] = ""
     ) -> Tuple[bool, str, Any, int]:
         try:
             pagination = self.order_repo.filter_and_paginate(
@@ -32,6 +34,8 @@ class OrderService:
                 status=status,
                 rider_id=rider_id,
                 order_date=order_date,
+                created_from=created_from,
+                created_to=created_to,
                 sort_by=sort_by,
                 page=page,
                 page_size=page_size
@@ -52,6 +56,83 @@ class OrderService:
             self.order_repo.rollback()
             current_app.logger.exception("Unable to retrieve orders.")
             return False, "Unable to retrieve orders.", None, 500
+
+    def export_orders(
+        self,
+        export_format: str = "csv",
+        search: str = "",
+        status: str = "",
+        rider_id: Optional[int] = None,
+        order_date: str = "",
+        created_from: str = "",
+        created_to: str = "",
+        sort_by: str = "newest"
+    ) -> Tuple[bool, str, Any, str, str, int]:
+        from ...common.export_utils import generate_csv_data, generate_excel_data
+        try:
+            orders = self.order_repo.get_all_matching(
+                search=search,
+                status=status,
+                rider_id=rider_id,
+                order_date=order_date,
+                created_from=created_from,
+                created_to=created_to,
+                sort_by=sort_by
+            )
+            headers = [
+                "Order ID",
+                "Customer Name",
+                "Customer Mobile",
+                "Pickup Location",
+                "Delivery Destination",
+                "Order Amount",
+                "Currency",
+                "Order Status",
+                "Order Created Date",
+                "Assigned Rider ID",
+                "Assigned Rider Name",
+                "Rider Contact Mobile",
+                "Rider Email",
+                "Rider Vehicle",
+                "Rider Status",
+                "Rider Availability"
+            ]
+            rows = []
+            for o in orders:
+                rider = o.rider
+                created_str = o.created_at.strftime("%Y-%m-%d %H:%M:%S") if o.created_at else ""
+                rows.append([
+                    f"ORD-JB{o.id}",
+                    o.customer_name or "",
+                    o.mobile or "",
+                    o.pickup or "",
+                    o.delivery or "",
+                    float(o.amount) if o.amount is not None else 0.0,
+                    o.currency or "AED",
+                    (o.status or "").replace("_", " ").title(),
+                    created_str,
+                    f"RIDER-{rider.id}" if rider else "N/A",
+                    rider.name if rider else "Unassigned",
+                    rider.mobile if rider and rider.mobile else "N/A",
+                    rider.email if rider and rider.email else "N/A",
+                    rider.vehicle if rider and rider.vehicle else "N/A",
+                    rider.status.title() if rider and rider.status else "N/A",
+                    rider.availability.title() if rider and rider.availability else "N/A"
+                ])
+
+            if export_format.lower() == "xlsx":
+                data = generate_excel_data("Orders Report", headers, rows)
+                mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                filename = "Jeebly_Order_Report.xlsx"
+            else:
+                data = generate_csv_data(headers, rows)
+                mimetype = "text/csv; charset=utf-8"
+                filename = "Jeebly_Order_Report.csv"
+
+            return True, "Report generated successfully.", data, mimetype, filename, 200
+        except Exception:
+            current_app.logger.exception("Error exporting orders.")
+            return False, "Failed to generate orders report.", None, "", "", 500
 
     def get_order_by_id(self, order_id: int) -> Tuple[bool, str, Any, int]:
         order = self.order_repo.get_by_id(order_id)
@@ -114,6 +195,9 @@ class OrderService:
             current_status = str(order.status or "").strip().lower()
             if current_status in TERMINAL_STATUSES:
                 return False, "Delivered or cancelled orders cannot be changed.", None, 409
+
+            if clean_status == "cancelled" and order.rider_id is not None:
+                return False, "An order cannot be cancelled once a rider has been assigned.", None, 400
 
             allowed = ALLOWED_STATUS_TRANSITIONS.get(current_status, set())
             if clean_status not in allowed:

@@ -16,8 +16,8 @@ class RegisterSchema(Schema):
         }
     )
     mobile = fields.String(
-        required=True,
-        error_messages={"required": "Mobile number is req."}
+        required=False,
+        allow_none=True
     )
     password = fields.String(
         required=True,
@@ -44,9 +44,11 @@ class RegisterSchema(Schema):
 
     @validates("mobile")
     def validate_mobile(self, value, **kwargs):
+        if value is None:
+            return
         stripped = str(value or "").strip()
         if not stripped:
-            raise ValidationError("Mobile number is req.")
+            return
         if not re.fullmatch(r"[0-9]{10}", stripped):
             raise ValidationError("Mobile number must contain exactly 10 digits.")
 

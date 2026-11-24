@@ -14,6 +14,8 @@ class OrderController:
         status = request.args.get("status", "").strip().lower()
         rider_id = request.args.get("rider_id", type=int)
         order_date = request.args.get("order_date", "").strip()
+        created_from = request.args.get("created_from", "").strip()
+        created_to = request.args.get("created_to", "").strip()
         sort_by = request.args.get("sortBy", "newest").strip().lower()
 
         success, message, data, status_code = self.order_service.get_paginated_orders(
@@ -23,13 +25,47 @@ class OrderController:
             status=status,
             rider_id=rider_id,
             order_date=order_date,
-            sort_by=sort_by
+            sort_by=sort_by,
+            created_from=created_from,
+            created_to=created_to
         )
 
         if not success:
             return error_response(message, status_code)
 
         return success_response(message, data, status_code)
+
+    def export(self):
+        from flask import Response
+        export_format = request.args.get("format", "csv").strip().lower()
+        search = request.args.get("search", "").strip()
+        status = request.args.get("status", "").strip().lower()
+        rider_id = request.args.get("rider_id", type=int)
+        order_date = request.args.get("order_date", "").strip()
+        created_from = request.args.get("created_from", "").strip()
+        created_to = request.args.get("created_to", "").strip()
+        sort_by = request.args.get("sortBy", "newest").strip().lower()
+
+        success, message, file_data, mimetype, filename, status_code = self.order_service.export_orders(
+            export_format=export_format,
+            search=search,
+            status=status,
+            rider_id=rider_id,
+            order_date=order_date,
+            created_from=created_from,
+            created_to=created_to,
+            sort_by=sort_by
+        )
+        if not success:
+            return error_response(message, status_code)
+
+        return Response(
+            file_data,
+            mimetype=mimetype,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
 
     def get_order(self, order_id: int):
         success, message, data, status_code = self.order_service.get_order_by_id(order_id)

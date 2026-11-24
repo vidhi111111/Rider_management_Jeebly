@@ -1,76 +1,373 @@
-<div class="login-page">
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-md-6 col-lg-5">
-        <div class="card login-card shadow-sm border-0">
-          <div class="card-body p-4 p-md-5">
-            <div class="text-center mb-4">
-              <h2 class="mt-3 mb-1">Welcome Back</h2>
-              <p class="text-muted">Login to your account</p>
-            </div>
-            <form [formGroup]="loginForm" (ngSubmit)="submit()" novalidate>
-              <div class="mb-3">
-                <label for="email" class="form-label">Email</label>
-                <input
-                  id="email"
-                  type="email"
-                  class="form-control"
-                  formControlName="email"
-                  placeholder="Enter your email"
-                  [class.is-invalid]="email?.invalid && email?.touched"
-                />
-                <div class="text-danger small mt-1" *ngIf="email?.invalid && email?.touched">
-                  <span *ngIf="email?.errors?.['required']">Email is required.</span>
-                  <span *ngIf="email?.errors?.['email']">Please enter a valid email address.</span>
-                </div>
-              </div>
-              <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
-                <div class="password-wrapper">
-                  <input
-                    id="password"
-                    [type]="showPassword ? 'text' : 'password'"
-                    class="form-control"
-                    formControlName="password"
-                    placeholder="Enter your password"
-                    [class.is-invalid]="password?.invalid && password?.touched"
-                  />
-                  <button
-                    type="button"
-                    class="password-toggle"
-                    (click)="showPassword = !showPassword"
-                    [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
-                  >
-                    {{ showPassword ? 'Hide' : 'Show' }}
-                  </button>
-                </div>
-                <div class="text-danger small mt-1" *ngIf="password?.invalid && password?.touched">
-                  <span *ngIf="password?.errors?.['required']">Password is required.</span>
-                </div>
-              </div>
-              <div class="form-check mb-4">
-                <input
-                  id="rememberMe"
-                  type="checkbox"
-                  class="form-check-input"
-                  formControlName="rememberMe"
-                />
-                <label for="rememberMe" class="form-check-label">Remember Me</label>
-              </div>
-              <div class="login-error" *ngIf="loginError">
-                {{ loginError }}
-              </div>
-              <button type="submit" class="btn btn-primary w-100" [disabled]="isLoading">
-                {{ isLoading ? 'Logging in...' : 'Login' }}
-              </button>
-              <div class="register-link text-center mt-3">
-                Don't have an account?
-                <a routerLink="/register">Register</a>
-              </div>
-            </form>
+<div class="fullscreen-auth-container">
+
+  <!-- LEFT BRAND PANEL (FULL HEIGHT 50%) -->
+  <div class="brand-panel">
+    <!-- Background Waves & Ambience -->
+    <div class="brand-bg-shapes" aria-hidden="true">
+      <svg class="wave-bg" viewBox="0 0 600 900" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        <path d="M-60 900V400C40 450 110 520 200 490C310 460 360 350 480 390C580 420 620 510 680 540V900H-60Z" fill="url(#loginWaveGrad1)" opacity="0.6"/>
+        <path d="M0 900V580C90 540 190 620 290 590C400 560 460 480 580 530C630 550 660 580 700 600V900H0Z" fill="url(#loginWaveGrad2)" opacity="0.8"/>
+        <path d="M-80 240C50 170 170 270 320 210C470 140 550 40 680 0V340C560 330 490 420 350 380C210 340 100 420 -80 360V240Z" fill="url(#loginWaveGrad3)" opacity="0.25"/>
+        <defs>
+          <linearGradient id="loginWaveGrad1" x1="0" y1="400" x2="600" y2="900" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#12365a"/>
+            <stop offset="1" stop-color="#0a2139"/>
+          </linearGradient>
+          <linearGradient id="loginWaveGrad2" x1="0" y1="500" x2="600" y2="900" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#18426d"/>
+            <stop offset="1" stop-color="#0d2844"/>
+          </linearGradient>
+          <linearGradient id="loginWaveGrad3" x1="0" y1="0" x2="600" y2="400" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#245585"/>
+            <stop offset="1" stop-color="#143c64"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+
+    <div class="brand-inner-content">
+      <div class="brand-top-section">
+        <!-- Official Logo Section -->
+        <div class="brand-header">
+          <div class="official-logo-pill">
+            <img src="assets/images/jeebly-official-logo.png" alt="Jeebly - Joy in motion" class="official-logo-image">
           </div>
         </div>
+
+        <!-- Hero Headline -->
+        <div class="brand-hero-section">
+          <h1 class="brand-heading">
+            {{ langService.t('loginBrandTitle1') }}<br>
+            <span class="pink-accent">{{ langService.t('jeebly') }}</span> {{ langService.t('loginBrandTitle2') }}
+          </h1>
+        </div>
+      </div>
+
+      <!-- Central Character & Folder Illustration -->
+      <div class="brand-illustration-wrapper">
+        <svg class="hero-illustration" viewBox="0 0 450 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Ambient Shadows / Glows -->
+          <ellipse cx="230" cy="275" rx="180" ry="16" fill="#041226" opacity="0.45"/>
+          <ellipse cx="280" cy="273" rx="110" ry="14" fill="#041021" opacity="0.6"/>
+          <ellipse cx="140" cy="274" rx="35" ry="8" fill="#05142a" opacity="0.5"/>
+
+          <!-- Floating Cog (Top-Left) -->
+          <g class="float-gear-1" transform="translate(95, 75)">
+            <circle cx="15" cy="15" r="10" stroke="#FFFFFF" stroke-width="2.5" stroke-dasharray="4 2.5" fill="none" opacity="0.85"/>
+            <circle cx="15" cy="15" r="4.5" stroke="#FFFFFF" stroke-width="2" fill="none" opacity="0.85"/>
+          </g>
+
+          <!-- Floating Cog (Smaller, Left) -->
+          <g class="float-gear-2" transform="translate(68, 105)">
+            <circle cx="10" cy="10" r="7" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="3 2" fill="none" opacity="0.6"/>
+            <circle cx="10" cy="10" r="3" stroke="#FFFFFF" stroke-width="1.5" fill="none" opacity="0.6"/>
+          </g>
+
+          <!-- Floating Cog (Bottom-Right) -->
+          <g class="float-gear-3" transform="translate(400, 215)">
+            <circle cx="12" cy="12" r="8" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="3 2" fill="none" opacity="0.75"/>
+            <circle cx="12" cy="12" r="3.5" stroke="#FFFFFF" stroke-width="1.8" fill="none" opacity="0.75"/>
+          </g>
+
+          <!-- Floating Red Bike Logo Badge -->
+          <g class="alert-bubble" transform="translate(190, 76)">
+            <!-- Red Circle Badge with Shadow -->
+            <circle cx="16" cy="16" r="16" fill="#DC1D47"/>
+            <circle cx="16" cy="16" r="14" fill="#E82450" opacity="0.4"/>
+            <!-- Delivery Bike Silhouette (White) -->
+            <!-- Rear Wheel -->
+            <circle cx="9" cy="20.5" r="3.2" stroke="#FFFFFF" stroke-width="1.3" fill="none"/>
+            <circle cx="9" cy="20.5" r="1" fill="#FFFFFF"/>
+            <!-- Front Wheel -->
+            <circle cx="23" cy="20.5" r="3.2" stroke="#FFFFFF" stroke-width="1.3" fill="none"/>
+            <circle cx="23" cy="20.5" r="1" fill="#FFFFFF"/>
+            <!-- Bike Frame -->
+            <path d="M9 20.5L13.5 15.5H19L23 20.5" stroke="#FFFFFF" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M13.5 15.5L16 20.5" stroke="#FFFFFF" stroke-width="1.3" stroke-linecap="round"/>
+            <!-- Steering / Handlebar -->
+            <path d="M21 12.5L18.8 16.5" stroke="#FFFFFF" stroke-width="1.4" stroke-linecap="round"/>
+            <path d="M19 12.5H23" stroke="#FFFFFF" stroke-width="1.4" stroke-linecap="round"/>
+            <!-- Delivery Box on Rear -->
+            <rect x="6.5" y="11.5" width="6" height="5" rx="1" fill="#FFFFFF"/>
+            <!-- Saddle / Seat -->
+            <path d="M13.5 14.5H16.5" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+          </g>
+
+          <!-- Potted Plant in Background -->
+          <g class="plant-group" transform="translate(18, 185)" opacity="0.85">
+            <polygon points="25,98 50,98 55,62 20,62" fill="#E8EDF5"/>
+            <ellipse cx="37.5" cy="62" rx="18" ry="4" fill="#D2DBE8"/>
+            <path d="M37 62C30 40 10 35 5 18C18 20 32 35 37 62Z" fill="#10B981"/>
+            <path d="M37 62C42 38 60 25 72 15C65 32 50 48 37 62Z" fill="#059669"/>
+            <path d="M38 62C38 35 45 10 35 -5C46 8 46 35 38 62Z" fill="#34D399"/>
+            <path d="M37 62C28 48 18 42 12 40C22 45 32 52 37 62Z" fill="#047857"/>
+          </g>
+
+          <!-- Red Delivery Bike (Jeebly Express Scooter) -->
+          <g class="delivery-bike-group" transform="translate(48, 195)">
+            <!-- Bike Ground Shadow -->
+            <ellipse cx="48" cy="78" rx="42" ry="6" fill="#081e35" opacity="0.45"/>
+
+            <!-- Rear Wheel -->
+            <circle cx="18" cy="62" r="15" fill="#1E293B"/>
+            <circle cx="18" cy="62" r="10.5" fill="#475569"/>
+            <circle cx="18" cy="62" r="6" fill="#E2E8F0"/>
+            <circle cx="18" cy="62" r="2.5" fill="#0F172A"/>
+
+            <!-- Front Wheel -->
+            <circle cx="78" cy="62" r="15" fill="#1E293B"/>
+            <circle cx="78" cy="62" r="10.5" fill="#475569"/>
+            <circle cx="78" cy="62" r="6" fill="#E2E8F0"/>
+            <circle cx="78" cy="62" r="2.5" fill="#0F172A"/>
+
+            <!-- Exhaust / Engine Base -->
+            <rect x="18" y="60" width="22" height="6" rx="3" fill="#64748B"/>
+            <path d="M12 65L32 65" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+
+            <!-- Red Main Chassis & Fairing (Jeebly Red #DC1D47) -->
+            <path d="M26 62L38 48H56L68 35H73L70 50L60 62H42Z" fill="#DC1D47"/>
+            <path d="M38 48L46 36H58L54 48H38Z" fill="#B81438"/>
+
+            <!-- Front Fork & Fender (Jeebly Red) -->
+            <path d="M72 35L77 58" stroke="#DC1D47" stroke-width="4.5" stroke-linecap="round"/>
+            <path d="M68 54C72 49 84 49 88 54" stroke="#DC1D47" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+            <!-- Chrome Handlebar & Headlight -->
+            <path d="M69 32L74 24H68" stroke="#E2E8F0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <polygon points="76,34 82,32 82,38 76,36" fill="#FEF08A"/>
+
+            <!-- Cushioned Black Seat -->
+            <path d="M32 44C36 40 48 40 54 44L52 48H34L32 44Z" fill="#1E293B"/>
+
+            <!-- Jeebly Red Delivery Box on Rear Rack -->
+            <rect x="8" y="24" width="24" height="22" rx="3" fill="#DC1D47"/>
+            <rect x="8" y="24" width="24" height="6" rx="2" fill="#B81438"/>
+            <!-- Box Latch / White Logo Circle -->
+            <circle cx="20" cy="36" r="4.5" fill="#FFFFFF"/>
+            <!-- Mini "J" Wings Logo inside box circle -->
+            <path d="M19 33.5V36.5C19 37.5 18.2 38 17.5 37.5" stroke="#DC1D47" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+            <rect x="21" y="34" width="1.5" height="1.5" rx="0.5" fill="#DC1D47"/>
+          </g>
+
+          <!-- Businessman Character (Waving / Greeting) -->
+          <g class="character-group" transform="translate(140, 115)">
+            <!-- Legs & Trousers -->
+            <rect x="22" y="95" width="11" height="60" rx="4" fill="#DCEBFB"/>
+            <rect x="36" y="95" width="11" height="60" rx="4" fill="#CFE3F8"/>
+            <!-- Shoes -->
+            <path d="M18 152C22 150 33 151 33 158H16C16 155 17 153 18 152Z" fill="#1B4472"/>
+            <path d="M36 152C40 150 51 151 51 158H34C34 155 35 153 36 152Z" fill="#1B4472"/>
+
+            <!-- Torso / Shirt -->
+            <path d="M18 45C19 38 27 35 35 35C43 35 51 38 52 45L49 98H21L18 45Z" fill="#2575D0"/>
+            <polygon points="35,46 27,37 35,35 43,37" fill="#F8FAFC"/>
+            <polygon points="33,46 37,46 38,78 35,85 32,78" fill="#FFD152"/>
+
+            <!-- Left Arm (Waving Greeting) -->
+            <path d="M49 42C58 38 64 24 62 10" stroke="#2575D0" stroke-width="8" stroke-linecap="round" fill="none"/>
+            <circle cx="62" cy="7" r="5" fill="#FDE3C8"/>
+
+            <!-- Right Arm -->
+            <path d="M21 42C17 55 16 68 15 80" stroke="#2575D0" stroke-width="8" stroke-linecap="round" fill="none"/>
+            <circle cx="15" cy="84" r="4.5" fill="#FDE3C8"/>
+
+            <!-- Neck & Head -->
+            <rect x="31" y="28" width="8" height="10" rx="3" fill="#FDE3C8"/>
+            <circle cx="35" cy="22" r="13" fill="#FDE3C8"/>
+            <path d="M22 20C22 10 27 6 38 6C47 6 49 11 48 16C45 13 42 12 37 13C32 14 27 16 22 20Z" fill="#633E24"/>
+            <circle cx="41" cy="21" r="1.6" fill="#1E293B"/>
+            <!-- Friendly Smile -->
+            <path d="M36 27C38 29 42 29 44 27" stroke="#633E24" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          </g>
+
+          <!-- Yellow Folder Character (Happy Smile) -->
+          <g class="folder-group" transform="translate(205, 120)">
+            <!-- Protruding Document With Chart -->
+            <g transform="translate(58, -35)">
+              <path d="M0 0H42L56 14V80H0V0Z" fill="#FFFFFF"/>
+              <polygon points="42,0 42,14 56,14" fill="#DCE5F2"/>
+              <!-- Mini Bar Chart On Document -->
+              <rect x="10" y="44" width="6" height="18" rx="2" fill="#E51949"/>
+              <rect x="20" y="34" width="6" height="28" rx="2" fill="#3B82F6"/>
+              <rect x="30" y="24" width="6" height="38" rx="2" fill="#10B981"/>
+            </g>
+
+            <!-- Paper 2 -->
+            <g transform="translate(142, 5)">
+              <path d="M0 0H48V60L36 54L24 60L12 54L0 60V0Z" fill="#F8FAFC"/>
+              <path d="M8 40C18 35 25 15 40 20" stroke="#94A3B8" stroke-width="1.8" stroke-dasharray="3 3" fill="none"/>
+              <polygon points="40,20 33,18 36,24" fill="#94A3B8"/>
+            </g>
+
+            <!-- Main Front Folder Body -->
+            <path d="M8 20C8 12 14 6 22 6H72C80 6 85 10 90 16L98 24H182C190 24 196 30 196 38V145H8V20Z" fill="#F5C842"/>
+            <path d="M4 35C4 28 10 22 17 22H80C86 22 92 25 96 30L102 36H185C193 36 199 42 199 50V145C199 150 195 154 190 154H13C6 154 4 148 4 143V35Z" fill="#FEDB58"/>
+
+            <!-- Expressive Eyes -->
+            <ellipse cx="64" cy="98" rx="8" ry="8.5" fill="#0A1828"/>
+            <circle cx="62" cy="95" r="2.8" fill="#FFFFFF"/>
+            <ellipse cx="112" cy="98" rx="8" ry="8.5" fill="#0A1828"/>
+            <circle cx="110" cy="95" r="2.8" fill="#FFFFFF"/>
+
+            <!-- Happy Curved Smile -->
+            <path d="M78 114C82 124 94 124 98 114" stroke="#0A1828" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+          </g>
+        </svg>
       </div>
     </div>
   </div>
+
+  <!-- RIGHT FORM PANEL (FULL HEIGHT 50%) -->
+  <div class="form-panel">
+    <!-- Top Switch Bar with Language Selector -->
+    <div class="top-switch-bar">
+      <!-- Language Switcher Button in Jeebly Colors -->
+      <button
+        type="button"
+        class="jeebly-lang-btn"
+        (click)="langService.toggleLanguage()"
+        [attr.aria-label]="langService.isArabic ? 'Change to English' : 'Change to Arabic'"
+      >
+        <svg class="jeebly-lang-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+        <span class="jeebly-lang-text">
+          {{ langService.isArabic ? 'Change to English' : 'Change to Arabic' }}
+        </span>
+      </button>
+
+      <div class="account-switch-wrap">
+        <span class="switch-prompt">{{ langService.t('dontHaveAccount') }}</span>
+        <a routerLink="/register" class="switch-action">
+          {{ langService.t('signUpLink') }}
+          <span class="arrow-sym">&rarr;</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Centered Form Container -->
+    <div class="form-inner-content">
+      <div class="form-header-block">
+        <h2 class="form-main-title">{{ langService.t('welcomeBack') }}</h2>
+      </div>
+
+      <!-- Alerts -->
+      <div *ngIf="loginSuccess" class="alert-banner alert-success" role="alert">
+        <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <span>{{ loginSuccess }}</span>
+      </div>
+
+      <div *ngIf="loginError" class="alert-banner alert-danger" role="alert">
+        <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+        <span>{{ loginError }}</span>
+      </div>
+
+      <!-- Login Form -->
+      <form [formGroup]="loginForm" (ngSubmit)="submit()" novalidate class="registration-form">
+
+        <!-- Email Address Field -->
+        <div class="custom-field-group">
+          <div class="custom-input-box" [class.has-error]="isInvalid('email')">
+            <span class="field-leading-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+            </span>
+            <input
+              id="email"
+              type="email"
+              class="custom-text-input"
+              formControlName="email"
+              [placeholder]="langService.t('emailPlaceholder')"
+              autocomplete="email"
+            />
+          </div>
+          <div class="input-error-msg" *ngIf="email?.hasError('required') && (email?.touched || email?.dirty)">
+            {{ langService.t('emailRequired') }}
+          </div>
+          <div class="input-error-msg" *ngIf="email?.hasError('email') && (email?.touched || email?.dirty)">
+            {{ langService.t('emailInvalid') }}
+          </div>
+        </div>
+
+        <!-- Password Field -->
+        <div class="custom-field-group">
+          <div class="custom-input-box" [class.has-error]="isInvalid('password')">
+            <span class="field-leading-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </span>
+            <input
+              id="password"
+              [type]="showPassword ? 'text' : 'password'"
+              class="custom-text-input"
+              formControlName="password"
+              [placeholder]="langService.t('passwordPlaceholder')"
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="field-trailing-btn"
+              (click)="showPassword = !showPassword"
+              [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+              tabindex="-1"
+            >
+              <svg *ngIf="!showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg *ngIf="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+          <div class="input-error-msg" *ngIf="password?.hasError('required') && (password?.touched || password?.dirty)">
+            {{ langService.t('passwordRequired') }}
+          </div>
+        </div>
+
+        <!-- Remember Me Row -->
+        <div class="form-options-row">
+          <label class="remember-label" for="rememberMe">
+            <input
+              id="rememberMe"
+              type="checkbox"
+              class="remember-checkbox"
+              formControlName="rememberMe"
+            />
+            <span class="remember-text">{{ langService.t('rememberMe') }}</span>
+          </label>
+        </div>
+
+        <!-- Submit Button -->
+        <button
+          type="submit"
+          class="submit-action-btn"
+          [disabled]="isLoading"
+        >
+          <span *ngIf="isLoading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+          <svg *ngIf="!isLoading" class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10 17 15 12 10 7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          <span class="btn-text-content">{{ isLoading ? langService.t('signingInBtn') : langService.t('loginBtn') }}</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Empty Spacer for Bottom Balance -->
+    <div class="bottom-spacer"></div>
+  </div>
+
 </div>

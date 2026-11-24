@@ -1,151 +1,347 @@
 <div class="dashboard-page">
-  <div *ngIf="errorMessage" class="dashboard-error">
-    {{ errorMessage }}
+  <div *ngIf="errorMessage" class="dashboard-error" role="alert">
+    <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span>{{ errorMessage }}</span>
   </div>
+
+  <!-- Dashboard Page Header -->
   <div class="dashboard-header">
-    <div>
-      <h1>Analytic Overview</h1>
-      <p>Dashboard overview and delivery summary</p>
+    <div class="header-titles">
+      <h1>{{ langService.t('Analytic Overview') }}</h1>
+      <p>{{ langService.t('Real-time delivery performance and fleet operations summary') }}</p>
+    </div>
+    <div class="header-badge">
+      <span class="live-dot"></span>
+      <span>{{ langService.t('Live Fleet') }}</span>
     </div>
   </div>
+
+  <!-- Top 4 Summary Cards -->
   <section class="summary-cards">
-    <div class="summary-card blue-card">
-      <div>
-        <span class="summary-value">{{ totalOrders }}</span>
-        <span class="summary-label">Total Orders</span>
+    <!-- Total Orders -->
+    <div class="summary-card blue-card" [attr.data-tooltip]="totalOrders + ' ' + langService.t('Total Orders Recorded')">
+      <div class="card-left">
+        <div class="card-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <div class="card-stat-text">
+          <span class="summary-value">{{ totalOrders }}</span>
+          <span class="summary-label">{{ langService.t('Total Orders') }}</span>
+        </div>
       </div>
-      <div class="summary-circle">{{ totalOrdersPercentage }}%</div>
+      <div class="summary-circle" [title]="langService.t('Volume Share')">
+        <span>{{ totalOrdersPercentage }}%</span>
+      </div>
     </div>
-    <div class="summary-card red-card">
-      <div>
-        <span class="summary-value">{{ deliveredOrders }}</span>
-        <span class="summary-label">Delivered Orders</span>
+
+    <!-- Delivered Orders -->
+    <div class="summary-card red-card" [attr.data-tooltip]="deliveredOrders + ' ' + langService.t('Orders Successfully Delivered')">
+      <div class="card-left">
+        <div class="card-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <div class="card-stat-text">
+          <span class="summary-value">{{ deliveredOrders }}</span>
+          <span class="summary-label">{{ langService.t('Delivered Orders') }}</span>
+        </div>
       </div>
-      <div class="summary-circle">{{ deliveredPercentage }}%</div>
+      <div class="summary-circle" [title]="langService.t('Delivery Success Rate')">
+        <span>{{ deliveredPercentage }}%</span>
+      </div>
     </div>
-    <div class="summary-card blue-card">
-      <div>
-        <span class="summary-value">{{ cancelledOrders }}</span>
-        <span class="summary-label">Cancelled Orders</span>
+
+    <!-- In Progress Orders -->
+    <div class="summary-card red-card" [attr.data-tooltip]="inProgressOrders + ' ' + langService.t('Orders In Active Transit')">
+      <div class="card-left">
+        <div class="card-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <div class="card-stat-text">
+          <span class="summary-value">{{ inProgressOrders }}</span>
+          <span class="summary-label">{{ langService.t('In Progress Orders') }}</span>
+        </div>
       </div>
-      <div class="summary-circle">{{ cancelledPercentage }}%</div>
+      <div class="summary-circle" [title]="langService.t('Active Transit Ratio')">
+        <span>{{ inProgressPercentage }}%</span>
+      </div>
     </div>
-    <div class="summary-card red-card">
-      <div>
-        <span class="summary-value">{{ inProgressOrders }}</span>
-        <span class="summary-label">In Progress Orders</span>
+
+    <!-- Cancelled Orders -->
+    <div class="summary-card blue-card" [attr.data-tooltip]="cancelledOrders + ' ' + langService.t('Cancelled Orders')">
+      <div class="card-left">
+        <div class="card-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>
+        </div>
+        <div class="card-stat-text">
+          <span class="summary-value">{{ cancelledOrders }}</span>
+          <span class="summary-label">{{ langService.t('Cancelled Orders') }}</span>
+        </div>
       </div>
-      <div class="summary-circle">{{ inProgressPercentage }}%</div>
+      <div class="summary-circle" [title]="langService.t('Cancellation Rate')">
+        <span>{{ cancelledPercentage }}%</span>
+      </div>
     </div>
   </section>
+
+  <!-- Middle Grid: Rider Summary & Order Status Chart -->
   <section class="dashboard-grid">
+    <!-- Panel 1: Rider Summary with Beautiful SVG Icons -->
     <div class="panel">
       <div class="panel-header">
-        <h2>Rider Summary</h2>
+        <div class="panel-title-wrap">
+          <div class="panel-icon-badge blue-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="18.5" cy="17.5" r="3.5"></circle>
+              <circle cx="5.5" cy="17.5" r="3.5"></circle>
+              <circle cx="15" cy="5" r="1"></circle>
+              <path d="M12 17.5V14l-3-3 4-3 2 3h2"></path>
+            </svg>
+          </div>
+          <div>
+            <h2>{{ langService.t('Rider Summary') }}</h2>
+            <p class="panel-subtitle">{{ langService.t('Current status of delivery fleet personnel') }}</p>
+          </div>
+        </div>
       </div>
+
       <div class="rider-summary-grid">
-        <div class="rider-stat">
-          <div class="stat-icon available-icon">✓</div>
-          <div>
+        <!-- Available -->
+        <div class="rider-stat available-stat" [attr.data-tooltip]="availableRiders + ' ' + langService.t('riders ready for assignment')">
+          <div class="stat-icon available-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <div class="stat-info">
             <span class="stat-value">{{ availableRiders }}</span>
-            <span class="stat-label">Available</span>
+            <span class="stat-label">{{ langService.t('Available') }}</span>
           </div>
         </div>
-        <div class="rider-stat">
-          <div class="stat-icon order-icon">●</div>
-          <div>
+
+        <!-- On Order -->
+        <div class="rider-stat order-stat" [attr.data-tooltip]="onOrderRiders + ' ' + langService.t('riders currently delivering')">
+          <div class="stat-icon order-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
+          </div>
+          <div class="stat-info">
             <span class="stat-value">{{ onOrderRiders }}</span>
-            <span class="stat-label">On Order</span>
+            <span class="stat-label">{{ langService.t('On Order') }}</span>
           </div>
         </div>
-        <div class="rider-stat">
-          <div class="stat-icon break-icon">−</div>
-          <div>
+
+        <!-- Scheduled Break -->
+        <div class="rider-stat break-stat" [attr.data-tooltip]="scheduledBreakRiders + ' ' + langService.t('riders on official break')">
+          <div class="stat-icon break-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+              <line x1="6" y1="1" x2="6" y2="4"></line>
+              <line x1="10" y1="1" x2="10" y2="4"></line>
+              <line x1="14" y1="1" x2="14" y2="4"></line>
+            </svg>
+          </div>
+          <div class="stat-info">
             <span class="stat-value">{{ scheduledBreakRiders }}</span>
-            <span class="stat-label">Scheduled Break</span>
+            <span class="stat-label">{{ langService.t('Scheduled Break') }}</span>
           </div>
         </div>
-        <div class="rider-stat">
-          <div class="stat-icon absent-icon">×</div>
-          <div>
+
+        <!-- On Leave / Absent -->
+        <div class="rider-stat absent-stat" [attr.data-tooltip]="absentRiders + ' ' + langService.t('riders on leave or off-duty')">
+          <div class="stat-icon absent-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+          <div class="stat-info">
             <span class="stat-value">{{ absentRiders }}</span>
-            <span class="stat-label">On Leave / Absent</span>
+            <span class="stat-label">{{ langService.t('On Leave / Absent') }}</span>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Panel 2: Order Status with Hover Details -->
     <div class="panel">
       <div class="panel-header">
-        <h2>Order Status</h2>
+        <div class="panel-title-wrap">
+          <div class="panel-icon-badge red-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+          </div>
+          <div>
+            <h2>{{ langService.t('Order Status') }}</h2>
+            <p class="panel-subtitle">{{ langService.t('Comparative volume distribution') }}</p>
+          </div>
+        </div>
       </div>
-      <div class="status-chart">
-        <div class="chart-bar delivered-bar" [style.height.%]="deliveredPercentage || 5">
-          <span>{{ deliveredOrders }}</span>
+
+      <div class="status-chart-container">
+        <div class="status-chart">
+          <!-- Delivered Bar -->
+          <div class="chart-column">
+            <div
+              class="chart-bar delivered-bar"
+              [style.height.%]="getBarHeight(deliveredPercentage)"
+              [title]="langService.t('Delivered') + ': ' + deliveredOrders + ' (' + deliveredPercentage + '%)'"
+              [attr.data-tooltip]="langService.t('Delivered') + ': ' + deliveredOrders + ' (' + deliveredPercentage + '%)'">
+              <span class="bar-number">{{ deliveredOrders }}</span>
+            </div>
+          </div>
+
+          <!-- In Progress Bar -->
+          <div class="chart-column">
+            <div
+              class="chart-bar progress-bar"
+              [style.height.%]="getBarHeight(inProgressPercentage)"
+              [title]="langService.t('In Progress') + ': ' + inProgressOrders + ' (' + inProgressPercentage + '%)'"
+              [attr.data-tooltip]="langService.t('In Progress') + ': ' + inProgressOrders + ' (' + inProgressPercentage + '%)'">
+              <span class="bar-number">{{ inProgressOrders }}</span>
+            </div>
+          </div>
+
+          <!-- Cancelled Bar -->
+          <div class="chart-column">
+            <div
+              class="chart-bar cancelled-bar"
+              [style.height.%]="getBarHeight(cancelledPercentage)"
+              [title]="langService.t('Cancelled') + ': ' + cancelledOrders + ' (' + cancelledPercentage + '%)'"
+              [attr.data-tooltip]="langService.t('Cancelled') + ': ' + cancelledOrders + ' (' + cancelledPercentage + '%)'">
+              <span class="bar-number">{{ cancelledOrders }}</span>
+            </div>
+          </div>
         </div>
-        <div class="chart-bar progress-bar" [style.height.%]="inProgressPercentage || 5">
-          <span>{{ inProgressOrders }}</span>
+
+        <div class="chart-labels">
+          <div class="chart-label-item">
+            <span class="label-dot dot-delivered"></span>
+            <span>{{ langService.t('Delivered') }}</span>
+            <small class="label-percent">({{ deliveredPercentage }}%)</small>
+          </div>
+          <div class="chart-label-item">
+            <span class="label-dot dot-progress"></span>
+            <span>{{ langService.t('In Progress') }}</span>
+            <small class="label-percent">({{ inProgressPercentage }}%)</small>
+          </div>
+          <div class="chart-label-item">
+            <span class="label-dot dot-cancelled"></span>
+            <span>{{ langService.t('Cancelled') }}</span>
+            <small class="label-percent">({{ cancelledPercentage }}%)</small>
+          </div>
         </div>
-        <div class="chart-bar cancelled-bar" [style.height.%]="cancelledPercentage || 5">
-          <span>{{ cancelledOrders }}</span>
-        </div>
-      </div>
-      <div class="chart-labels">
-        <span>Delivered</span>
-        <span>In Progress</span>
-        <span>Cancelled</span>
       </div>
     </div>
   </section>
+
+  <!-- Lower Grid: Recent Orders & Available Riders -->
   <section class="dashboard-grid lower-grid">
     <div class="panel">
       <div class="panel-header">
-        <h2>Recent Orders</h2>
+        <div class="panel-title-wrap">
+          <h2>{{ langService.t('Recent Orders') }}</h2>
+        </div>
       </div>
+
       <div *ngIf="recentOrders.length > 0" class="table-wrapper">
-        <table>
+        <table class="modern-dashboard-table">
           <thead>
             <tr>
-              <th>Order ID</th>
-              <th>Status</th>
-              <th>Customer</th>
+              <th>{{ langService.t('Order ID') }}</th>
+              <th>{{ langService.t('Status') }}</th>
+              <th>{{ langService.t('Customer') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let order of recentOrders">
-              <td>{{ order.id }}</td>
-              <td>
-                <span class="status-badge">{{ order.status }}</span>
+              <td class="order-id-cell">
+                <span class="order-id-tag">ORD-{{ order.id }}</span>
               </td>
-              <td>{{ order.customer }}</td>
+              <td>
+                <span class="status-badge" [ngClass]="'status-' + (order.status | lowercase)">
+                  {{ langService.t(order.status) }}
+                </span>
+              </td>
+              <td class="customer-cell">{{ order.customer }}</td>
             </tr>
           </tbody>
         </table>
       </div>
+
       <div *ngIf="recentOrders.length === 0" class="empty-state">
-        No recent orders available.
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <p>{{ langService.t('No recent orders found') }}</p>
       </div>
     </div>
+
+    <!-- Available Riders List -->
     <div class="panel">
       <div class="panel-header">
-        <h2>Available Riders</h2>
+        <div class="panel-title-wrap">
+          <h2>{{ langService.t('Available Riders') }}</h2>
+        </div>
       </div>
+
       <div *ngIf="availableRiderList.length > 0" class="rider-list">
         <div class="rider-row" *ngFor="let rider of availableRiderList">
           <div class="rider-avatar">
-            {{ rider.name.charAt(0) }}
+            {{ rider.name.charAt(0).toUpperCase() }}
           </div>
           <div class="rider-info">
             <span class="rider-name">{{ rider.name }}</span>
-            <span class="rider-status">Available</span>
+            <span class="rider-status-tag">
+              <span class="status-indicator-dot"></span> {{ langService.t('Available for dispatch') }}
+            </span>
           </div>
         </div>
       </div>
+
       <div *ngIf="availableRiderList.length === 0" class="empty-state">
-        No riders available.
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="8" y1="15" x2="16" y2="15"></line>
+          <line x1="9" y1="9" x2="9.01" y2="9"></line>
+          <line x1="15" y1="9" x2="15.01" y2="9"></line>
+        </svg>
+        <p>{{ langService.t('No riders currently available') }}</p>
       </div>
     </div>
   </section>
-  <div *ngIf="isLoading" class="dashboard-message">
-    Loading dashboard...
+
+  <div *ngIf="isLoading" class="dashboard-loading-overlay">
+    <div class="spinner-border text-danger" role="status"></div>
+    <span>{{ langService.t('Loading dashboard updates...') }}</span>
   </div>
 </div>

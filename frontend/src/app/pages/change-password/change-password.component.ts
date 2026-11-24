@@ -10,6 +10,7 @@ import {
 } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ProfileService } from '../../core/services/profile.service';
+import { LanguageService } from '../../core/services/language.service';
 
 function passwordMatchValidator(
   control: AbstractControl
@@ -44,9 +45,12 @@ export class ChangePasswordComponent {
   showNewPassword = false;
   showConfirmPassword = false;
 
+  isPasswordChanged = false;
+
   constructor(
     private fb: FormBuilder,
-    private profileService: ProfileService
+    private profileService: ProfileService,
+    public langService: LanguageService
   ) {
     this.passwordForm = this.fb.group({
       current_password: ['', Validators.required],
@@ -95,6 +99,11 @@ export class ChangePasswordComponent {
       next: (response: any) => {
         this.successMessage =
           response?.message || 'Password changed successfully.';
+
+        this.isPasswordChanged = true;
+        setTimeout(() => {
+          this.isPasswordChanged = false;
+        }, 3000);
 
         this.passwordForm.reset();
         this.changingPassword = false;

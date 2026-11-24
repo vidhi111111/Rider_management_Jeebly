@@ -24,10 +24,22 @@ class OrderCreateSchema(Schema):
         required=True,
         error_messages={"required": "Customer name is required."}
     )
-    mobile = fields.String(allow_none=True, load_default=None)
-    pickup = fields.String(allow_none=True, load_default=None)
-    delivery = fields.String(allow_none=True, load_default=None)
-    amount = fields.Raw(allow_none=True, load_default=None)
+    mobile = fields.String(
+        required=True,
+        error_messages={"required": "Customer mobile number is required."}
+    )
+    pickup = fields.String(
+        required=True,
+        error_messages={"required": "Pickup location is required."}
+    )
+    delivery = fields.String(
+        required=True,
+        error_messages={"required": "Delivery destination is required."}
+    )
+    amount = fields.Raw(
+        required=True,
+        error_messages={"required": "Order amount is required."}
+    )
     currency = fields.String(load_default="AED")
 
     @validates("customer_name")
@@ -40,18 +52,28 @@ class OrderCreateSchema(Schema):
 
     @validates("mobile")
     def validate_mobile(self, value, **kwargs):
-        if value is not None and len(str(value).strip()) > 20:
-            raise ValidationError("Mobile number cannot exceed 20 characters.")
+        stripped = str(value or "").strip()
+        if not stripped:
+            raise ValidationError("Customer mobile number is required.")
+        digits = "".join(filter(str.isdigit, stripped))
+        if len(digits) < 7 or len(stripped) > 20:
+            raise ValidationError("Mobile number must be a valid contact number (10 digits).")
 
     @validates("pickup")
     def validate_pickup(self, value, **kwargs):
-        if value is not None and len(str(value).strip()) > 255:
-            raise ValidationError("Pickup and delivery must not exceed 255 characters.")
+        stripped = str(value or "").strip()
+        if not stripped:
+            raise ValidationError("Pickup location is required.")
+        if len(stripped) > 255:
+            raise ValidationError("Pickup address must not exceed 255 characters.")
 
     @validates("delivery")
     def validate_delivery(self, value, **kwargs):
-        if value is not None and len(str(value).strip()) > 255:
-            raise ValidationError("Pickup and delivery must not exceed 255 characters.")
+        stripped = str(value or "").strip()
+        if not stripped:
+            raise ValidationError("Delivery destination is required.")
+        if len(stripped) > 255:
+            raise ValidationError("Delivery address must not exceed 255 characters.")
 
     @validates("currency")
     def validate_currency(self, value, **kwargs):
@@ -62,15 +84,9 @@ class OrderCreateSchema(Schema):
     @validates_schema(skip_on_field_errors=True)
     def clean_payload(self, data, **kwargs):
         data["customer_name"] = str(data.get("customer_name", "")).strip()
-
-        mobile = data.get("mobile")
-        data["mobile"] = str(mobile).strip() if mobile is not None and str(mobile).strip() else None
-
-        pickup = data.get("pickup")
-        data["pickup"] = str(pickup).strip() if pickup is not None and str(pickup).strip() else None
-
-        delivery = data.get("delivery")
-        data["delivery"] = str(delivery).strip() if delivery is not None and str(delivery).strip() else None
+        data["mobile"] = str(data.get("mobile", "")).strip()
+        data["pickup"] = str(data.get("pickup", "")).strip()
+        data["delivery"] = str(data.get("delivery", "")).strip()
 
         currency = data.get("currency", "AED")
         data["currency"] = str(currency or "AED").strip().upper()
@@ -79,13 +95,13 @@ class OrderCreateSchema(Schema):
         if amount_raw is not None and str(amount_raw).strip() != "":
             try:
                 amt = float(amount_raw)
-                if not math.isfinite(amt) or amt < 0:
-                    raise ValidationError("Amount must be a valid non-negative number.", field_name="amount")
+                if not math.isfinite(amt) or amt <= 0:
+                    raise ValidationError("Amount must be greater than 0.", field_name="amount")
                 data["amount"] = amt
             except (TypeError, ValueError):
-                raise ValidationError("Amount must be a valid non-negative number.", field_name="amount")
+                raise ValidationError("Amount must be a valid positive number.", field_name="amount")
         else:
-            data["amount"] = None
+            raise ValidationError("Order amount is required.", field_name="amount")
 
 
 class OrderAssignRiderSchema(Schema):
@@ -154,6 +170,14 @@ def validate_order_payload(data: Dict[str, Any], is_update: bool = False, existi
     if is_update and existing_order is not None:
         if "customer_name" not in merged or merged["customer_name"] is None:
             merged["customer_name"] = existing_order.customer_name
+        if "mobile" not in merged or merged["mobile"] is None:
+            merged["mobile"] = existing_order.mobile or ""
+        if "pickup" not in merged or merged["pickup"] is None:
+            merged["pickup"] = existing_order.pickup or ""
+        if "delivery" not in merged or merged["delivery"] is None:
+            merged["delivery"] = existing_order.delivery or ""
+        if "amount" not in merged or merged["amount"] is None:
+            merged["amount"] = existing_order.amount if existing_order.amount is not None else 1.0
         if "currency" not in merged or merged["currency"] is None:
             merged["currency"] = existing_order.currency or "AED"
 

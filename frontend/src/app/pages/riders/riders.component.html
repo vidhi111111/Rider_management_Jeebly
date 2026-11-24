@@ -6,15 +6,15 @@
 </app-toast>
 
 <div class="riders-page">
-  <div class="riders-card">
-    <header class="page-header">
-      <div>
-        <h2>Rider List</h2>
-        <p>Total Riders: {{ totalRecords }}</p>
-      </div>
+  <header class="page-header">
+    <div class="header-title-block">
+      <h2>{{ langService.t("Rider List") }}</h2>
+      <p>{{ langService.t("Total Riders") }}: {{ totalRecords }}</p>
+    </div>
 
-      <div class="header-actions">
-        <label for="pageSize">Rows per page:</label>
+    <div class="header-actions">
+      <div class="page-size-wrap">
+        <label for="pageSize">{{ langService.t("Rows per page:") }}</label>
         <select
           id="pageSize"
           [value]="pageSize"
@@ -24,206 +24,307 @@
           <option value="20">20</option>
           <option value="50">50</option>
         </select>
-
-        <button type="button" class="btn-primary" (click)="openAddRider()">
-          + Add Rider
-        </button>
       </div>
-    </header>
 
-    <div *ngIf="errorMessage" class="alert alert-error" role="alert">
-      {{ errorMessage }}
-      <button type="button" (click)="loadRiders()">Retry</button>
+      <button type="button" class="btn-primary" (click)="openAddRider()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>{{ langService.t("Add Rider") }}</span>
+      </button>
     </div>
+  </header>
 
-    <section class="filters-section">
-      <div class="section-heading">
-        <h3>Search &amp; Filters</h3>
+  <div *ngIf="errorMessage" class="alert alert-error" role="alert">
+    {{ errorMessage }}
+    <button type="button" (click)="loadRiders()">Retry</button>
+  </div>
+
+  <section class="order-filter-card">
+      <div class="filter-header">
+        <div class="filter-title-wrap">
+          <svg class="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+          </svg>
+          <div>
+            <h2>{{ langService.t("Filter & Search Riders") }}</h2>
+            <p>{{ langService.t("Quickly locate specific riders by name, contact, status, or date") }}</p>
+          </div>
+        </div>
 
         <button
           type="button"
-          class="btn-outline"
-          (click)="filtersExpanded = !filtersExpanded">
-          {{ filtersExpanded ? 'Hide Filters ▲' : 'Show Filters ▼' }}
+          class="btn-clear-filters"
+          (click)="clearFilters()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          <span>{{ langService.t("Clear Filters") }}</span>
         </button>
       </div>
 
-      <div class="filter-controls" [class.expanded]="filtersExpanded">
-        <div class="filter-field">
-          <label for="riderSearch">Search riders</label>
+      <div class="filter-form-grid">
+        <!-- Search Input -->
+        <div class="filter-group search-group">
+          <label for="riderSearch" class="filter-label">{{ langService.t("Search Query") }}</label>
+          <div class="input-icon-wrap">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              id="riderSearch"
+              name="riderSearch"
+              type="search"
+              class="custom-input with-icon"
+              [placeholder]="langService.t('Search by name, mobile, email...')"
+              [value]="search"
+              (input)="onSearch($any($event.target).value)"
+            />
+          </div>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="filter-group">
+          <label for="statusFilter" class="filter-label">{{ langService.t("Rider Status") }}</label>
+          <div class="custom-select-wrap">
+            <select
+              id="statusFilter"
+              name="statusFilter"
+              class="custom-select"
+              [value]="selectedStatus"
+              (change)="onStatusChange($any($event.target).value)"
+            >
+              <option value="">{{ langService.t("All Statuses") }}</option>
+              <option *ngFor="let item of statuses" [value]="item.value">
+                {{ langService.t(item.label) }}
+              </option>
+            </select>
+            <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Availability Filter -->
+        <div class="filter-group">
+          <label for="availabilityFilter" class="filter-label">{{ langService.t("Availability") }}</label>
+          <div class="custom-select-wrap">
+            <select
+              id="availabilityFilter"
+              name="availabilityFilter"
+              class="custom-select"
+              [value]="selectedAvailability"
+              (change)="onAvailabilityChange($any($event.target).value)"
+            >
+              <option value="">{{ langService.t("All Availability") }}</option>
+              <option *ngFor="let item of availabilityOptions" [value]="item.value">
+                {{ langService.t(item.label) }}
+              </option>
+            </select>
+            <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Created From -->
+        <div class="filter-group">
+          <label for="dateFrom" class="filter-label">{{ langService.t("Created From") }}</label>
           <input
-            id="riderSearch"
-            type="search"
-            placeholder="Name, mobile or email"
-            [value]="search"
-            (input)="onSearch($any($event.target).value)">
+            id="dateFrom"
+            name="dateFrom"
+            type="date"
+            class="custom-input"
+            [value]="dateFrom"
+            (change)="onDateFromChange($any($event.target).value)"
+          />
         </div>
 
-        <div class="filter-field">
-          <label for="statusFilter">Status</label>
-          <select
-            id="statusFilter"
-            [value]="selectedStatus"
-            (change)="onStatusChange($any($event.target).value)">
-            <option value="">All statuses</option>
-            <option *ngFor="let item of statuses" [value]="item.value">
-              {{ item.label }}
-            </option>
-          </select>
+        <!-- Created To -->
+        <div class="filter-group">
+          <label for="dateTo" class="filter-label">{{ langService.t("Created To") }}</label>
+          <input
+            id="dateTo"
+            name="dateTo"
+            type="date"
+            class="custom-input"
+            [value]="dateTo"
+            (change)="onDateToChange($any($event.target).value)"
+          />
         </div>
 
-        <div class="filter-field">
-          <label for="availabilityFilter">Availability</label>
-          <select
-            id="availabilityFilter"
-            [value]="selectedAvailability"
-            (change)="onAvailabilityChange($any($event.target).value)">
-            <option value="">All availability</option>
-            <option
-              *ngFor="let item of availabilityOptions"
-              [value]="item.value">
-              {{ item.label }}
-            </option>
-          </select>
+        <!-- Sort By -->
+        <div class="filter-group">
+          <label for="sortBy" class="filter-label">{{ langService.t("Sort By") }}</label>
+          <div class="custom-select-wrap">
+            <select
+              id="sortBy"
+              name="sortBy"
+              class="custom-select"
+              [value]="sortBy"
+              (change)="onSortChange($any($event.target).value)"
+            >
+              <option value="id">ID</option>
+              <option value="name">Name</option>
+              <option value="mobile">Mobile</option>
+              <option value="email">Email</option>
+              <option value="vehicle">Vehicle</option>
+              <option value="status">Status</option>
+              <option value="availability">Availability</option>
+              <option value="date">Date</option>
+            </select>
+            <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
         </div>
 
-        <div class="filter-field">
-          <label for="sortBy">Sort by</label>
-          <select
-            id="sortBy"
-            [value]="sortBy"
-            (change)="onSortChange($any($event.target).value)">
-            <option value="id">ID</option>
-            <option value="name">Name</option>
-            <option value="mobile">Mobile</option>
-            <option value="email">Email</option>
-            <option value="vehicle">Vehicle</option>
-            <option value="status">Status</option>
-            <option value="availability">Availability</option>
-            <option value="date">Date</option>
-          </select>
-        </div>
-
-        <div class="filter-field">
-          <label>Sort order</label>
-          <button
-            type="button"
-            class="btn-outline sort-button"
-            (click)="toggleSortOrder()">
-            {{ sortOrder === 'asc' ? '↑ Ascending' : '↓ Descending' }}
-          </button>
-        </div>
-
-        <div class="filter-field">
-          <label>&nbsp;</label>
-          <button type="button" class="btn-outline" (click)="clearFilters()">
-            Clear filters
-          </button>
+        <!-- Sort Order -->
+        <div class="filter-group">
+          <label for="sortOrder" class="filter-label">{{ langService.t("Sort Order") }}</label>
+          <div class="custom-select-wrap">
+            <select
+              id="sortOrder"
+              name="sortOrder"
+              class="custom-select"
+              [value]="sortOrder"
+              (change)="onSortOrderChange($any($event.target).value)"
+            >
+              <option value="asc">{{ langService.t("Ascending (A-Z, 1-9)") }}</option>
+              <option value="desc">{{ langService.t("Descending (Z-A, 9-1)") }}</option>
+            </select>
+            <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
         </div>
       </div>
+
+      <div *ngIf="dateRangeError" class="alert alert-danger mx-3 mt-2 mb-0 py-2">{{ dateRangeError }}</div>
     </section>
 
-    <div *ngIf="isLoading" class="loading-state" role="status">
-      Loading riders…
-    </div>
+    <!-- Riders Table Card -->
+    <div class="riders-card">
+      <div *ngIf="isLoading" class="loading-state" role="status">
+        Loading riders…
+      </div>
 
-    <div class="table-wrapper">
-      <table class="riders-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Rider</th>
-            <th>Mobile</th>
-            <th>Email</th>
-            <th>Vehicle</th>
-            <th>Status</th>
-            <th>Availability</th>
-            <th>Date</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+      <div class="table-wrapper">
+        <table class="riders-table">
+          <thead>
+            <tr>
+              <th>{{ langService.t("ID") }}</th>
+              <th>{{ langService.t("RIDER") }}</th>
+              <th>{{ langService.t("Mobile") }}</th>
+              <th>{{ langService.t("Email") }}</th>
+              <th>{{ langService.t("Vehicle") }}</th>
+              <th>{{ langService.t("Status") }}</th>
+              <th>{{ langService.t("Availability") }}</th>
+              <th>{{ langService.t("Date") }}</th>
+              <th class="actions-header">{{ langService.t("Actions") }}</th>
+            </tr>
+          </thead>
 
-        <tbody>
-          <tr *ngFor="let rider of riders">
-            <td>{{ rider.id }}</td>
+          <tbody>
+            <tr *ngFor="let rider of riders">
+              <td>{{ rider.id }}</td>
 
-            <td>
-              <div class="rider-cell">
-                <img
-                  *ngIf="rider.profile_image"
-                  [src]="rider.profile_image"
-                  [alt]="rider.name"
-                  class="rider-avatar-image">
+              <td>
+                <div class="rider-cell">
+                  <img
+                    *ngIf="rider.profile_image"
+                    [src]="rider.profile_image"
+                    [alt]="rider.name"
+                    class="rider-avatar-image">
 
-                <div
-                  *ngIf="!rider.profile_image"
-                  class="avatar">
-                  {{ riderInitial(rider.name) }}
+                  <div
+                    *ngIf="!rider.profile_image"
+                    class="avatar">
+                    {{ riderInitial(rider.name) }}
+                  </div>
+
+                  <div>
+                    <strong>{{ rider.name }}</strong>
+                    <small>Rider #{{ rider.id }}</small>
+                  </div>
                 </div>
+              </td>
 
-                <div>
-                  <strong>{{ rider.name }}</strong>
-                  <small>Rider #{{ rider.id }}</small>
-                </div>
-              </div>
-            </td>
+              <td>{{ rider.mobile }}</td>
+              <td>{{ rider.email }}</td>
+              <td>{{ rider.vehicle }}</td>
 
-            <td>{{ rider.mobile }}</td>
-            <td>{{ rider.email }}</td>
-            <td>{{ rider.vehicle }}</td>
+              <td>
+                <span
+                  class="status-badge"
+                  [ngClass]="statusClass(rider.status)">
+                  {{ langService.t(statusLabel(rider.status)) }}
+                </span>
+              </td>
 
-            <td>
-              <span
-                class="status-badge"
-                [ngClass]="statusClass(rider.status)">
-                {{ statusLabel(rider.status) }}
-              </span>
-            </td>
+              <td>
+                <span
+                  class="status-badge"
+                  [ngClass]="availabilityClass(rider.availability)">
+                  {{ langService.t(rider.availability) }}
+                </span>
+              </td>
 
-            <td>
-              <span
-                class="status-badge"
-                [ngClass]="availabilityClass(rider.availability)">
-                {{ rider.availability }}
-              </span>
-            </td>
+              <td>{{ rider.date }}</td>
 
-            <td>{{ rider.date }}</td>
-
-            <td>
-              <div class="rider-action-menu">
-                <button
-                  type="button"
-                  class="action-menu-trigger"
-                  aria-label="Rider actions"
-                  [attr.aria-expanded]="openActionMenuId === rider.id"
-                  (click)="toggleActionMenu(rider.id)">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </button>
-
-                <div
-                  class="action-menu-dropdown"
-                  *ngIf="openActionMenuId === rider.id">
-                  <button type="button" (click)="openRiderView(rider)">
-                    ◉ View Rider
-                  </button>
-
-                  <button type="button" (click)="openRiderEdit(rider)">
-                    ✎ Edit Rider
-                  </button>
-
+              <td class="actions-cell">
+                <div class="action-btn-group">
+                  <!-- View Details Button -->
                   <button
                     type="button"
-                    class="delete-menu-item"
-                    (click)="requestDeleteRider(rider)">
-                    🗑 Delete Rider
+                    class="action-icon-btn view-btn"
+                    (click)="openRiderView(rider)"
+                    [attr.data-tooltip]="langService.t('View Details')"
+                    title="View Details"
+                    aria-label="View rider details"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+
+                  <!-- Edit Rider Button -->
+                  <button
+                    type="button"
+                    class="action-icon-btn edit-btn"
+                    (click)="openRiderEdit(rider)"
+                    [attr.data-tooltip]="langService.t('Edit Rider')"
+                    title="Edit Rider"
+                    aria-label="Edit rider"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+
+                  <!-- Delete Rider Button -->
+                  <button
+                    type="button"
+                    class="action-icon-btn delete-btn"
+                    (click)="requestDeleteRider(rider)"
+                    [attr.data-tooltip]="langService.t('Delete Rider')"
+                    title="Delete Rider"
+                    aria-label="Delete rider"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
                   </button>
                 </div>
-              </div>
-            </td>
-          </tr>
+              </td>
+            </tr>
 
           <tr *ngIf="!isLoading && riders.length === 0">
             <td colspan="9" class="empty-state">
@@ -327,7 +428,7 @@
 
       <div class="modal-form-grid">
         <div class="form-field">
-          <label for="riderName">Full Name <span class="required-asterisk">*</span></label>
+          <label for="riderName">{{ langService.t("Full Name") }} <span class="required-asterisk">*</span></label>
 
           <input
             id="riderName"
@@ -357,7 +458,7 @@
         </div>
 
         <div class="form-field">
-          <label for="riderMobile">Mobile Number <span class="required-asterisk">*</span></label>
+          <label for="riderMobile">{{ langService.t("Mobile Number") }} <span class="required-asterisk">*</span></label>
 
           <input
             id="riderMobile"
@@ -377,7 +478,7 @@
         </div>
 
         <div class="form-field">
-          <label for="riderEmail">Email <span class="required-asterisk">*</span></label>
+          <label for="riderEmail">{{ langService.t("Email") }} <span class="required-asterisk">*</span></label>
 
           <input
             id="riderEmail"
@@ -395,7 +496,7 @@
         </div>
 
         <div class="form-field">
-          <label for="riderVehicle">Vehicle <span class="required-asterisk">*</span></label>
+          <label for="riderVehicle">{{ langService.t("Vehicle") }} <span class="required-asterisk">*</span></label>
 
           <select id="riderVehicle" formControlName="vehicle">
             <option *ngFor="let vehicle of vehicles" [value]="vehicle">
@@ -429,7 +530,7 @@
         </div>
 
         <div class="form-field">
-          <label for="riderDate">Date <span class="required-asterisk">*</span></label>
+          <label for="riderDate">{{ langService.t("Date") }} <span class="required-asterisk">*</span></label>
 
           <input
             id="riderDate"
@@ -473,7 +574,7 @@
                 type="button"
                 class="btn-remove-photo"
                 (click)="removePhoto()">
-                Remove Photo
+                {{ langService.t("Remove Photo") }}
               </button>
             </div>
           </div>
@@ -490,7 +591,7 @@
           class="btn-outline"
           [disabled]="isSaving"
           (click)="closeRiderModal()">
-          Cancel
+          {{ langService.t("Cancel") }}
         </button>
 
         <button
@@ -654,7 +755,7 @@
         class="btn-outline"
         [disabled]="isDeleting"
         (click)="cancelDeleteRider()">
-        Cancel
+        {{ langService.t("Cancel") }}
       </button>
 
       <button

@@ -14,6 +14,7 @@ import {
   RecentOrder,
   AvailableRider
 } from '../../core/services/dashboard.service';
+import { LanguageService } from '../../core/services/language.service';
 
 export {
   DashboardSummary,
@@ -54,7 +55,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   recentOrders: RecentOrder[] = [];
   availableRiderList: AvailableRider[] = [];
 
-  constructor(private readonly dashboardService: DashboardService) {}
+  constructor(
+    private readonly dashboardService: DashboardService,
+    public readonly langService: LanguageService
+  ) {}
 
   ngOnInit(): void {
     this.loadDashboard();
@@ -93,32 +97,42 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.availableRiderList = data.available_riders || [];
 
           this.calculatePercentages();
-
           this.isLoading = false;
         },
         error: (error) => {
-          console.error('Dashboard API error:', error);
           this.isLoading = false;
-          this.errorMessage = 'Unable to load dashboard data.';
+          this.errorMessage =
+            error?.error?.message ||
+            'Unable to load dashboard data. Please try again.';
         }
       });
   }
 
-  private calculatePercentages(): void {
-    const total = this.totalOrders || 1;
+  getBarHeight(percentage: number): number {
+    if (this.totalOrders === 0) {
+      return 12;
+    }
+    return Math.max(percentage, 12);
+  }
 
-    this.totalOrdersPercentage = Math.round(
-      (this.totalOrders / total) * 100
-    );
-    this.deliveredPercentage = Math.round(
-      (this.deliveredOrders / total) * 100
-    );
-    this.cancelledPercentage = Math.round(
-      (this.cancelledOrders / total) * 100
-    );
-    this.inProgressPercentage = Math.round(
-      (this.inProgressOrders / total) * 100
-    );
+  private calculatePercentages(): void {
+    if (this.totalOrders > 0) {
+      this.totalOrdersPercentage = 100;
+      this.deliveredPercentage = Math.round(
+        (this.deliveredOrders / this.totalOrders) * 100
+      );
+      this.inProgressPercentage = Math.round(
+        (this.inProgressOrders / this.totalOrders) * 100
+      );
+      this.cancelledPercentage = Math.round(
+        (this.cancelledOrders / this.totalOrders) * 100
+      );
+    } else {
+      this.totalOrdersPercentage = 0;
+      this.deliveredPercentage = 0;
+      this.inProgressPercentage = 0;
+      this.cancelledPercentage = 0;
+    }
   }
 
   ngOnDestroy(): void {

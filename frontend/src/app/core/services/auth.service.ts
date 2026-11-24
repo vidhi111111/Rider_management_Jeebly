@@ -59,6 +59,13 @@ export class AuthService {
       payload
     );
   }
+
+  googleLogin(credential: string): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(
+      `${this.apiUrl}/google`,
+      { credential }
+    );
+  }
   isLoggedIn(): boolean {
     return !!localStorage.getItem('access_token');
   }

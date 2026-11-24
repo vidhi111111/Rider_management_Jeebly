@@ -1,113 +1,161 @@
-<div class="layout">
+<div class="layout" [class.collapsed-sidebar]="isSidebarCollapsed">
+  <!-- Fixed Sticky Header -->
   <header class="header">
     <div class="header-left">
+      <!-- Open / Close Toggle Button -->
       <button
         type="button"
-        class="menu-button"
+        class="menu-toggle-btn"
         (click)="toggleSidebar()"
-        aria-label="Toggle menu">
-        <span></span>
-        <span></span>
-        <span></span>
+        [attr.aria-label]="isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        [attr.title]="isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+        <svg class="hamburger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
       </button>
 
+      <!-- Brand Logo - switches to compact logo when collapsed -->
       <div class="brand">
         <a routerLink="/dashboard" class="brand-link" title="Jeebly Dashboard">
           <img
+            *ngIf="!isSidebarCollapsed"
             src="assets/images/jeebly-logo.png"
-            alt="Jeebly Logo"
-            class="brand-logo"
+            alt="Jeebly"
+            class="brand-logo full-logo"
+            loading="eager" />
+          <img
+            *ngIf="isSidebarCollapsed"
+            src="assets/images/favicon.png"
+            alt="Jeebly"
+            class="brand-logo compact-logo"
             loading="eager" />
         </a>
       </div>
     </div>
 
-   
-<div class="header-right">
-  <span class="welcome-text" *ngIf="currentUser">
-    Welcome, {{ currentUser.name }}
-  </span>
-
-  <div class="profile-menu">
-    <button
-      type="button"
-      class="profile-trigger"
-      (click)="toggleProfileMenu()"
-      [attr.aria-expanded]="isProfileMenuOpen"
-      aria-label="Open profile menu">
-
-      <span class="profile-avatar">
-        {{ getUserInitial() }}
-      </span>
-    </button>
-
-    <div
-      class="profile-dropdown"
-      *ngIf="isProfileMenuOpen">
-
+    <div class="header-right">
+      <!-- Language Switcher Button in Jeebly Colors (Matches Login Page) -->
       <button
         type="button"
-        class="dropdown-item"
-        (click)="openProfile()">
-        <span class="dropdown-icon">♙</span>
-        <span class="dropdown-label">
-          <strong>Profile</strong>
-          <small>View and edit your account</small>
-        </span>
-        <span class="item-chevron">›</span>
-      </button>
-
-      <button
-        type="button"
-        class="dropdown-item"
-        (click)="openChangePassword()">
-        <span class="dropdown-icon">♧</span>
-        <span class="dropdown-label">
-          <strong>Change Password</strong>
-          <small>Update your password</small>
-        </span>
-        <span class="item-chevron">›</span>
-      </button>
-
-      <button
-        type="button"
-        class="dropdown-item"
-        (click)="toggleTheme()">
-        <span class="dropdown-icon">
-          {{ isDarkMode ? '☀' : '☾' }}
-        </span>
-        <span class="dropdown-label">
-          <strong>
-            {{ isDarkMode ? 'Light Theme' : 'Dark Theme' }}
-          </strong>
-          <small>
-            {{ isDarkMode ? 'Switch to light appearance' : 'Switch to dark appearance' }}
-          </small>
-        </span>
-        <span
-          class="theme-switch"
-          [class.theme-switch-active]="isDarkMode">
-          <span></span>
+        class="jeebly-lang-btn"
+        (click)="langService.toggleLanguage()"
+        [attr.aria-label]="langService.isArabic ? 'Change to English' : 'Change to Arabic'"
+      >
+        <svg class="jeebly-lang-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+        <span class="jeebly-lang-text">
+          {{ langService.isArabic ? 'Change to English' : 'Change to Arabic' }}
         </span>
       </button>
 
-      <div class="dropdown-divider"></div>
+      <div class="user-greeting" *ngIf="currentUser">
+        <span class="greeting-prefix">{{ langService.t('welcomeGreeting') }}</span>
+        <strong class="greeting-name">{{ currentUser.name }}</strong>
+      </div>
 
-      <button
-        type="button"
-        class="dropdown-item logout-dropdown-item"
-        (click)="logout()">
-        <span class="dropdown-icon">⇥</span>
-        <span class="dropdown-label">
-          <strong>Logout</strong>
-          <small>Sign out of your account</small>
-        </span>
-      </button>
+      <!-- Profile Menu -->
+      <div class="profile-menu">
+        <button
+          type="button"
+          class="profile-trigger"
+          (click)="toggleProfileMenu()"
+          [attr.aria-expanded]="isProfileMenuOpen"
+          aria-label="Open user profile menu">
+          
+          <span class="profile-avatar" *ngIf="!userAvatar">
+            {{ getUserInitial() }}
+          </span>
+          <img
+            *ngIf="userAvatar"
+            [src]="userAvatar"
+            alt="Profile photo"
+            class="profile-avatar-img" />
+
+          <svg class="chevron-icon" [class.rotated]="isProfileMenuOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div
+          class="profile-dropdown"
+          *ngIf="isProfileMenuOpen">
+          <div class="dropdown-header">
+            <div class="dropdown-user-avatar">
+              <span *ngIf="!userAvatar">{{ getUserInitial() }}</span>
+              <img *ngIf="userAvatar" [src]="userAvatar" alt="Avatar" class="avatar-sm-img" />
+            </div>
+            <div class="dropdown-user-meta">
+              <strong>{{ currentUser?.name || 'User' }}</strong>
+              <small>{{ currentUser?.email || 'Jeebly Portal' }}</small>
+            </div>
+          </div>
+
+          <div class="dropdown-divider"></div>
+
+          <button
+            type="button"
+            class="dropdown-item"
+            (click)="openProfile()">
+            <span class="dropdown-icon-box blue-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </span>
+            <span class="dropdown-label">
+              <strong>{{ langService.t('myProfile') }}</strong>
+              <small>{{ langService.t('profileDetails') }}</small>
+            </span>
+            <span class="item-chevron">›</span>
+          </button>
+
+          <button
+            type="button"
+            class="dropdown-item"
+            (click)="openChangePassword()">
+            <span class="dropdown-icon-box blue-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </span>
+            <span class="dropdown-label">
+              <strong>{{ langService.t('securityPassword') }}</strong>
+              <small>{{ langService.t('securitySubtitle') }}</small>
+            </span>
+            <span class="item-chevron">›</span>
+          </button>
+
+          <div class="dropdown-divider"></div>
+
+          <button
+            type="button"
+            class="dropdown-item logout-dropdown-item"
+            (click)="logout()">
+            <span class="dropdown-icon-box red-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </span>
+            <span class="dropdown-label">
+              <strong>{{ langService.t('logout') }}</strong>
+              <small>{{ langService.t('Log out of Jeebly Portal') }}</small>
+            </span>
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-</header>
+  </header>
 
+  <!-- Mobile Overlay -->
   <div
     class="sidebar-overlay"
     [class.show]="isSidebarOpen"
@@ -115,12 +163,16 @@
   </div>
 
   <div class="body-container">
+    <!-- Sidebar Navigation -->
     <aside
       class="sidebar"
-      [class.sidebar-open]="isSidebarOpen">
+      [class.sidebar-open]="isSidebarOpen"
+      [class.sidebar-collapsed]="isSidebarCollapsed">
 
-      <div class="sidebar-heading">
-        MENU
+      <div class="sidebar-top">
+        <div class="sidebar-heading" *ngIf="!isSidebarCollapsed">
+          {{ langService.t('mainMenu') }}
+        </div>
       </div>
 
       <nav class="sidebar-menu">
@@ -128,29 +180,74 @@
           routerLink="/dashboard"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: true }"
-          (click)="closeSidebar()">
-          <span>Dashboard</span>
+          (click)="closeSidebar()"
+          [attr.title]="isSidebarCollapsed ? langService.t('dashboard') : null">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </span>
+          <span class="nav-text" *ngIf="!isSidebarCollapsed">{{ langService.t('dashboard') }}</span>
         </a>
 
         <a
           routerLink="/orders"
           routerLinkActive="active"
-          (click)="closeSidebar()">
-          <span>Orders</span>
+          (click)="closeSidebar()"
+          [attr.title]="isSidebarCollapsed ? langService.t('orders') : null">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+          </span>
+          <span class="nav-text" *ngIf="!isSidebarCollapsed">{{ langService.t('orders') }}</span>
         </a>
 
         <a
           routerLink="/riders"
           routerLinkActive="active"
-          (click)="closeSidebar()">
-          <span>Riders</span>
+          (click)="closeSidebar()"
+          [attr.title]="isSidebarCollapsed ? langService.t('riders') : null">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Delivery Rider / Bike Icon -->
+              <circle cx="18.5" cy="17.5" r="3.5"></circle>
+              <circle cx="5.5" cy="17.5" r="3.5"></circle>
+              <circle cx="15" cy="5" r="1"></circle>
+              <path d="M12 17.5V14l-3-3 4-3 2 3h2"></path>
+            </svg>
+          </span>
+          <span class="nav-text" *ngIf="!isSidebarCollapsed">{{ langService.t('riders') }}</span>
         </a>
       </nav>
+
+      <!-- Sidebar Footer with quick toggle -->
+      <div class="sidebar-footer">
+        <button
+          type="button"
+          class="collapse-toggle-btn"
+          (click)="toggleSidebar()"
+          [attr.title]="isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+          <svg class="toggle-arrow" [class.rotated]="isSidebarCollapsed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          <span class="toggle-text" *ngIf="!isSidebarCollapsed">{{ langService.t('Collapse Menu') }}</span>
+        </button>
+      </div>
     </aside>
 
-    <main class="content">
+    <!-- Main Page Content (scrolls underneath fixed header) -->
+    <main class="content" [class.content-collapsed]="isSidebarCollapsed">
       <app-breadcrumb></app-breadcrumb>
-      <router-outlet></router-outlet>
+      <div class="content-inner">
+        <router-outlet></router-outlet>
+      </div>
     </main>
   </div>
 </div>

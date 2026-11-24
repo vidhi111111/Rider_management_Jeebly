@@ -8,6 +8,8 @@ export interface UserProfile {
   name: string;
   email: string;
   mobile: string;
+  profile_image?: string | null;
+  avatar?: string | null;
 }
 
 export interface ProfileResponse {
@@ -18,8 +20,10 @@ export interface ProfileResponse {
 }
 
 export interface UpdateProfilePayload {
-  name: string;
-  mobile: string;
+  name?: string;
+  mobile?: string;
+  profile_image?: string | null;
+  remove_photo?: boolean;
 }
 
 export interface ChangePasswordPayload {
@@ -51,8 +55,18 @@ export class ProfileService {
     return this.http.get<ProfileResponse>(`${this.apiUrl}/profile`);
   }
 
-  updateProfile(payload: UpdateProfilePayload): Observable<ProfileResponse> {
+  updateProfile(payload: UpdateProfilePayload | FormData): Observable<ProfileResponse> {
     return this.http.put<ProfileResponse>(`${this.apiUrl}/profile`, payload);
+  }
+
+  uploadAvatar(file: File): Observable<ProfileResponse> {
+    const formData = new FormData();
+    formData.append('profile_image', file);
+    return this.http.post<ProfileResponse>(`${this.apiUrl}/profile/avatar`, formData);
+  }
+
+  removeAvatar(): Observable<ProfileResponse> {
+    return this.http.delete<ProfileResponse>(`${this.apiUrl}/profile/avatar`);
   }
 
   changePassword(payload: ChangePasswordPayload): Observable<any> {
