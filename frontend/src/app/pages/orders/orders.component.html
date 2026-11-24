@@ -5,28 +5,86 @@
   (dismissed)="dismissToast()"
 ></app-toast>
 
-
 <div class="orders-page">
+  <!-- Page Header -->
   <div class="page-heading">
-    <div>
-      <h1>Orders</h1>
-      <p>Manage and create delivery orders</p>
+    <div class="heading-text">
+      <h1>{{ langService.t("Orders Management") }}</h1>
+      <p>{{ langService.t("Create, track, and dispatch delivery orders across the fleet") }}</p>
     </div>
 
-    <button type="button" class="create-btn" (click)="openCreateOrder()">
-      <span class="plus-icon">+</span>
-      Create Order
-    </button>
+    <div class="heading-actions d-flex align-items-center gap-3">
+      <!-- Report Download Dropdown -->
+      <div class="report-dropdown-wrapper">
+        <button
+          type="button"
+          class="btn-download-report"
+          (click)="toggleDownloadDropdown()"
+          [disabled]="isDownloadingReport"
+          aria-haspopup="true"
+          [attr.aria-expanded]="showDownloadDropdown"
+        >
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <span>{{ isDownloadingReport ? langService.t('Downloading...') : langService.t('Download') }}</span>
+        </button>
+
+        <div *ngIf="showDownloadDropdown" class="report-dropdown-menu">
+          <button type="button" class="report-dropdown-item" (click)="downloadReport('xlsx')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <path d="M8 13l3 4m0-4l-3 4"></path>
+            </svg>
+            <span>{{ langService.t("Download as Excel (.xlsx)") }}</span>
+          </button>
+          <button type="button" class="report-dropdown-item" (click)="downloadReport('csv')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="8" y1="13" x2="16" y2="13"></line>
+              <line x1="8" y1="17" x2="16" y2="17"></line>
+            </svg>
+            <span>{{ langService.t('Download as CSV (.csv)') }}</span>
+          </button>
+          <button *ngIf="lastGeneratedReportUrl" type="button" class="report-dropdown-item text-danger" (click)="deleteGeneratedReport()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            <span>{{ langService.t('Delete Generated Report') }}</span>
+          </button>
+        </div>
+      </div>
+
+      <button type="button" class="btn-create-order" (click)="openCreateOrder()">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>{{ langService.t("Create Order") }}</span>
+      </button>
+    </div>
   </div>
-
-
 
   <div
     *ngIf="errorMessage && !showOrderModal"
-    class="alert alert-danger alert-dismissible"
+    class="alert alert-danger alert-dismissible fade show"
     role="alert"
   >
-    {{ errorMessage }}
+    <div class="d-flex align-items-center gap-2">
+      <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ errorMessage }}</span>
+    </div>
     <button
       type="button"
       class="btn-close"
@@ -37,194 +95,275 @@
 
   <!-- Search and filters -->
   <section class="filter-card">
-    <div class="section-heading">
-      <div>
-        <h2>Search &amp; Filters</h2>
-        <p>Search and filter orders</p>
+    <div class="filter-heading">
+      <div class="filter-title-wrap">
+        <svg class="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
+        <div>
+          <h2>{{ langService.t("Filter & Search Orders") }}</h2>
+          <p>{{ langService.t("Quickly locate specific orders by customer, status, rider, or date") }}</p>
+        </div>
       </div>
 
       <button
         type="button"
-        class="clear-filters"
+        class="btn-clear-filters"
         (click)="clearFilters()"
       >
-        Clear Filters
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="1 4 1 10 7 10"></polyline>
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+        </svg>
+        <span>{{ langService.t("Clear Filters") }}</span>
       </button>
     </div>
 
-    <div class="row g-3">
-      <div class="col-12 col-lg-4">
-        <label for="orderSearch" class="form-label">Search</label>
+    <div class="filter-form-grid">
+      <!-- Search Input -->
+      <div class="filter-group search-group">
+        <label for="orderSearch" class="filter-label">{{ langService.t("Search Query") }}</label>
+        <div class="input-icon-wrap">
+          <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            id="orderSearch"
+            name="orderSearch"
+            type="search"
+            class="custom-input with-icon"
+            [placeholder]="langService.t('Search by order ID, customer name...')"
+            [(ngModel)]="searchText"
+            (ngModelChange)="onFilterChange()"
+          />
+        </div>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="filter-group">
+        <label for="statusFilter" class="filter-label">{{ langService.t("Order Status") }}</label>
+        <div class="custom-select-wrap">
+          <select
+            id="statusFilter"
+            name="statusFilter"
+            class="custom-select"
+            [(ngModel)]="selectedStatus"
+            (ngModelChange)="onFilterChange()"
+          >
+            <option value="">{{ langService.t("All Statuses") }}</option>
+            <option *ngFor="let status of orderStatuses" [value]="status">
+              {{ langService.t(status) }}
+            </option>
+          </select>
+          <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Rider Filter -->
+      <div class="filter-group">
+        <label for="riderFilter" class="filter-label">{{ langService.t("Assigned Rider") }}</label>
+        <div class="custom-select-wrap">
+          <select
+            id="riderFilter"
+            name="riderFilter"
+            class="custom-select"
+            [(ngModel)]="selectedRider"
+            (ngModelChange)="onFilterChange()"
+          >
+            <option value="">{{ langService.t("All Riders") }}</option>
+            <option *ngFor="let rider of allRiders" [value]="rider.id">
+              {{ rider.name }}
+            </option>
+          </select>
+          <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Date Range Filters (From & To) -->
+      <div class="filter-group">
+        <label for="createdFrom" class="filter-label">{{ langService.t("Created From") }}</label>
         <input
-          id="orderSearch"
-          name="orderSearch"
-          type="search"
-          class="form-control"
-          placeholder="Search by order ID, customer..."
-          [(ngModel)]="searchText"
-          (ngModelChange)="onFilterChange()"
-        />
-      </div>
-
-      <div class="col-12 col-sm-6 col-lg-2">
-        <label for="statusFilter" class="form-label">Status</label>
-        <select
-          id="statusFilter"
-          name="statusFilter"
-          class="form-select"
-          [(ngModel)]="selectedStatus"
-          (ngModelChange)="onFilterChange()"
-        >
-          <option value="">All Status</option>
-          <option *ngFor="let status of orderStatuses" [value]="status">
-            {{ status }}
-          </option>
-        </select>
-      </div>
-
-      <div class="col-12 col-sm-6 col-lg-2">
-        <label for="riderFilter" class="form-label">Rider</label>
-        <select
-          id="riderFilter"
-          name="riderFilter"
-          class="form-select"
-          [(ngModel)]="selectedRider"
-          (ngModelChange)="onFilterChange()"
-        >
-          <option value="">All Riders</option>
-          <option *ngFor="let rider of allRiders" [value]="rider.id">
-            {{ rider.name }}
-          </option>
-        </select>
-      </div>
-
-      <div class="col-12 col-sm-6 col-lg-2">
-        <label for="dateFilter" class="form-label">Created At Date</label>
-        <input
-          id="dateFilter"
-          name="dateFilter"
+          id="createdFrom"
+          name="createdFrom"
           type="date"
-          class="form-control"
-          [(ngModel)]="selectedDate"
-          (ngModelChange)="onFilterChange()"
+          class="custom-input"
+          [(ngModel)]="createdFrom"
+          (ngModelChange)="onDateRangeChange()"
         />
       </div>
 
-      <div class="col-12 col-sm-6 col-lg-2">
-        <label for="sortFilter" class="form-label">Sort By</label>
-        <select
-          id="sortFilter"
-          name="sortFilter"
-          class="form-select"
-          [(ngModel)]="sortBy"
-          (ngModelChange)="onFilterChange()"
-        >
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-        </select>
+      <div class="filter-group">
+        <label for="createdTo" class="filter-label">{{ langService.t("Created To") }}</label>
+        <input
+          id="createdTo"
+          name="createdTo"
+          type="date"
+          class="custom-input"
+          [(ngModel)]="createdTo"
+          (ngModelChange)="onDateRangeChange()"
+        />
+      </div>
+
+      <!-- Sort By Filter -->
+      <div class="filter-group">
+        <label for="sortFilter" class="filter-label">{{ langService.t("Sort Order") }}</label>
+        <div class="custom-select-wrap">
+          <select
+            id="sortFilter"
+            name="sortFilter"
+            class="custom-select"
+            [(ngModel)]="sortBy"
+            (ngModelChange)="onFilterChange()"
+          >
+            <option value="newest">{{ langService.t("Newest First") }}</option>
+            <option value="oldest">{{ langService.t("Oldest First") }}</option>
+          </select>
+          <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
       </div>
     </div>
+    <div *ngIf="dateRangeError" class="alert alert-danger mx-3 mt-2 mb-0 py-2">{{ dateRangeError }}</div>
   </section>
 
-  <!-- Orders list -->
+  <!-- Orders Table Card -->
   <section class="order-list-card">
-    <div *ngIf="isLoading" class="alert alert-info m-3" role="status">
-      Loading orders...
+    <div *ngIf="isLoading" class="loading-bar-wrap">
+      <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
+      <span>{{ langService.t("Loading orders list...") }}</span>
     </div>
 
+    <!-- List Header with Compact Page-Size Selector -->
     <div class="list-heading">
-      <div>
-        <h2>Order List</h2>
-        <p>{{ totalRecords }} orders found</p>
+      <div class="list-title-wrap">
+        <h2>{{ langService.t("Order Records") }}</h2>
+        <span class="records-pill">{{ totalRecords }} total orders</span>
       </div>
 
-      <select
-        class="form-select page-size-select"
-        name="pageSize"
-        [ngModel]="pageSize"
-        (ngModelChange)="changePageSize($event)"
-        aria-label="Rows per page"
-      >
-        <option [ngValue]="5">5 / page</option>
-        <option [ngValue]="10">10 / page</option>
-        <option [ngValue]="25">25 / page</option>
-        <option [ngValue]="50">50 / page</option>
-      </select>
+      <!-- Compact Page-Size Selector (Reduced from oversized dropdown) -->
+      <div class="page-size-control">
+        <label for="pageSizeSelect" class="page-size-label">{{ langService.t("Rows per page:") }}</label>
+        <div class="compact-select-wrap">
+          <select
+            id="pageSizeSelect"
+            class="compact-select"
+            name="pageSize"
+            [ngModel]="pageSize"
+            (ngModelChange)="changePageSize($event)"
+            aria-label="Rows per page"
+          >
+            <option [ngValue]="5">5</option>
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="25">25</option>
+            <option [ngValue]="50">50</option>
+          </select>
+          <svg class="compact-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      </div>
     </div>
 
-    <div class="table-responsive">
-      <table class="table order-table align-middle mb-0">
+    <!-- Modern Order Table -->
+    <div class="table-container">
+      <table class="modern-orders-table">
         <thead>
           <tr>
-            <th>ORDER ID</th>
-            <th>CUSTOMER</th>
-            <th>PICKUP</th>
-            <th>DELIVERY</th>
-            <th>AMOUNT</th>
-            <th>RIDER</th>
-            <th>STATUS</th>
-            <th>CREATED AT</th>
-            <th>ASSIGN RIDER</th>
-            <th>ACTIONS</th>
+            <th class="th-id">{{ langService.t("ORDER ID") }}</th>
+            <th class="th-customer">{{ langService.t("CUSTOMER") }}</th>
+            <th class="th-pickup">{{ langService.t("PICKUP") }}</th>
+            <th class="th-delivery">{{ langService.t("DELIVERY") }}</th>
+            <th class="th-amount">{{ langService.t("AMOUNT") }}</th>
+            <th class="th-rider">{{ langService.t("RIDER") }}</th>
+            <th class="th-status">{{ langService.t("STATUS") }}</th>
+            <th class="th-date">{{ langService.t("CREATED AT") }}</th>
+            <th class="th-assign">{{ langService.t("ASSIGN RIDER") }}</th>
+            <th class="th-actions">{{ langService.t("ACTIONS") }}</th>
           </tr>
         </thead>
 
         <tbody>
-          <tr *ngFor="let order of paginatedOrders">
-            <td class="order-id">ORD-JB{{ order.id }}</td>
+          <!-- 3-Second Highlight applied on updated row -->
+          <tr
+            *ngFor="let order of paginatedOrders; trackBy: trackByOrderId"
+            [class.field-updated-highlight]="updatedOrderIds.has(order.id)"
+            class="order-row"
+          >
+            <!-- Order ID -->
+            <td class="order-id-cell">
+              <span class="order-badge">ORD-JB{{ order.id }}</span>
+            </td>
 
+            <!-- Customer -->
             <td>
-              <div class="customer-name">{{ order.customer || '—' }}</div>
-              <div class="customer-mobile">
-                {{ order.mobile || '—' }}
+              <div class="customer-info">
+                <span class="customer-name">{{ order.customer || '—' }}</span>
+                <span class="customer-mobile" *ngIf="order.mobile">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tiny-icon">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                  </svg>
+                  {{ order.mobile }}
+                </span>
               </div>
             </td>
 
-            <td>{{ order.pickup || '—' }}</td>
-            <td>{{ order.delivery || '—' }}</td>
-
-            <td>
-              <span class="amount-currency">{{ order.currency }}</span>
-              <strong class="amount-value">
-                {{ order.amount | number:'1.0-2' }}
-              </strong>
+            <!-- Pickup -->
+            <td class="address-cell" [title]="order.pickup || ''">
+              {{ order.pickup || '—' }}
             </td>
 
-            <!-- Assigned rider name -->
-            <td>
-              <span [class.unassigned]="!order.riderId">
-                {{ order.rider || 'Unassigned' }}
-              </span>
+            <!-- Delivery -->
+            <td class="address-cell" [title]="order.delivery || ''">
+              {{ order.delivery || '—' }}
             </td>
 
-            <!-- Status dropdown -->
+            <!-- Amount -->
+            <td class="amount-cell">
+              <span class="currency-tag">{{ order.currency }}</span>
+              <span class="amount-num">{{ order.amount | number:'1.0-2' }}</span>
+            </td>
+
+            <!-- Rider Name (Permanent retention, delivered riders never show Unassigned) -->
+            <td>
+              <div class="rider-name-tag" [class.unassigned]="!order.riderId || order.rider === 'Unassigned'">
+                <span class="rider-dot"></span>
+                <span>{{ (order.rider && order.rider !== 'Unassigned') ? order.rider : (order.riderId ? ('Rider #' + order.riderId) : 'Unassigned') }}</span>
+              </div>
+            </td>
+
+            <!-- Status Dropdown (Stylized Pill) -->
             <td class="status-cell">
-              <select
-                class="form-select status-select"
-                [ngModel]="order.status"
-                (ngModelChange)="updateStatus(order, $event)"
-                [ngClass]="statusClass(order.status)"
-                [disabled]="
-                  isLoading ||
-                  updatingStatusOrderId === order.id ||
-                  isTerminalStatus(order.status)
-                "
-                [attr.aria-label]="'Status for order ' + order.id"
-              >
-                <option
-                  *ngFor="let status of orderStatuses"
-                  [value]="status"
+              <div class="status-select-wrap">
+                <select
+                  class="table-select status-select"
+                  [ngModel]="order.status"
+                  (ngModelChange)="updateStatus(order, $event)"
+                  [ngClass]="statusClass(order.status)"
+                  [disabled]="
+                    isLoading ||
+                    updatingStatusOrderId === order.id ||
+                    isTerminalStatus(order.status)
+                  "
+                  [attr.aria-label]="'Status for order ' + order.id"
                 >
-                  {{ status }}
-                </option>
-              </select>
-
-              <small *ngIf="updatingStatusOrderId === order.id">
-                Updating...
-              </small>
+                  <option
+                    *ngFor="let status of getStatusOptionsForOrder(order)"
+                    [value]="status"
+                  >
+                    {{ status }}
+                  </option>
+                </select>
+                <span class="status-spinner" *ngIf="updatingStatusOrderId === order.id"></span>
+              </div>
             </td>
 
-            <!-- Created date and time -->
+            <!-- Created At -->
             <td class="date-cell">
               <ng-container *ngIf="order.createdAt; else noCreatedAt">
                 <span class="created-date">
@@ -234,79 +373,103 @@
                   {{ order.createdAt | date:'hh:mm a' }}
                 </span>
               </ng-container>
-
               <ng-template #noCreatedAt>—</ng-template>
             </td>
 
-            <!-- Assign available rider -->
+            <!-- Assign Rider Dropdown (Fixed: DOM change event prevents cascading assignment bug) -->
             <td>
-              <select
-                class="form-select assign-select"
-                [ngModel]="order.riderId"
-                (ngModelChange)="assignRider(order, $event)"
-                [disabled]="
-                  assigningOrderId === order.id ||
-                  isTerminalStatus(order.status)
-                "
-                [attr.aria-label]="'Assign rider to order ' + order.id"
-              >
-                <option value="">Unassign Rider</option>
-
-                <option
-                  *ngFor="let rider of riders"
-                  [value]="rider.id"
+              <div class="assign-select-wrap">
+                <select
+                  class="table-select assign-select"
+                  [value]="order.riderId || ''"
+                  (change)="onAssignRiderChange(order, $event)"
+                  [disabled]="
+                    assigningOrderId === order.id ||
+                    isTerminalStatus(order.status)
+                  "
+                  [attr.aria-label]="'Assign rider to order ' + order.id"
                 >
-                  {{ rider.name }}
-                </option>
-              </select>
-
-              <small *ngIf="assigningOrderId === order.id">
-                Assigning...
-              </small>
+                  <option value="">{{ langService.t("Unassigned") }}</option>
+                  <option
+                    *ngFor="let rider of getRiderOptionsForOrder(order); trackBy: trackByRiderId"
+                    [value]="rider.id"
+                  >
+                    {{ rider.name }}
+                  </option>
+                </select>
+                <span class="assign-spinner" *ngIf="assigningOrderId === order.id"></span>
+              </div>
             </td>
 
-            <!-- Actions -->
-            <td>
-              <div class="action-buttons">
+            <!-- Action Buttons (View, Edit, Delete with Meaningful SVG Icons) -->
+            <td class="actions-cell">
+              <div class="action-btn-group">
+                <!-- View Details Button -->
                 <button
                   type="button"
-                  class="action-btn edit-btn"
+                  class="action-icon-btn view-btn"
+                  (click)="openViewOrder(order)"
+                  data-tooltip="View Details"
+                  aria-label="View order details"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+
+                <!-- Edit Button -->
+                <button
+                  type="button"
+                  class="action-icon-btn edit-btn"
                   (click)="openEditOrder(order)"
                   [disabled]="
                     editingOrderId === order.id ||
                     isTerminalStatus(order.status)
                   "
+                  data-tooltip="Edit Order"
+                  aria-label="Edit order"
                 >
-                  Edit
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
                 </button>
 
+                <!-- Delete Button -->
                 <button
                   type="button"
-                  class="action-btn delete-btn"
+                  class="action-icon-btn delete-btn"
                   (click)="requestDeleteOrder(order)"
                   [disabled]="deletingOrderId === order.id"
+                  data-tooltip="Delete Order"
+                  aria-label="Delete order"
                 >
-                  {{
-                    deletingOrderId === order.id
-                      ? 'Deleting...'
-                      : 'Delete'
-                  }}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
                 </button>
               </div>
             </td>
           </tr>
 
+          <!-- Empty State -->
           <tr *ngIf="!isLoading && totalRecords === 0">
-            <td colspan="10" class="empty-state">
-              <h5>No orders found</h5>
-              <p>Change your filters or create a new order.</p>
-
+            <td colspan="10" class="empty-table-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-table-icon">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <h5>No matching orders found</h5>
+              <p>Try adjusting your search criteria or clear active filters</p>
               <button
                 type="button"
-                class="btn btn-outline-danger btn-sm"
+                class="btn-clear-empty"
                 (click)="clearFilters()"
               >
-                Clear Filters
+                Reset All Filters
               </button>
             </td>
           </tr>
@@ -314,24 +477,29 @@
       </table>
     </div>
 
-    <!-- Pagination -->
+    <!-- Pagination Footer -->
     <div class="pagination-footer">
-      <p>
-        Showing {{ startRecord }}–{{ endRecord }} of
-        {{ totalRecords }} orders
+      <p class="pagination-summary">
+        Showing <strong>{{ startRecord }}</strong>–<strong>{{ endRecord }}</strong> of
+        <strong>{{ totalRecords }}</strong> orders
       </p>
 
       <div class="pagination-controls">
         <button
           type="button"
+          class="page-nav-btn prev-btn"
           [disabled]="currentPage === 1 || isLoading"
           (click)="changePage(currentPage - 1)"
         >
-          Previous
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          <span>Prev</span>
         </button>
 
         <button
           type="button"
+          class="page-num-btn"
           *ngFor="let page of pageNumbers"
           [class.active-page]="currentPage === page"
           [disabled]="isLoading"
@@ -342,189 +510,472 @@
 
         <button
           type="button"
+          class="page-nav-btn next-btn"
           [disabled]="currentPage >= totalPages || isLoading"
           (click)="changePage(currentPage + 1)"
         >
-          Next
+          <span>{{ langService.t("Next") }}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
         </button>
       </div>
     </div>
   </section>
 </div>
 
-<!-- Create / Edit Order Modal -->
+<!-- Drawer 1: View Order Details & Tracking Journey Drawer -->
 <div
-  class="modal-backdrop-custom"
-  *ngIf="showOrderModal"
-  (click)="closeOrderModal()"
+  class="drawer-backdrop"
+  *ngIf="selectedViewOrder"
+  (click)="closeViewOrder()"
 >
-  <div
-    class="order-modal"
+  <aside
+    class="order-drawer view-order-drawer"
     role="dialog"
     aria-modal="true"
-    aria-labelledby="orderModalTitle"
+    aria-labelledby="viewOrderDrawerTitle"
     (click)="$event.stopPropagation()"
   >
-    <div class="modal-heading">
-      <div>
-        <h2 id="orderModalTitle">
-          {{ isEditMode ? 'Edit Order' : 'Create Order' }}
-        </h2>
-        <p>
-          {{
-            isEditMode
-              ? 'Update the customer and delivery details.'
-              : 'Enter the customer and delivery details below.'
-          }}
+    <!-- Drawer Header -->
+    <header class="drawer-header">
+      <div class="drawer-header-content">
+        <div class="drawer-badge-row">
+          <span class="order-id-badge">ORD-JB{{ selectedViewOrder.id }}</span>
+          <span class="status-pill-badge" [ngClass]="statusClass(selectedViewOrder.status)">
+            {{ selectedViewOrder.status }}
+          </span>
+        </div>
+        <h2 id="viewOrderDrawerTitle" class="drawer-title">{{ langService.t("Order Lifecycle & Details") }}</h2>
+        <p class="drawer-subtitle">
+          Created: {{ selectedViewOrder.createdAt | date:'dd MMM yyyy, hh:mm a' }}
         </p>
       </div>
 
       <button
         type="button"
-        class="modal-close"
-        aria-label="Close modal"
+        class="drawer-close-btn"
+        aria-label="Close details"
+        (click)="closeViewOrder()"
+      >
+        &times;
+      </button>
+    </header>
+
+    <!-- Drawer Body -->
+    <div class="drawer-body">
+      <!-- 1. Customer Details Card (First Section) -->
+      <section class="drawer-card">
+        <h3 class="section-title">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          Customer Details
+        </h3>
+        <div class="card-details-grid">
+          <div class="detail-row">
+            <span class="detail-label">Customer Name</span>
+            <strong class="detail-value">{{ selectedViewOrder.customer || '—' }}</strong>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Contact Number</span>
+            <div class="detail-phone-val">
+              <span>{{ selectedViewOrder.mobile || '—' }}</span>
+              <a *ngIf="selectedViewOrder.mobile" [href]="'tel:' + selectedViewOrder.mobile" class="phone-call-btn" title="Call Customer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Delivery Route & Locations Card (Second Section) -->
+      <section class="drawer-card">
+        <h3 class="section-title">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          Delivery Route &amp; Map Coordinates
+        </h3>
+
+        <!-- Stylized Map Route Visual -->
+        <div class="route-map-preview">
+          <div class="route-point start-point">
+            <div class="pin-icon green-pin">A</div>
+            <div class="point-info">
+              <span class="point-badge">PICKUP</span>
+              <p class="point-text">{{ selectedViewOrder.pickup || 'Address not specified' }}</p>
+            </div>
+          </div>
+
+          <div class="route-connector-line">
+            <div class="delivery-bike-indicator">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="5" cy="18" r="3"></circle>
+                <circle cx="19" cy="18" r="3"></circle>
+                <path d="M12 18V9l4-3h3"></path>
+                <path d="M5 18l5-9h4l2 9"></path>
+              </svg>
+            </div>
+          </div>
+
+          <div class="route-point end-point">
+            <div class="pin-icon red-pin">B</div>
+            <div class="point-info">
+              <span class="point-badge red-badge">DELIVERY</span>
+              <p class="point-text">{{ selectedViewOrder.delivery || 'Address not specified' }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Shipment & Rider Assignment (Third Section Part A) -->
+      <section class="drawer-card">
+        <h3 class="section-title">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+          </svg>
+          Shipment &amp; Rider Assignment
+        </h3>
+        <div class="card-details-grid">
+          <div class="detail-row">
+            <span class="detail-label">Order Value</span>
+            <strong class="detail-value amount-text">
+              {{ selectedViewOrder.currency }} {{ selectedViewOrder.amount | number:'1.2-2' }}
+            </strong>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Assigned Rider</span>
+            <div class="rider-assigned-box">
+              <span class="rider-badge-dot" [class.active-dot]="!!selectedViewOrder.riderId"></span>
+              <strong class="detail-value">{{ selectedViewOrder.rider || 'Unassigned' }}</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Order Lifecycle Tracking Journey (Third Section Part B) -->
+      <section class="lifecycle-section">
+        <h3 class="section-title">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          {{ langService.t("Order Lifecycle Journey") }}
+        </h3>
+
+        <div class="timeline-container">
+          <!-- Step 1: Order Placed -->
+          <div class="timeline-item" [ngClass]="getTimelineStepState(selectedViewOrder, 'placed')">
+            <div class="timeline-marker">
+              <span class="timeline-dot"></span>
+              <span class="timeline-line"></span>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-title-row">
+                <strong>{{ langService.t("Order Placed") }}</strong>
+                <span class="timeline-time">{{ selectedViewOrder.createdAt | date:'hh:mm a' }}</span>
+              </div>
+              <p class="timeline-desc">{{ langService.t("Order registered in Jeebly dispatch system.") }}</p>
+            </div>
+          </div>
+
+          <!-- Step 2: Rider Assigned -->
+          <div class="timeline-item" [ngClass]="getTimelineStepState(selectedViewOrder, 'assigned')">
+            <div class="timeline-marker">
+              <span class="timeline-dot"></span>
+              <span class="timeline-line"></span>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-title-row">
+                <strong>{{ langService.t("Rider Assigned") }}</strong>
+                <span class="timeline-time" *ngIf="selectedViewOrder.riderId">Assigned</span>
+              </div>
+              <p class="timeline-desc">
+                {{ selectedViewOrder.riderId ? ('Assigned to ' + selectedViewOrder.rider) : 'Awaiting rider allocation' }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 3: Order Accepted -->
+          <div class="timeline-item" [ngClass]="getTimelineStepState(selectedViewOrder, 'accepted')">
+            <div class="timeline-marker">
+              <span class="timeline-dot"></span>
+              <span class="timeline-line"></span>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-title-row">
+                <strong>Order Accepted</strong>
+              </div>
+              <p class="timeline-desc">Rider confirmed dispatch and en route to pickup.</p>
+            </div>
+          </div>
+
+          <!-- Step 4: Picked Up -->
+          <div class="timeline-item" [ngClass]="getTimelineStepState(selectedViewOrder, 'picked_up')">
+            <div class="timeline-marker">
+              <span class="timeline-dot"></span>
+              <span class="timeline-line"></span>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-title-row">
+                <strong>Picked Up</strong>
+              </div>
+              <p class="timeline-desc">Shipment retrieved from sender location.</p>
+            </div>
+          </div>
+
+          <!-- Step 5: On The Way -->
+          <div class="timeline-item" [ngClass]="getTimelineStepState(selectedViewOrder, 'on_the_way')">
+            <div class="timeline-marker">
+              <span class="timeline-dot"></span>
+              <span class="timeline-line"></span>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-title-row">
+                <strong>On The Way</strong>
+              </div>
+              <p class="timeline-desc">Package in transit to customer delivery address.</p>
+            </div>
+          </div>
+
+          <!-- Step 6: Delivered -->
+          <div class="timeline-item" [ngClass]="getTimelineStepState(selectedViewOrder, 'delivered')">
+            <div class="timeline-marker">
+              <span class="timeline-dot"></span>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-title-row">
+                <strong>Delivered</strong>
+              </div>
+              <p class="timeline-desc">
+                {{ selectedViewOrder.status === 'Delivered' ? '{{ langService.t("Package successfully handed over to customer.") }}' : 'Final delivery confirmation pending.' }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Drawer Footer - Only Close button as requested -->
+    <footer class="drawer-footer">
+      <button
+        type="button"
+        class="btn-drawer-secondary"
+        (click)="closeViewOrder()"
+      >
+        Close
+      </button>
+    </footer>
+  </aside>
+</div>
+
+<!-- Drawer 2: Create / Edit Order Drawer (Sidebar Layout matching Rider module) -->
+<div
+  class="drawer-backdrop"
+  *ngIf="showOrderModal"
+  (click)="closeOrderModal()"
+>
+  <aside
+    class="order-drawer form-order-drawer"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="orderDrawerTitle"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="drawer-header">
+      <div class="drawer-header-content">
+        <h2 id="orderDrawerTitle" class="drawer-title">
+          {{ isEditMode ? langService.t('Edit Order Details') : langService.t('Create New Delivery Order') }}
+        </h2>
+        <p class="drawer-subtitle">
+          {{ isEditMode ? 'Update shipment details, location coordinates, or pricing.' : 'Fill in the customer information and delivery coordinates.' }}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="drawer-close-btn"
+        aria-label="Close drawer"
         [disabled]="isSaving"
         (click)="closeOrderModal()"
       >
         &times;
       </button>
-    </div>
+    </header>
 
-    <form #orderForm="ngForm" (ngSubmit)="saveOrder()" novalidate>
-      <div class="modal-body-custom">
+    <form #orderForm="ngForm" (ngSubmit)="saveOrder()" novalidate class="drawer-form-wrap">
+      <div class="drawer-body">
         <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
           {{ errorMessage }}
         </div>
 
-        <div class="mb-3">
-          <label for="customerName" class="form-label">
-            Customer Name <span class="required-asterisk">*</span>
+        <!-- Customer Name -->
+        <div class="drawer-field-group mb-3">
+          <label for="customerName" class="drawer-label">
+            {{ langService.t("Customer Name") }} <span class="required-asterisk">*</span>
           </label>
-
           <input
             id="customerName"
             name="customer"
             type="text"
-            class="form-control"
+            class="custom-input"
             [(ngModel)]="newOrder.customer"
             #customerName="ngModel"
             required
             maxlength="100"
-            placeholder="Enter customer name"
+            placeholder="Enter full customer name"
           />
-
           <small
-            class="text-danger"
-            *ngIf="
-              customerName.invalid &&
-              (customerName.dirty || customerName.touched)
-            "
+            class="text-danger mt-1 d-block"
+            *ngIf="customerName.invalid && (customerName.dirty || customerName.touched)"
           >
             Customer name is required (maximum 100 characters).
           </small>
         </div>
 
-        <div class="mb-3">
-          <label for="customerMobile" class="form-label">
-            Mobile Number
+        <!-- Mobile Number -->
+        <div class="drawer-field-group mb-3">
+          <label for="customerMobile" class="drawer-label">
+            {{ langService.t("Mobile Number") }} <span class="required-asterisk">*</span>
           </label>
-
           <input
             id="customerMobile"
             name="mobile"
             type="tel"
-            class="form-control"
+            class="custom-input"
             [(ngModel)]="newOrder.mobile"
+            #customerMobile="ngModel"
+            required
             maxlength="20"
-            placeholder="Enter mobile number"
+            placeholder="e.g. 0501234567 (10 digits)"
           />
+          <small
+            class="text-danger mt-1 d-block"
+            *ngIf="customerMobile.invalid && (customerMobile.dirty || customerMobile.touched)"
+          >
+            Valid customer contact number is required (10 digits).
+          </small>
         </div>
 
-        <div class="mb-3">
-          <label for="pickupAddress" class="form-label">
-            Pickup Address
+      
+        <div class="drawer-field-group mb-3">
+          <label for="pickupAddress" class="drawer-label">
+            {{ langService.t("Pickup Address") }} <span class="required-asterisk">*</span>
           </label>
-
-          <input
-            id="pickupAddress"
-            name="pickup"
-            type="text"
-            class="form-control"
-            [(ngModel)]="newOrder.pickup"
-            maxlength="255"
-            placeholder="Enter pickup address"
-          />
+          <div class="input-icon-wrap">
+            <svg class="input-icon text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <input
+              id="pickupAddress"
+              name="pickup"
+              type="text"
+              class="custom-input with-icon"
+              [(ngModel)]="newOrder.pickup"
+              #pickupAddress="ngModel"
+              required
+              maxlength="255"
+              placeholder="Enter pickup location or address"
+            />
+          </div>
+          <small
+            class="text-danger mt-1 d-block"
+            *ngIf="pickupAddress.invalid && (pickupAddress.dirty || pickupAddress.touched)"
+          >
+            Pickup address is required.
+          </small>
         </div>
 
-        <div class="mb-3">
-          <label for="deliveryAddress" class="form-label">
-            Delivery Address
+        <div class="drawer-field-group mb-3">
+          <label for="deliveryAddress" class="drawer-label">
+            {{ langService.t("Delivery Destination") }} <span class="required-asterisk">*</span>
           </label>
-
-          <input
-            id="deliveryAddress"
-            name="delivery"
-            type="text"
-            class="form-control"
-            [(ngModel)]="newOrder.delivery"
-            maxlength="255"
-            placeholder="Enter delivery address"
-          />
+          <div class="input-icon-wrap">
+            <svg class="input-icon text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <input
+              id="deliveryAddress"
+              name="delivery"
+              type="text"
+              class="custom-input with-icon"
+              [(ngModel)]="newOrder.delivery"
+              #deliveryAddress="ngModel"
+              required
+              maxlength="255"
+              placeholder="Enter delivery destination or landmark"
+            />
+          </div>
+          <small
+            class="text-danger mt-1 d-block"
+            *ngIf="deliveryAddress.invalid && (deliveryAddress.dirty || deliveryAddress.touched)"
+          >
+            Delivery destination is required.
+          </small>
         </div>
 
+        <!-- Amount and Currency -->
         <div class="row g-3">
           <div class="col-12 col-sm-6">
-            <label for="orderAmount" class="form-label">
-              Amount <span class="required-asterisk">*</span>
+            <label for="orderAmount" class="drawer-label">
+              {{ langService.t("Order Value / Amount") }} <span class="required-asterisk">*</span>
             </label>
-
             <input
               id="orderAmount"
               name="amount"
               type="number"
-              class="form-control"
+              class="custom-input"
               [(ngModel)]="newOrder.amount"
               #orderAmount="ngModel"
               required
-              min="0"
+              min="0.01"
               step="0.01"
+              placeholder="0.00"
             />
-
             <small
-              class="text-danger"
-              *ngIf="
-                orderAmount.invalid &&
-                (orderAmount.dirty || orderAmount.touched)
-              "
+              class="text-danger mt-1 d-block"
+              *ngIf="orderAmount.invalid && (orderAmount.dirty || orderAmount.touched)"
             >
-              Enter a valid non-negative amount.
+              Order amount is required and must be greater than 0.
             </small>
           </div>
 
           <div class="col-12 col-sm-6">
-            <label for="orderCurrency" class="form-label">
-              Currency <span class="required-asterisk">*</span>
+            <label for="orderCurrency" class="drawer-label">
+              {{ langService.t("Currency") }} <span class="required-asterisk">*</span>
             </label>
-
-            <select
-              id="orderCurrency"
-              name="currency"
-              class="form-select"
-              [(ngModel)]="newOrder.currency"
-              required
-            >
-              <option value="AED">AED</option>
-              <option value="INR">INR</option>
-              <option value="USD">USD</option>
-            </select>
+            <div class="custom-select-wrap">
+              <select
+                id="orderCurrency"
+                name="currency"
+                class="custom-select"
+                [(ngModel)]="newOrder.currency"
+                required
+              >
+                <option value="AED">AED (UAE Dirham)</option>
+                <option value="INR">INR (Indian Rupee)</option>
+                <option value="USD">USD (US Dollar)</option>
+              </select>
+              <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="modal-footer-custom">
+      <!-- Drawer Footer -->
+      <footer class="drawer-footer">
         <button
           type="button"
-          class="cancel-btn"
+          class="btn-drawer-secondary"
           [disabled]="isSaving"
           (click)="closeOrderModal()"
         >
@@ -533,21 +984,18 @@
 
         <button
           type="submit"
-          class="create-btn"
+          class="btn-drawer-primary"
           [disabled]="isSaving || orderForm.invalid"
         >
-          {{
-            isSaving
-              ? (isEditMode ? 'Saving...' : 'Creating...')
-              : (isEditMode ? 'Save Changes' : 'Create Order')
-          }}
+          <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-2"></span>
+          {{ isSaving ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save Changes' : 'Create Order') }}
         </button>
-      </div>
+      </footer>
     </form>
-  </div>
+  </aside>
 </div>
 
-<!-- Create Order Confirmation Modal -->
+<!-- Modal 3: Create Confirmation Modal -->
 <div
   *ngIf="showCreateConfirmation"
   class="modal-backdrop-custom confirmation-backdrop"
@@ -562,45 +1010,47 @@
   >
     <div class="modal-heading">
       <div>
-        <h2 id="confirmCreateOrderTitle">Create Order</h2>
-        <p>Please confirm order creation.</p>
+        <h2 id="confirmCreateOrderTitle">Confirm Order Creation</h2>
+        <p>Please review before submitting into the dispatch system.</p>
       </div>
       <button
         type="button"
-        class="btn-close"
+        class="modal-close"
         [disabled]="isSaving"
         (click)="cancelCreateOrder()"
         aria-label="Close"
-      ></button>
+      >
+        &times;
+      </button>
     </div>
 
     <div class="modal-body-custom">
-      <p class="mb-0">Are you sure you want to create this order?</p>
+      <p class="mb-0">Are you sure you want to create and register this order?</p>
     </div>
 
     <div class="modal-footer-custom">
       <button
         type="button"
-        class="cancel-btn"
+        class="btn-modal-secondary"
         [disabled]="isSaving"
         (click)="cancelCreateOrder()"
       >
-        No
+        Go Back
       </button>
 
       <button
         type="button"
-        class="create-btn"
+        class="btn-modal-primary"
         [disabled]="isSaving"
         (click)="confirmCreateOrder()"
       >
-        {{ isSaving ? 'Creating...' : 'Yes' }}
+        {{ isSaving ? 'Creating...' : 'Yes, Create Order' }}
       </button>
     </div>
   </div>
 </div>
 
-<!-- Delete Order Confirmation Modal -->
+<!-- Modal 4: Delete Confirmation Modal -->
 <div
   *ngIf="showDeleteDialog"
   class="modal-backdrop-custom confirmation-backdrop"
@@ -614,30 +1064,41 @@
     (click)="$event.stopPropagation()"
   >
     <div class="modal-heading">
-      <div>
-        <h2 id="confirmDeleteOrderTitle">Delete Order?</h2>
-        <p>This action cannot be undone.</p>
+      <div class="modal-title-with-icon">
+        <div class="modal-header-icon red-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </div>
+        <div>
+          <h2 id="confirmDeleteOrderTitle">Delete Order Confirmation</h2>
+          <p>This action is irreversible and permanently removes the record.</p>
+        </div>
       </div>
       <button
         type="button"
-        class="btn-close"
+        class="modal-close"
         [disabled]="deletingOrderId !== null"
         (click)="cancelDeleteOrder()"
         aria-label="Close"
-      ></button>
+      >
+        &times;
+      </button>
     </div>
 
     <div class="modal-body-custom">
       <p class="mb-0" *ngIf="deletingOrder">
-        Are you sure you want to delete
-        <strong>ORD-JB{{ deletingOrder.id }}</strong> ({{ deletingOrder.customer }})?
+        Are you sure you want to permanently delete order
+        <strong>#ORD-JB{{ deletingOrder.id }}</strong> for customer
+        <strong>{{ deletingOrder.customer }}</strong>?
       </p>
     </div>
 
     <div class="modal-footer-custom">
       <button
         type="button"
-        class="cancel-btn"
+        class="btn-modal-secondary"
         [disabled]="deletingOrderId !== null"
         (click)="cancelDeleteOrder()"
       >
@@ -646,11 +1107,11 @@
 
       <button
         type="button"
-        class="delete-confirm-btn"
+        class="btn-modal-danger"
         [disabled]="deletingOrderId !== null"
         (click)="confirmDeleteOrder()"
       >
-        {{ deletingOrderId !== null ? 'Deleting...' : 'Delete Order' }}
+        {{ deletingOrderId !== null ? 'Deleting...' : 'Delete Permanently' }}
       </button>
     </div>
   </div>

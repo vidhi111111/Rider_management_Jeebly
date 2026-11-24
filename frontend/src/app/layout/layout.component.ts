@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { BreadcrumbComponent } from '../shared/breadcrumb/breadcrumb.component';
 import { AuthService } from '../core/services/auth.service';
+import { LanguageService } from '../core/services/language.service';
 
 @Component({
   selector: 'app-layout',
@@ -16,25 +17,31 @@ import { AuthService } from '../core/services/auth.service';
   styleUrls: ['./layout.component.css']
 })
 export class LayoutComponent implements OnInit {
-  isDarkMode = false;
-  isSidebarOpen = false;
+  isSidebarOpen = false; // Mobile drawer open
+  isSidebarCollapsed = false; // Desktop collapse mode
   isProfileMenuOpen = false;
 
   constructor(
     private readonly authService: AuthService,
-    private readonly router: Router
+    private readonly router: Router,
+    public readonly langService: LanguageService
   ) {}
 
   ngOnInit(): void {
-    const savedTheme = localStorage.getItem('theme');
+    // Clean up any legacy dark-mode class
+    document.body.classList.remove('dark-mode');
+    localStorage.removeItem('theme');
 
-    this.isDarkMode = savedTheme === 'dark';
-
-    document.body.classList.toggle('dark-mode', this.isDarkMode);
+    const savedCollapse = localStorage.getItem('sidebar_collapsed');
+    this.isSidebarCollapsed = savedCollapse === 'true';
   }
 
   get currentUser() {
     return this.authService.getUser();
+  }
+
+  get userAvatar(): string | null {
+    return localStorage.getItem('profile_avatar') || this.currentUser?.avatar || null;
   }
 
   getUserInitial(): string {
@@ -43,7 +50,12 @@ export class LayoutComponent implements OnInit {
   }
 
   toggleSidebar(): void {
-    this.isSidebarOpen = !this.isSidebarOpen;
+    if (window.innerWidth <= 900) {
+      this.isSidebarOpen = !this.isSidebarOpen;
+    } else {
+      this.isSidebarCollapsed = !this.isSidebarCollapsed;
+      localStorage.setItem('sidebar_collapsed', String(this.isSidebarCollapsed));
+    }
   }
 
   closeSidebar(): void {
@@ -60,19 +72,8 @@ export class LayoutComponent implements OnInit {
   }
 
   openChangePassword(): void {
-  this.isProfileMenuOpen = false;
-  this.router.navigate(['/change-password']);
-}
-
-  toggleTheme(): void {
-    this.isDarkMode = !this.isDarkMode;
-
-    document.body.classList.toggle('dark-mode', this.isDarkMode);
-
-    localStorage.setItem(
-      'theme',
-      this.isDarkMode ? 'dark' : 'light'
-    );
+    this.isProfileMenuOpen = false;
+    this.router.navigate(['/change-password']);
   }
 
   logout(): void {
@@ -80,10 +81,6 @@ export class LayoutComponent implements OnInit {
     this.isSidebarOpen = false;
 
     this.authService.logout();
-
-    localStorage.removeItem('theme');
-    document.body.classList.remove('dark-mode');
-
     this.router.navigate(['/login']);
   }
 }

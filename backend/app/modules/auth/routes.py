@@ -143,3 +143,39 @@ def login():
           $ref: '#/definitions/ErrorResponse'
     """
     return controller.login()
+
+
+@auth_bp.post("/google")
+def google_login():
+    """
+    Authenticate user via Google ID Token
+    ---
+    tags:
+      - auth
+    summary: Authenticate user using Google Sign-In & issue JWT token
+    description: Verifies Google OAuth2 ID token, finds or creates user account, and returns signed JWT token.
+    operationId: auth_google_login
+    security: []
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        description: Google credential token
+        schema:
+          type: object
+          required:
+            - credential
+          properties:
+            credential:
+              type: string
+    responses:
+      200:
+        description: Google authentication successful
+      400:
+        description: Invalid token
+    """
+    return controller.google_login()

@@ -39,6 +39,10 @@ export interface RiderQueryFilters {
   search?: string;
   status?: string;
   availability?: string;
+  date_from?: string;
+  date_to?: string;
+  created_from?: string;
+  created_to?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
@@ -64,6 +68,18 @@ export class RiderService {
     }
     if (filters.availability) {
       params = params.set('availability', filters.availability);
+    }
+    if (filters.date_from) {
+      params = params.set('date_from', filters.date_from);
+    }
+    if (filters.date_to) {
+      params = params.set('date_to', filters.date_to);
+    }
+    if (filters.created_from) {
+      params = params.set('created_from', filters.created_from);
+    }
+    if (filters.created_to) {
+      params = params.set('created_to', filters.created_to);
     }
     if (filters.sortBy) {
       params = params.set('sortBy', filters.sortBy);

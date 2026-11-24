@@ -26,6 +26,8 @@ class RiderController:
         availability = request.args.get("availability", "").strip().lower()
         sort_by = request.args.get("sortBy", "id").strip()
         sort_order = request.args.get("sortOrder", "asc").strip().lower()
+        date_from = request.args.get("date_from", request.args.get("created_from", "")).strip()
+        date_to = request.args.get("date_to", request.args.get("created_to", "")).strip()
 
         success, message, data, status_code = self.rider_service.get_paginated_riders(
             page=page,
@@ -34,7 +36,9 @@ class RiderController:
             status=status,
             availability=availability,
             sort_by=sort_by,
-            sort_order=sort_order
+            sort_order=sort_order,
+            date_from=date_from,
+            date_to=date_to
         )
 
         if not success:

@@ -5,6 +5,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, finalize, takeUntil, timeout } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { RiderService } from '../../core/services/rider.service';
+import { LanguageService } from '../../core/services/language.service';
 import { ToastComponent, ToastType } from '../../shared/toast/toast.component';
 
 type RiderStatus = 'active' | 'inactive';
@@ -68,9 +70,12 @@ export class RidersComponent implements OnInit, OnDestroy {
   search = '';
   selectedStatus = '';
   selectedAvailability = '';
+  dateFrom = '';
+  dateTo = '';
+  dateRangeError = '';
   sortBy = 'id';
   sortOrder: 'asc' | 'desc' = 'asc';
-  filtersExpanded = false;
+  filtersExpanded = true;
 
   openActionMenuId: number | null = null;
   showRiderModal = false;
@@ -109,7 +114,9 @@ export class RidersComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly http: HttpClient,
-    private readonly fb: FormBuilder
+    private readonly fb: FormBuilder,
+    private readonly riderService: RiderService,
+    public readonly langService: LanguageService
   ) {
     this.riderForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
@@ -175,7 +182,7 @@ export class RidersComponent implements OnInit, OnDestroy {
       this.toastTimer = null;
     }
 
-    this.toastMessage = message;
+    this.toastMessage = this.langService.t(message);
     this.toastType = type;
     this.showToast = true;
 
@@ -250,6 +257,32 @@ export class RidersComponent implements OnInit, OnDestroy {
     this.loadRiders();
   }
 
+  onDateFromChange(value: string): void {
+    this.dateFrom = value;
+    this.validateAndFilterDates();
+  }
+
+  onDateToChange(value: string): void {
+    this.dateTo = value;
+    this.validateAndFilterDates();
+  }
+
+  private validateAndFilterDates(): void {
+    if (this.dateFrom && this.dateTo && this.dateFrom > this.dateTo) {
+      this.dateRangeError = 'Created From date cannot be later than Created To date.';
+      return;
+    }
+    this.dateRangeError = '';
+    this.currentPage = 1;
+    this.loadRiders();
+  }
+
+  onSortOrderChange(value: string): void {
+    this.sortOrder = value === 'desc' ? 'desc' : 'asc';
+    this.currentPage = 1;
+    this.loadRiders();
+  }
+
   toggleSortOrder(): void {
     this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
     this.currentPage = 1;
@@ -260,6 +293,9 @@ export class RidersComponent implements OnInit, OnDestroy {
     this.search = '';
     this.selectedStatus = '';
     this.selectedAvailability = '';
+    this.dateFrom = '';
+    this.dateTo = '';
+    this.dateRangeError = '';
     this.sortBy = 'id';
     this.sortOrder = 'asc';
     this.currentPage = 1;
@@ -310,6 +346,14 @@ export class RidersComponent implements OnInit, OnDestroy {
 
     if (this.selectedAvailability) {
       params = params.set('availability', this.selectedAvailability);
+    }
+
+    if (this.dateFrom) {
+      params = params.set('date_from', this.dateFrom);
+    }
+
+    if (this.dateTo) {
+      params = params.set('date_to', this.dateTo);
     }
 
     this.http.get<ApiResponse<RidersData>>(this.apiUrl, { params })

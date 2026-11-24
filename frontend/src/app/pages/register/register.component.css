@@ -1,129 +1,686 @@
-.register-page {
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+/* ========================================================
+   FULL SCREEN AUTH CONTAINER (EDGE-TO-EDGE)
+   ======================================================== */
+.fullscreen-auth-container {
+  width: 100vw;
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  background: #f4f7fb;
-}
-
-.register-card {
-  border: 1px solid #e2e6ea !important;
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08) !important;
-}
-
-.register-card h1 {
-  color: #163758;
-}
-
-.register-card .text-secondary {
-  color: #6c757d !important;
-}
-
-.form-label {
-  color: #163758;
-}
-
-.form-control {
-  border: 1px solid #d9dee4;
-  border-radius: 6px;
-}
-
-.form-control:focus {
-  border-color: #163758;
-  box-shadow: 0 0 0 0.2rem rgba(22, 55, 88, 0.12);
-}
-
-.password-wrapper {
-  position: relative;
-}
-
-.password-wrapper .form-control {
-  padding-right: 48px;
-}
-
-.password-hidden {
-  -webkit-text-security: disc;
-  text-security: disc;
-}
-
-.password-toggle {
-  position: absolute;
-  top: 50%;
-  right: 10px;
-  transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
+  margin: 0;
   padding: 0;
-  border: none;
-  background: transparent;
+  display: grid;
+  grid-template-columns: 42% 58%;
+  overflow-x: hidden;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-sizing: border-box;
+}
+
+/* ========================================================
+   LEFT BRAND PANEL (42% WIDTH, DARKER JEEBLY NAVY THEME)
+   ======================================================== */
+.brand-panel {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(165deg, #1c456e 0%, #163758 45%, #0e2945 100%);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(70px, 9vh, 110px) 36px 30px 36px;
+  height: 100vh;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+/* Ambient Background SVG Waves */
+.brand-bg-shapes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.wave-bg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.brand-inner-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+}
+
+/* Top Section Wrapper (Logo + Headline) */
+.brand-top-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: clamp(20px, 4vh, 45px);
+}
+
+/* Official Logo Pill Header - Centered */
+.brand-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  z-index: 2;
+  width: 100%;
 }
 
-.password-toggle svg {
+.official-logo-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 10px 22px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.official-logo-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.official-logo-image {
+  height: 52px;
+  width: auto;
+  max-width: 180px;
+  object-fit: contain;
+  display: block;
+}
+
+/* Hero Typography (Montserrat) - Centered */
+.brand-hero-section {
+  margin-top: 36px;
+  width: 100%;
+  text-align: center;
+}
+
+.brand-heading {
+  font-family: 'Montserrat', sans-serif;
+  font-size: clamp(28px, 2.2vw, 36px);
+  font-weight: 800;
+  line-height: 1.22;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.5px;
+  text-align: center;
+}
+
+.pink-accent {
+  color: #DC1D47;
+}
+
+/* Illustration Wrapper - Centered */
+.brand-illustration-wrapper {
+  margin: auto auto 0 auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  padding: 20px 0 0 0;
+}
+
+.hero-illustration {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  overflow: visible;
+  display: block;
+  margin: 0 auto;
+}
+
+/* ========================================================
+   RIGHT FORM PANEL (POPPINS BODY, MONTSERRAT HEADER)
+   ======================================================== */
+.form-panel {
+  background-color: #ffffff;
+  background-image: radial-gradient(circle at 100% 0%, rgba(220, 29, 71, 0.06) 0%, rgba(22, 55, 88, 0.02) 40%, transparent 65%);
+  padding: 40px 64px 32px 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100vh;
+  box-sizing: border-box;
+  overflow-y: auto;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Top Switch Link */
+.top-switch-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  width: 100%;
+}
+
+.account-switch-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Language Switcher Button in Jeebly Colors */
+.jeebly-lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  background-color: #ffffff;
+  color: #163758;
+  border: 1.5px solid #163758;
+  border-radius: 50px;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  box-shadow: 0 2px 6px rgba(22, 55, 88, 0.08);
+  white-space: nowrap;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.jeebly-lang-icon {
+  width: 15px;
+  height: 15px;
+  stroke: #DC1D47;
+  flex-shrink: 0;
+  transition: stroke 0.25s ease, transform 0.25s ease;
+}
+
+.jeebly-lang-text {
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.jeebly-lang-btn:hover {
+  background-color: #DC1D47;
+  color: #ffffff;
+  border-color: #DC1D47;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(220, 29, 71, 0.28);
+}
+
+.jeebly-lang-btn:hover .jeebly-lang-icon {
+  stroke: #ffffff;
+  transform: rotate(20deg);
+}
+
+.jeebly-lang-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(220, 29, 71, 0.2);
+}
+
+.switch-prompt {
+  color: #64748b;
+  font-weight: 400;
+}
+
+.switch-action {
+  color: #DC1D47;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s, transform 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.switch-action:hover {
+  color: #b81438;
+}
+
+.arrow-sym {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.switch-action:hover .arrow-sym {
+  transform: translateX(3px);
+}
+
+/* Inner Form Container Centered */
+.form-inner-content {
+  width: 100%;
+  max-width: 470px;
+  margin: auto;
+}
+
+.form-header-block {
+  margin: 12px 0 28px 0;
+}
+
+.form-main-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 34px;
+  font-weight: 800;
+  color: #163758;
+  letter-spacing: -0.6px;
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* Alerts */
+.alert-banner {
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 13.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.alert-banner.alert-success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.alert-banner.alert-danger {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.alert-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Custom Field Groups */
+.registration-form {
+  width: 100%;
+}
+
+.custom-field-group {
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.custom-field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #163758;
+  margin-bottom: 6px;
+  font-family: var(--font-header, 'Montserrat', sans-serif);
+}
+
+.custom-input-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.field-leading-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 20px;
   height: 20px;
-  fill: none;
-  stroke: #6c757d;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  color: #64748b;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.password-toggle:hover svg {
-  stroke: #163758;
+.field-leading-icon svg {
+  width: 19px;
+  height: 19px;
 }
 
-.password-toggle:focus {
-  outline: none;
-  box-shadow: none;
-}
-
-.register-card .btn-primary {
-  background: #163758;
-  border-color: #163758;
-  border-radius: 6px;
-}
-
-.register-card .btn-primary:hover {
-  background: #145487;
-  border-color: #145487;
-}
-
-.login-link {
+.custom-text-input {
+  width: 100%;
+  height: 52px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  padding: 0 44px 0 48px;
   font-size: 14px;
-  color: #6c757d;
+  color: #0f172a;
+  font-family: 'Poppins', sans-serif;
+  transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
 }
 
-.login-link a {
-  color: #dc1d47;
-  text-decoration: none;
+.custom-text-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.custom-text-input:focus {
+  outline: none;
+  border-color: #DC1D47;
+  box-shadow: 0 0 0 3.5px rgba(220, 29, 71, 0.14);
+}
+
+.custom-input-box.has-error .custom-text-input {
+  border-color: #DC1D47;
+  background-color: #fffdfd;
+}
+
+.field-trailing-btn {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #64748b;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: color 0.2s;
+}
+
+.field-trailing-btn:hover {
+  color: #163758;
+}
+
+.field-trailing-btn svg {
+  width: 19px;
+  height: 19px;
+}
+
+.input-error-msg {
+  font-size: 12px;
+  color: #DC1D47;
+  font-weight: 500;
+  margin-top: 4px;
+  margin-left: 4px;
+  line-height: 1.3;
+}
+
+/* Submit Action Button (Jeebly Red #DC1D47) */
+.submit-action-btn {
+  width: 100%;
+  height: 52px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #DC1D47 0%, #b81438 100%);
+  color: #ffffff;
+  font-size: 15px;
   font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 16px rgba(220, 29, 71, 0.35);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 6px;
+  font-family: 'Poppins', sans-serif;
 }
 
-.login-link a:hover {
-  text-decoration: underline;
+.submit-action-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e82450 0%, #a01030 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(220, 29, 71, 0.45);
 }
 
-button:disabled {
+.submit-action-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(220, 29, 71, 0.3);
+}
+
+.submit-action-btn:disabled {
+  opacity: 0.65;
   cursor: not-allowed;
-  opacity: 0.7;
 }
 
-.password-validation-message {
-  color: var(--jeebly-red, #dc1d47) !important;
-  font-size: 13px;
-  line-height: 1.4;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+.action-btn-icon {
+  width: 19px;
+  height: 19px;
 }
 
-:host-context(body.dark-mode) .password-validation-message,
-:host-context(.dark-theme) .password-validation-message,
-[data-theme="dark"] .password-validation-message {
-  color: #ff4d6d !important;
+.btn-text-content {
+  letter-spacing: -0.1px;
+}
+
+/* Auth Divider */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 18px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.divider-text {
+  padding: 0 14px;
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Social Buttons Row */
+.social-auth-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.social-auth-btn {
+  height: 46px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Poppins', sans-serif;
+}
+
+.social-auth-btn:hover {
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+.social-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Terms Footer */
+.terms-footer-note {
+  margin-top: 22px;
+  text-align: center;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.footer-legal-link {
+  color: #DC1D47;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.footer-legal-link:hover {
+  text-decoration: underline;
+  color: #b81438;
+}
+
+.bottom-spacer {
+  height: 8px;
+}
+
+/* ========================================================
+   RESPONSIVE DESIGN (TABLET & MOBILE)
+   ======================================================== */
+@media (max-width: 991px) {
+  .fullscreen-auth-container {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-panel {
+    height: auto;
+    padding: 36px 32px 30px 32px;
+  }
+
+  .brand-top-section {
+    margin-top: 0;
+  }
+
+  .brand-heading {
+    font-size: 30px;
+  }
+
+  .hero-illustration {
+    max-width: 340px;
+  }
+
+  .form-panel {
+    height: auto;
+    padding: 36px 32px 30px 32px;
+  }
+}
+
+@media (max-width: 575px) {
+  .brand-panel {
+    padding: 28px 20px 24px 20px;
+  }
+
+  .brand-heading {
+    font-size: 26px;
+  }
+
+  .hero-illustration {
+    max-width: 280px;
+  }
+
+  .form-panel {
+    padding: 28px 20px 24px 20px;
+  }
+
+  .form-main-title {
+    font-size: 26px;
+  }
+
+  .social-auth-container {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+/* ========================================================
+   RTL (UAE ARABIC) STYLES
+   ======================================================== */
+:host-context([dir="rtl"]) .fullscreen-auth-container,
+[dir="rtl"] .fullscreen-auth-container {
+  font-family: 'Cairo', 'Poppins', -apple-system, sans-serif;
+  direction: rtl;
+}
+
+:host-context([dir="rtl"]) .brand-heading,
+:host-context([dir="rtl"]) .form-main-title,
+[dir="rtl"] .brand-heading,
+[dir="rtl"] .form-main-title {
+  font-family: 'Cairo', 'Montserrat', sans-serif;
+  letter-spacing: normal;
+}
+
+:host-context([dir="rtl"]) .brand-heading,
+[dir="rtl"] .brand-heading {
+  line-height: 1.35;
+}
+
+:host-context([dir="rtl"]) .form-panel,
+[dir="rtl"] .form-panel {
+  text-align: right;
+  background-image: radial-gradient(circle at 0% 0%, rgba(220, 29, 71, 0.06) 0%, rgba(22, 55, 88, 0.02) 40%, transparent 65%);
+}
+
+:host-context([dir="rtl"]) .field-leading-icon,
+[dir="rtl"] .field-leading-icon {
+  left: auto;
+  right: 16px;
+}
+
+:host-context([dir="rtl"]) .custom-text-input,
+[dir="rtl"] .custom-text-input {
+  padding-left: 48px;
+  padding-right: 48px;
+  text-align: right;
+  font-family: 'Cairo', 'Poppins', sans-serif;
+}
+
+:host-context([dir="rtl"]) .field-trailing-btn,
+[dir="rtl"] .field-trailing-btn {
+  right: auto;
+  left: 14px;
+}
+
+:host-context([dir="rtl"]) .arrow-sym,
+[dir="rtl"] .arrow-sym {
+  display: inline-block;
+  transform: scaleX(-1);
+}
+
+:host-context([dir="rtl"]) .switch-action:hover .arrow-sym,
+[dir="rtl"] .switch-action:hover .arrow-sym {
+  transform: scaleX(-1) translateX(3px);
+}
+
+:host-context([dir="rtl"]) .action-btn-icon,
+[dir="rtl"] .action-btn-icon {
+  transform: scaleX(-1);
+  margin-right: 0;
+  margin-left: 8px;
+}
+
+:host-context([dir="rtl"]) .remember-checkbox,
+[dir="rtl"] .remember-checkbox {
+  margin-right: 0;
+  margin-left: 8px;
+}
+
+:host-context([dir="rtl"]) .input-error-msg,
+[dir="rtl"] .input-error-msg {
+  text-align: right;
 }

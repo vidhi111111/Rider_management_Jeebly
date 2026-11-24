@@ -10,6 +10,7 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     mobile = db.Column(db.String(10), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
+    profile_image = db.Column(db.Text, nullable=True)
 
 
 class Rider(db.Model):
@@ -23,7 +24,7 @@ class Rider(db.Model):
     vehicle = db.Column(db.String(100), nullable=True)
     availability = db.Column(db.String(20), nullable=True, default="available", index=True)
     date = db.Column(db.Date, nullable=True)
-    profile_image = db.Column(db.String(255), nullable=True)
+    profile_image = db.Column(db.Text, nullable=True)
 
     __table_args__ = (
         db.Index("ix_rider_status_availability", "status", "availability"),

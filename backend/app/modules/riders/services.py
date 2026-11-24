@@ -43,13 +43,17 @@ class RiderService:
         status: str,
         availability: str,
         sort_by: str,
-        sort_order: str
+        sort_order: str,
+        date_from: Optional[str] = "",
+        date_to: Optional[str] = ""
     ) -> Tuple[bool, str, Any, int]:
         try:
             pagination = self.rider_repo.filter_and_paginate(
                 search=search,
                 status=status,
                 availability=availability,
+                date_from=date_from,
+                date_to=date_to,
                 sort_by=sort_by,
                 sort_order=sort_order,
                 page=page,
