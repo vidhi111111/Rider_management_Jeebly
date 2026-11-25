@@ -269,8 +269,8 @@
               <td>
                 <span
                   class="status-badge"
-                  [ngClass]="availabilityClass(rider.availability)">
-                  {{ langService.t(rider.availability) }}
+                  [ngClass]="availabilityClass(rider.availability, rider.status)">
+                  {{ langService.t(availabilityLabel(rider.availability, rider.status)) }}
                 </span>
               </td>
 
@@ -516,16 +516,18 @@
         </div>
 
         <div class="form-field">
-          <label for="riderAvailability">Availability <span class="required-asterisk">*</span></label>
+          <label for="riderAvailability">{{ langService.t("Availability") }} <span class="required-asterisk">*</span></label>
 
           <select
             id="riderAvailability"
             formControlName="availability">
-            <option
-              *ngFor="let item of availabilityOptions"
-              [value]="item.value">
-              {{ item.label }}
-            </option>
+            <ng-container *ngIf="riderForm.get('status')?.value === 'inactive'; else activeModalOptions">
+              <option value="unavailable">{{ langService.t("Unavailable") }}</option>
+            </ng-container>
+            <ng-template #activeModalOptions>
+              <option value="available">{{ langService.t("Available") }}</option>
+              <option value="busy">{{ langService.t("Busy") }}</option>
+            </ng-template>
           </select>
         </div>
 
@@ -690,8 +692,8 @@
         <strong>
           <span
             class="status-badge"
-            [ngClass]="availabilityClass(selectedRider.availability)">
-            {{ selectedRider.availability }}
+            [ngClass]="availabilityClass(selectedRider.availability, selectedRider.status)">
+            {{ langService.t(availabilityLabel(selectedRider.availability, selectedRider.status)) }}
           </span>
         </strong>
       </div>

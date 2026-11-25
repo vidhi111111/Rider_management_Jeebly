@@ -12,6 +12,7 @@ class OrderSummarySchema(Schema):
 class RiderSummarySchema(Schema):
     total = fields.Integer()
     active = fields.Integer()
+    inactive = fields.Integer()
     available = fields.Integer()
     busy = fields.Integer()
 

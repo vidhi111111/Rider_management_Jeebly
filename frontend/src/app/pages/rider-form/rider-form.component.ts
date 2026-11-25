@@ -33,7 +33,7 @@ export class RiderFormComponent implements OnInit {
     ]],
     email: ['', [Validators.required, Validators.email]],
     vehicle: ['Bike', Validators.required],
-    status: ['Available', Validators.required],
+    status: ['Active', Validators.required],
     availability: ['Available', Validators.required],
     date: [new Date().toISOString().slice(0, 10), Validators.required]
   });
@@ -54,6 +54,17 @@ export class RiderFormComponent implements OnInit {
       this.isEditMode = true;
       this.loadRider();
     }
+
+    this.riderForm.get('status')?.valueChanges.subscribe(status => {
+      if (status === 'Inactive') {
+        this.riderForm.patchValue({ availability: 'Unavailable' });
+      } else if (status === 'Active') {
+        const cur = this.riderForm.get('availability')?.value;
+        if (cur === 'Unavailable') {
+          this.riderForm.patchValue({ availability: 'Available' });
+        }
+      }
+    });
   }
 
   loadRider(): void {
@@ -75,13 +86,22 @@ export class RiderFormComponent implements OnInit {
           return;
         }
 
+        const isInactive = (rider.status || '').toLowerCase() === 'inactive';
+        const statusVal = isInactive ? 'Inactive' : 'Active';
+        let availVal = 'Available';
+        if (isInactive) {
+          availVal = 'Unavailable';
+        } else if ((rider.availability || '').toLowerCase() === 'busy') {
+          availVal = 'Busy';
+        }
+
         this.riderForm.patchValue({
           name: rider.name ?? '',
           mobile: rider.mobile ?? '',
           email: rider.email ?? '',
           vehicle: rider.vehicle ?? 'Bike',
-          status: rider.status ?? 'Available',
-          availability: rider.availability ?? 'Available',
+          status: statusVal,
+          availability: availVal,
           date: rider.date ? String(rider.date).slice(0, 10) : ''
         });
 
@@ -127,7 +147,13 @@ export class RiderFormComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    const payload = this.riderForm.getRawValue();
+    const raw = this.riderForm.getRawValue();
+    const isInactive = (raw.status || '').toLowerCase() === 'inactive';
+    const payload = {
+      ...raw,
+      status: isInactive ? 'inactive' : 'active',
+      availability: isInactive ? 'unavailable' : (raw.availability || '').toLowerCase()
+    };
 
     const request = this.isEditMode && this.riderId
       ? this.riderService.updateRider(this.riderId, payload)

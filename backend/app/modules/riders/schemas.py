@@ -78,14 +78,16 @@ class RiderInputSchema(Schema):
     @validates_schema(skip_on_field_errors=True)
     def normalize_and_validate_availability(self, data, **kwargs):
         status = str(data.get("status", "active")).strip().lower()
-        availability = str(data.get("availability", "available")).strip().lower()
-
-        if status in {"inactive", "absent", "scheduled_break"}:
-            data["availability"] = "unavailable"
-        elif status == "on_order":
-            data["availability"] = "busy"
+        if status == "available":
+            status = "active"
+        if status in ("inactive", "absent", "scheduled_break"):
+            availability = "unavailable"
         else:
-            data["availability"] = availability
+            availability = str(data.get("availability", "available")).strip().lower()
+            if availability not in {"available", "busy", "unavailable"}:
+                availability = "available"
+        data["status"] = status
+        data["availability"] = availability
 
         data["name"] = str(data.get("name", "")).strip()
         data["mobile"] = str(data.get("mobile", "")).strip()
@@ -101,9 +103,19 @@ class RiderSchema(Schema):
     email = fields.String(dump_only=True)
     vehicle = fields.String(dump_only=True)
     status = fields.String(dump_only=True)
-    availability = fields.String(dump_only=True)
+    availability = fields.Method("get_availability", dump_only=True)
     date = fields.Method("get_date", dump_only=True)
     profile_image = fields.Method("get_profile_image", dump_only=True)
+
+    def get_availability(self, obj) -> str:
+        status = str(getattr(obj, "status", "") or "").strip().lower()
+        if status in ("inactive", "absent", "scheduled_break"):
+            return "unavailable"
+        avail = getattr(obj, "availability", None)
+        val = str(avail or "").strip().lower()
+        if val in ("unavailable", "busy"):
+            return val
+        return "available"
 
     def get_date(self, obj) -> str:
         if hasattr(obj, "date") and obj.date:

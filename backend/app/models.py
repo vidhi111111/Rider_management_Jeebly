@@ -18,7 +18,7 @@ class Rider(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    status = db.Column(db.String(30), nullable=False, default="available", index=True)
+    status = db.Column(db.String(30), nullable=False, default="active", index=True)
     mobile = db.Column(db.String(10), nullable=True, index=True)
     email = db.Column(db.String(120), nullable=True, index=True)
     vehicle = db.Column(db.String(100), nullable=True)
@@ -44,6 +44,7 @@ class Order(db.Model):
     mobile = db.Column(db.String(20), nullable=True)
     pickup = db.Column(db.String(255), nullable=True)
     delivery = db.Column(db.String(255), nullable=True)
+    item = db.Column(db.String(150), nullable=True)
 
     amount = db.Column(
         db.Numeric(12, 2),

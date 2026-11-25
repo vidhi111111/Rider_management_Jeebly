@@ -128,22 +128,16 @@ export class RidersComponent implements OnInit, OnDestroy {
       date: [this.today(), Validators.required]
     });
 
-    this.riderForm.get('status')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(status => {
-        const availability = this.riderForm.get('availability');
-
-        if (status === 'inactive') {
-          availability?.setValue('unavailable', { emitEvent: false });
-          availability?.disable({ emitEvent: false });
-        } else {
-          availability?.enable({ emitEvent: false });
-
-          if (availability?.value === 'unavailable') {
-            availability.setValue('available', { emitEvent: false });
-          }
+    this.riderForm.get('status')?.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(status => {
+      if (status === 'inactive') {
+        this.riderForm.patchValue({ availability: 'unavailable' });
+      } else if (status === 'active') {
+        const cur = this.riderForm.get('availability')?.value;
+        if (cur === 'unavailable') {
+          this.riderForm.patchValue({ availability: 'available' });
         }
-      });
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -441,13 +435,16 @@ export class RidersComponent implements OnInit, OnDestroy {
     this.currentImageUrl = rider.profile_image || null;
     this.formError = '';
 
+    const normStatus = this.normalizeStatus(rider.status);
+    const normAvail = normStatus === 'inactive' ? 'unavailable' : this.normalizeAvailability(rider.availability, normStatus);
+
     this.riderForm.reset({
       name: rider.name || '',
       mobile: rider.mobile || '',
       email: rider.email || '',
       vehicle: rider.vehicle || 'Bike',
-      status: this.normalizeStatus(rider.status),
-      availability: this.normalizeAvailability(rider.availability),
+      status: normStatus,
+      availability: normAvail,
       date: rider.date || this.today()
     });
 
@@ -472,13 +469,16 @@ export class RidersComponent implements OnInit, OnDestroy {
 
           this.currentImageUrl = details.profile_image || null;
 
+          const dStatus = this.normalizeStatus(details.status);
+          const dAvail = dStatus === 'inactive' ? 'unavailable' : this.normalizeAvailability(details.availability, dStatus);
+
           this.riderForm.patchValue({
             name: details.name || '',
             mobile: details.mobile || '',
             email: details.email || '',
             vehicle: details.vehicle || 'Bike',
-            status: this.normalizeStatus(details.status),
-            availability: this.normalizeAvailability(details.availability),
+            status: dStatus,
+            availability: dAvail,
             date: details.date || this.today()
           });
         },
@@ -631,9 +631,7 @@ export class RidersComponent implements OnInit, OnDestroy {
     const isCreating = this.editingRiderId === null;
     const value = this.riderForm.getRawValue();
     const status = this.normalizeStatus(value.status);
-    const availability = status === 'inactive'
-      ? 'unavailable'
-      : this.normalizeAvailability(value.availability);
+    const availability = status === 'inactive' ? 'unavailable' : this.normalizeAvailability(value.availability, status);
 
     const formData = new FormData();
     formData.append('name', String(value.name).trim());
@@ -795,18 +793,27 @@ export class RidersComponent implements OnInit, OnDestroy {
     return (status || '').toLowerCase() === 'inactive' ? 'inactive' : 'active';
   }
 
-  normalizeAvailability(availability: string | null | undefined): RiderAvailability {
+  normalizeAvailability(availability: string | null | undefined, status?: string): RiderAvailability {
+    if ((status || '').toLowerCase() === 'inactive') {
+      return 'unavailable';
+    }
     const value = (availability || '').toLowerCase();
 
     if (value === 'busy') {
       return 'busy';
     }
-
     if (value === 'unavailable') {
       return 'unavailable';
     }
 
     return 'available';
+  }
+
+  availabilityLabel(availability: string | null | undefined, status?: string): string {
+    const val = this.normalizeAvailability(availability, status);
+    if (val === 'unavailable') return 'Unavailable';
+    if (val === 'busy') return 'Busy';
+    return 'Available';
   }
 
   statusLabel(status: string): string {
@@ -817,8 +824,8 @@ export class RidersComponent implements OnInit, OnDestroy {
     return `status-${this.normalizeStatus(status)}`;
   }
 
-  availabilityClass(availability: string): string {
-    return `availability-${this.normalizeAvailability(availability)}`;
+  availabilityClass(availability: string | null | undefined, status?: string): string {
+    return `availability-${this.normalizeAvailability(availability, status)}`;
   }
 
   riderInitial(name: string): string {

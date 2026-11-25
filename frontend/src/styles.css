@@ -273,3 +273,17 @@ body.rtl-mode {
   right: auto;
   left: 0;
 }
+
+/* Suppress browser native password reveal/clear icons so only custom Jeebly eye button renders */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+}
+
+input::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  pointer-events: none;
+}

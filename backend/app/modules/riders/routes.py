@@ -58,7 +58,6 @@ def riders():
         enum:
           - available
           - busy
-          - unavailable
         description: Filter riders by dispatch availability
       - name: sortBy
         in: query
@@ -284,7 +283,6 @@ def create_rider():
         enum:
           - available
           - busy
-          - unavailable
         description: Dispatch availability status
       - name: date
         in: formData
@@ -396,7 +394,6 @@ def update_rider(rider_id):
         enum:
           - available
           - busy
-          - unavailable
         description: Dispatch availability status
       - name: date
         in: formData

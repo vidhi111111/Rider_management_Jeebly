@@ -20,24 +20,32 @@ class DashboardService:
 
             # In-memory batch availability refresh (O(1) queries instead of O(N) database calls)
             for rider in riders_list:
-                active_orders = active_counts.get(rider.id, 0)
-                if rider.status in {"inactive", "absent", "scheduled_break"}:
+                status_clean = str(rider.status or "").strip().lower()
+                if status_clean in {"inactive", "absent", "scheduled_break"}:
                     rider.availability = "unavailable"
-                elif active_orders > 0:
-                    rider.availability = "busy"
-                    if rider.status in {"active", "available"}:
-                        rider.status = "on_order"
                 else:
-                    rider.availability = "available"
-                    if rider.status == "on_order":
-                        rider.status = "active"
+                    active_orders = active_counts.get(rider.id, 0)
+                    if active_orders > 0:
+                        rider.availability = "busy"
+                    else:
+                        rider.availability = "available"
 
             self.dashboard_repo.commit()
 
             available_riders = [
-                r for r in riders_list if r.availability == "available"
+                r for r in riders_list
+                if r.availability == "available"
+                and str(r.status or "").strip().lower() not in {"inactive", "absent", "scheduled_break"}
             ]
             busy_riders = [r for r in riders_list if r.availability == "busy"]
+            active_riders = [
+                r for r in riders_list
+                if str(r.status or "").strip().lower() not in {"inactive", "absent"}
+            ]
+            inactive_riders = [
+                r for r in riders_list
+                if str(r.status or "").strip().lower() in {"inactive", "absent"}
+            ]
 
             recent_orders = self.dashboard_repo.get_recent_orders(limit=5)
 
@@ -50,7 +58,8 @@ class DashboardService:
                 },
                 "rider_summary": {
                     "total": len(riders_list),
-                    "active": sum(1 for r in riders_list if r.status not in {"inactive", "absent"}),
+                    "active": len(active_riders),
+                    "inactive": len(inactive_riders),
                     "available": len(available_riders),
                     "busy": len(busy_riders)
                 },

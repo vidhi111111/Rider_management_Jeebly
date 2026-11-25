@@ -138,50 +138,47 @@
           </div>
         </div>
 
-        <!-- On Order -->
-        <div class="rider-stat order-stat" [attr.data-tooltip]="onOrderRiders + ' ' + langService.t('riders currently delivering')">
-          <div class="stat-icon order-icon">
+        <!-- Busy -->
+        <div class="rider-stat busy-stat" [attr.data-tooltip]="busyRiders + ' ' + langService.t('busy riders on active orders')">
+          <div class="stat-icon busy-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
               <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
             </svg>
           </div>
           <div class="stat-info">
-            <span class="stat-value">{{ onOrderRiders }}</span>
-            <span class="stat-label">{{ langService.t('On Order') }}</span>
+            <span class="stat-value">{{ busyRiders }}</span>
+            <span class="stat-label">{{ langService.t('Busy') }}</span>
           </div>
         </div>
 
-        <!-- Scheduled Break -->
-        <div class="rider-stat break-stat" [attr.data-tooltip]="scheduledBreakRiders + ' ' + langService.t('riders on official break')">
-          <div class="stat-icon break-icon">
+        <!-- Active -->
+        <div class="rider-stat active-stat" [attr.data-tooltip]="activeRiders + ' ' + langService.t('active fleet members')">
+          <div class="stat-icon active-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
-              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
-              <line x1="6" y1="1" x2="6" y2="4"></line>
-              <line x1="10" y1="1" x2="10" y2="4"></line>
-              <line x1="14" y1="1" x2="14" y2="4"></line>
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="8.5" cy="7" r="4"></circle>
+              <polyline points="17 11 19 13 23 9"></polyline>
             </svg>
           </div>
           <div class="stat-info">
-            <span class="stat-value">{{ scheduledBreakRiders }}</span>
-            <span class="stat-label">{{ langService.t('Scheduled Break') }}</span>
+            <span class="stat-value">{{ activeRiders }}</span>
+            <span class="stat-label">{{ langService.t('Active') }}</span>
           </div>
         </div>
 
-        <!-- On Leave / Absent -->
-        <div class="rider-stat absent-stat" [attr.data-tooltip]="absentRiders + ' ' + langService.t('riders on leave or off-duty')">
-          <div class="stat-icon absent-icon">
+        <!-- Inactive -->
+        <div class="rider-stat inactive-stat" [attr.data-tooltip]="inactiveRiders + ' ' + langService.t('inactive riders')">
+          <div class="stat-icon inactive-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="8.5" cy="7" r="4"></circle>
+              <line x1="23" y1="11" x2="17" y2="11"></line>
             </svg>
           </div>
           <div class="stat-info">
-            <span class="stat-value">{{ absentRiders }}</span>
-            <span class="stat-label">{{ langService.t('On Leave / Absent') }}</span>
+            <span class="stat-value">{{ inactiveRiders }}</span>
+            <span class="stat-label">{{ langService.t('Inactive') }}</span>
           </div>
         </div>
       </div>
@@ -322,7 +319,7 @@
           <div class="rider-info">
             <span class="rider-name">{{ rider.name }}</span>
             <span class="rider-status-tag">
-              <span class="status-indicator-dot"></span> {{ langService.t('Available for dispatch') }}
+              <span class="status-indicator-dot"></span> {{ langService.t('Available') }}
             </span>
           </div>
         </div>

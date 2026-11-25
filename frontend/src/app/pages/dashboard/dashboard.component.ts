@@ -48,9 +48,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   inProgressPercentage = 0;
 
   availableRiders = 0;
-  onOrderRiders = 0;
-  scheduledBreakRiders = 0;
-  absentRiders = 0;
+  busyRiders = 0;
+  activeRiders = 0;
+  inactiveRiders = 0;
 
   recentOrders: RecentOrder[] = [];
   availableRiderList: AvailableRider[] = [];
@@ -88,10 +88,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.inProgressOrders = data.summary?.in_progress_orders || 0;
 
           this.availableRiders = data.rider_summary?.available || 0;
-          this.onOrderRiders = data.rider_summary?.on_order || 0;
-          this.scheduledBreakRiders =
-            data.rider_summary?.scheduled_break || 0;
-          this.absentRiders = data.rider_summary?.absent || 0;
+          this.busyRiders = data.rider_summary?.busy || 0;
+          this.activeRiders = data.rider_summary?.active || 0;
+          this.inactiveRiders = data.rider_summary?.inactive || 0;
 
           this.recentOrders = data.recent_orders || [];
           this.availableRiderList = data.available_riders || [];

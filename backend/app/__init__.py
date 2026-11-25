@@ -153,6 +153,15 @@ def create_app(config_class=None) -> Flask:
                 if "profile_image" not in rider_cols:
                     db.session.execute(text('ALTER TABLE "rider" ADD COLUMN profile_image TEXT;'))
                     db.session.commit()
+                # Ensure inactive riders are marked unavailable, and active riders default to available
+                db.session.execute(text("UPDATE \"rider\" SET availability = 'unavailable' WHERE LOWER(status) = 'inactive';"))
+                db.session.execute(text("UPDATE \"rider\" SET availability = 'available' WHERE LOWER(status) != 'inactive' AND (availability IS NULL OR LOWER(availability) = 'unavailable');"))
+                db.session.commit()
+            if "order" in table_names:
+                order_cols = [c["name"] for c in inspector.get_columns("order")]
+                if "item" not in order_cols:
+                    db.session.execute(text('ALTER TABLE "order" ADD COLUMN item VARCHAR(150);'))
+                    db.session.commit()
         except Exception:
             app.logger.warning("Auto-migration schema check skipped or encountered non-critical error.")
 

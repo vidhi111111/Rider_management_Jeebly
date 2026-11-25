@@ -11,10 +11,11 @@ export interface DashboardSummary {
 }
 
 export interface RiderSummary {
+  total?: number;
   available: number;
-  on_order: number;
-  scheduled_break: number;
-  absent: number;
+  busy: number;
+  active: number;
+  inactive: number;
 }
 
 export interface RecentOrder {

@@ -64,18 +64,21 @@
         <div class="form-field">
           <label for="status">{{ langService.t('Status') }} <span class="required-asterisk">*</span></label>
           <select id="status" formControlName="status">
-            <option value="Available">{{ langService.t('Available') }}</option>
-            <option value="On Order">{{ langService.t('On Order') }}</option>
-            <option value="Scheduled Break">{{ langService.t('Scheduled Break') }}</option>
-            <option value="Absent">{{ langService.t('Absent') }}</option>
+            <option value="Active">{{ langService.t('Active') }}</option>
+            <option value="Inactive">{{ langService.t('Inactive') }}</option>
           </select>
         </div>
 
         <div class="form-field">
           <label for="availability">{{ langService.t('Availability') }} <span class="required-asterisk">*</span></label>
           <select id="availability" formControlName="availability">
-            <option value="Available">{{ langService.t('Available') }}</option>
-            <option value="Unavailable">{{ langService.t('Unavailable') }}</option>
+            <ng-container *ngIf="riderForm.get('status')?.value === 'Inactive'; else activeAvailOptions">
+              <option value="Unavailable">{{ langService.t('Unavailable') }}</option>
+            </ng-container>
+            <ng-template #activeAvailOptions>
+              <option value="Available">{{ langService.t('Available') }}</option>
+              <option value="Busy">{{ langService.t('Busy') }}</option>
+            </ng-template>
           </select>
         </div>
 

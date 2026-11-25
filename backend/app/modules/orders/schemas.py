@@ -5,17 +5,21 @@ from ...common.utils import format_marshmallow_errors
 from ..riders.schemas import RiderSchema, serialize_rider
 
 ORDER_STATUSES = [
-    "pending", "accepted", "picked_up", "in_transit",
-    "delivered", "cancelled"
+    "pending", "accepted", "preparing", "ready",
+    "out_for_delivery", "delivered", "cancelled",
+    "picked_up", "in_transit"
 ]
 
 TERMINAL_STATUSES = {"delivered", "cancelled", "completed"}
 
 ALLOWED_STATUS_TRANSITIONS = {
     "pending": {"accepted", "cancelled"},
-    "accepted": {"picked_up", "cancelled"},
-    "picked_up": {"in_transit", "cancelled"},
-    "in_transit": {"delivered", "cancelled"},
+    "accepted": {"picked_up"},
+    "picked_up": {"out_for_delivery"},
+    "out_for_delivery": {"delivered"},
+    "preparing": {"picked_up", "out_for_delivery"},
+    "ready": {"out_for_delivery"},
+    "in_transit": {"delivered"},
 }
 
 
@@ -125,6 +129,7 @@ class OrderSchema(Schema):
     mobile = fields.String(dump_only=True)
     pickup = fields.String(dump_only=True)
     delivery = fields.String(dump_only=True)
+    item = fields.String(dump_only=True)
     amount = fields.Method("get_amount", dump_only=True)
     currency = fields.String(dump_only=True)
     status = fields.String(dump_only=True)

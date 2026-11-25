@@ -13,7 +13,8 @@ def refresh_rider_availability(rider) -> None:
     if rider is None:
         return
 
-    if rider.status in {"inactive", "absent", "scheduled_break"}:
+    status = str(getattr(rider, "status", "") or "").strip().lower()
+    if status in ("inactive", "absent", "scheduled_break"):
         rider.availability = "unavailable"
         return
 
@@ -23,12 +24,8 @@ def refresh_rider_availability(rider) -> None:
 
     if active_orders > 0:
         rider.availability = "busy"
-        if rider.status in {"active", "available"}:
-            rider.status = "on_order"
     else:
         rider.availability = "available"
-        if rider.status == "on_order":
-            rider.status = "active"
 
 
 class RiderService:
@@ -59,6 +56,10 @@ class RiderService:
                 page=page,
                 page_size=page_size
             )
+
+            for r in pagination.items:
+                refresh_rider_availability(r)
+            self.rider_repo.commit()
 
             data = {
                 "riders": [serialize_rider(r) for r in pagination.items],
@@ -118,7 +119,10 @@ class RiderService:
                 return False, image_error, None, 400
 
         image_value = uploaded["url"] if uploaded else None
+        if values.get("status") == "inactive":
+            values["availability"] = "unavailable"
         rider = self.rider_repo.create(values, profile_image=image_value)
+        refresh_rider_availability(rider)
 
         try:
             self.rider_repo.commit()
@@ -151,7 +155,10 @@ class RiderService:
         rider.email = values["email"]
         rider.vehicle = values["vehicle"]
         rider.status = values["status"]
-        rider.availability = values["availability"]
+        if rider.status == "inactive":
+            rider.availability = "unavailable"
+        else:
+            rider.availability = values["availability"]
         rider.date = values["date"]
 
         if new_image:

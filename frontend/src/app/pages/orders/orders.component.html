@@ -329,11 +329,11 @@
               <span class="amount-num">{{ order.amount | number:'1.0-2' }}</span>
             </td>
 
-            <!-- Rider Name (Permanent retention, delivered riders never show Unassigned) -->
+            <!-- Rider Name (Strictly Unassigned when no rider) -->
             <td>
               <div class="rider-name-tag" [class.unassigned]="!order.riderId || order.rider === 'Unassigned'">
                 <span class="rider-dot"></span>
-                <span>{{ (order.rider && order.rider !== 'Unassigned') ? order.rider : (order.riderId ? ('Rider #' + order.riderId) : 'Unassigned') }}</span>
+                <span>{{ (order.riderId && order.rider && order.rider !== 'Unassigned') ? order.rider : langService.t('Unassigned') }}</span>
               </div>
             </td>
 
@@ -347,16 +347,16 @@
                   [ngClass]="statusClass(order.status)"
                   [disabled]="
                     isLoading ||
-                    updatingStatusOrderId === order.id ||
-                    isTerminalStatus(order.status)
+                    updatingStatusOrderId === order.id
                   "
                   [attr.aria-label]="'Status for order ' + order.id"
                 >
                   <option
-                    *ngFor="let status of getStatusOptionsForOrder(order)"
+                    *ngFor="let status of orderStatuses"
                     [value]="status"
+                    [disabled]="isStatusOptionDisabled(order, status)"
                   >
-                    {{ status }}
+                    {{ langService.t(status) }}
                   </option>
                 </select>
                 <span class="status-spinner" *ngIf="updatingStatusOrderId === order.id"></span>
@@ -376,13 +376,13 @@
               <ng-template #noCreatedAt>—</ng-template>
             </td>
 
-            <!-- Assign Rider Dropdown (Fixed: DOM change event prevents cascading assignment bug) -->
+            <!-- Assign Rider Dropdown -->
             <td>
               <div class="assign-select-wrap">
                 <select
                   class="table-select assign-select"
-                  [value]="order.riderId || ''"
-                  (change)="onAssignRiderChange(order, $event)"
+                  [ngModel]="order.riderId || ''"
+                  (ngModelChange)="onAssignRiderChange(order, $event)"
                   [disabled]="
                     assigningOrderId === order.id ||
                     isTerminalStatus(order.status)
@@ -684,15 +684,15 @@
             </div>
           </div>
 
-          <!-- Step 2: Rider Assigned -->
-          <div class="timeline-item" [ngClass]="getTimelineStepState(selectedViewOrder, 'assigned')">
+          <!-- Step 2: Rider Assigned & Accepted -->
+          <div class="timeline-item" [ngClass]="getTimelineStepState(selectedViewOrder, 'accepted')">
             <div class="timeline-marker">
               <span class="timeline-dot"></span>
               <span class="timeline-line"></span>
             </div>
             <div class="timeline-content">
               <div class="timeline-title-row">
-                <strong>{{ langService.t("Rider Assigned") }}</strong>
+                <strong>{{ langService.t("Accepted") }}</strong>
                 <span class="timeline-time" *ngIf="selectedViewOrder.riderId">Assigned</span>
               </div>
               <p class="timeline-desc">
@@ -701,21 +701,7 @@
             </div>
           </div>
 
-          <!-- Step 3: Order Accepted -->
-          <div class="timeline-item" [ngClass]="getTimelineStepState(selectedViewOrder, 'accepted')">
-            <div class="timeline-marker">
-              <span class="timeline-dot"></span>
-              <span class="timeline-line"></span>
-            </div>
-            <div class="timeline-content">
-              <div class="timeline-title-row">
-                <strong>Order Accepted</strong>
-              </div>
-              <p class="timeline-desc">Rider confirmed dispatch and en route to pickup.</p>
-            </div>
-          </div>
-
-          <!-- Step 4: Picked Up -->
+          <!-- Step 3: Picked Up -->
           <div class="timeline-item" [ngClass]="getTimelineStepState(selectedViewOrder, 'picked_up')">
             <div class="timeline-marker">
               <span class="timeline-dot"></span>
@@ -723,21 +709,21 @@
             </div>
             <div class="timeline-content">
               <div class="timeline-title-row">
-                <strong>Picked Up</strong>
+                <strong>{{ langService.t("Picked Up") }}</strong>
               </div>
-              <p class="timeline-desc">Shipment retrieved from sender location.</p>
+              <p class="timeline-desc">{{ langService.t("Package picked up from merchant or dispatch hub.") }}</p>
             </div>
           </div>
 
-          <!-- Step 5: On The Way -->
-          <div class="timeline-item" [ngClass]="getTimelineStepState(selectedViewOrder, 'on_the_way')">
+          <!-- Step 5: Out for Delivery -->
+          <div class="timeline-item" [ngClass]="getTimelineStepState(selectedViewOrder, 'out_for_delivery')">
             <div class="timeline-marker">
               <span class="timeline-dot"></span>
               <span class="timeline-line"></span>
             </div>
             <div class="timeline-content">
               <div class="timeline-title-row">
-                <strong>On The Way</strong>
+                <strong>{{ langService.t("Out for Delivery") }}</strong>
               </div>
               <p class="timeline-desc">Package in transit to customer delivery address.</p>
             </div>
@@ -750,10 +736,10 @@
             </div>
             <div class="timeline-content">
               <div class="timeline-title-row">
-                <strong>Delivered</strong>
+                <strong>{{ langService.t("Delivered") }}</strong>
               </div>
               <p class="timeline-desc">
-                {{ selectedViewOrder.status === 'Delivered' ? '{{ langService.t("Package successfully handed over to customer.") }}' : 'Final delivery confirmation pending.' }}
+                {{ selectedViewOrder.status === 'Delivered' ? langService.t("Package successfully handed over to customer.") : 'Final delivery confirmation pending.' }}
               </p>
             </div>
           </div>

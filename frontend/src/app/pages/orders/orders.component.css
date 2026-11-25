@@ -597,12 +597,49 @@
   box-shadow: 0 0 0 2px rgba(22, 55, 88, 0.15);
 }
 
-.status-select.status-delivered {
-  background: #ecfdf5;
-  color: #059669;
-  border-color: #a7f3d0;
+.status-select.status-pending,
+.status-select.status-created {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
 }
 
+.status-select.status-accepted {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.status-select.status-picked-up {
+  background: #fdf4ff;
+  color: #7e22ce;
+  border-color: #f0abfc;
+}
+
+.status-select option:disabled {
+  color: #94a3b8 !important;
+  background-color: #f8fafc !important;
+  cursor: not-allowed;
+}
+
+.status-select option:not(:disabled) {
+  color: #163758;
+  font-weight: 500;
+}
+
+.status-select.status-preparing {
+  background: #fefce8;
+  color: #a16207;
+  border-color: #fde047;
+}
+
+.status-select.status-ready {
+  background: #fdf4ff;
+  color: #7e22ce;
+  border-color: #f0abfc;
+}
+
+.status-select.status-transit,
 .status-select.status-in-progress,
 .status-select.status-in_progress,
 .status-select.status-progress {
@@ -611,16 +648,16 @@
   border-color: #fecdd3;
 }
 
+.status-select.status-delivered {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+
 .status-select.status-cancelled {
   background: #f1f5f9;
   color: #64748b;
   border-color: #cbd5e1;
-}
-
-.status-select.status-created {
-  background: #eff6ff;
-  color: #163758;
-  border-color: #bfdbfe;
 }
 
 .assign-select {
@@ -912,6 +949,48 @@
   font-size: 12px;
   font-weight: 600;
   border: 1px solid transparent;
+}
+
+.status-pill-badge.status-pending {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.status-pill-badge.status-accepted {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.status-pill-badge.status-preparing {
+  background: #fefce8;
+  color: #a16207;
+  border-color: #fde047;
+}
+
+.status-pill-badge.status-ready {
+  background: #fdf4ff;
+  color: #7e22ce;
+  border-color: #f0abfc;
+}
+
+.status-pill-badge.status-transit {
+  background: #fde8ed;
+  color: #DC1D47;
+  border-color: #fecdd3;
+}
+
+.status-pill-badge.status-delivered {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+
+.status-pill-badge.status-cancelled {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #cbd5e1;
 }
 
 .drawer-title {
@@ -1226,7 +1305,7 @@
 
 .amount-text {
   font-size: 17px;
-  color: #DC1D47;
+  color: #163758;
   font-weight: 700;
   font-family: var(--font-header, 'Montserrat', sans-serif);
 }

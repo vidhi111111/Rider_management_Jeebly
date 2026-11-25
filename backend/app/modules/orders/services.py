@@ -196,12 +196,18 @@ class OrderService:
             if current_status in TERMINAL_STATUSES:
                 return False, "Delivered or cancelled orders cannot be changed.", None, 409
 
-            if clean_status == "cancelled" and order.rider_id is not None:
-                return False, "An order cannot be cancelled once a rider has been assigned.", None, 400
+            if clean_status == "accepted" and order.rider_id is None:
+                return False, "An order cannot move to Accepted status without an assigned rider.", None, 400
+
+            if clean_status == "cancelled":
+                if current_status != "pending":
+                    return False, "Orders can only be cancelled while in Pending status.", None, 400
+                if order.rider_id is not None:
+                    return False, "An order cannot be cancelled once a rider has been assigned.", None, 400
 
             allowed = ALLOWED_STATUS_TRANSITIONS.get(current_status, set())
             if clean_status not in allowed:
-                return False, f"Cannot change status from {current_status} to {clean_status}.", None, 409
+                return False, f"Invalid status transition from {current_status} to {clean_status}. Status must progress sequentially.", None, 409
 
             order.status = clean_status
             self.order_repo.flush()
@@ -229,9 +235,14 @@ class OrderService:
 
             previous_rider = order.rider
 
-            if requested_rider_id is None:
+            if requested_rider_id is None or str(requested_rider_id).strip() in ("", "0", "null", "none"):
+                if order_status not in {"pending", "accepted"}:
+                    return False, "Cannot unassign rider once order preparation or delivery has started.", None, 409
+
                 order.rider_id = None
                 order.rider = None
+                if order_status == "accepted":
+                    order.status = "pending"
                 current_rider = None
             else:
                 try:
@@ -247,24 +258,30 @@ class OrderService:
 
                 if order.rider_id != rider.id:
                     rider_status = str(rider.status or "").strip().lower()
-                    if rider_status in {"inactive", "absent", "scheduled_break", "on_order"}:
-                        return False, "This rider is not eligible for assignment.", None, 409
+                    if rider_status in {"inactive", "absent", "scheduled_break"}:
+                        return False, "This rider is inactive and cannot be assigned.", None, 409
+
+                    availability = str(rider.availability or "").strip().lower()
+                    if availability == "busy":
+                        return False, f"Rider {rider.name} is currently busy with another active order.", None, 409
 
                     existing_order = self.order_repo.find_active_order_for_rider(rider.id, order.id)
                     if existing_order:
-                        return False, "This rider already has an active order.", None, 409
-
-                    availability = str(rider.availability or "").strip().lower()
-                    if availability != "available":
-                        return False, "This rider is currently unavailable. Please select an available rider.", None, 409
+                        return False, f"Rider {rider.name} already has an active order.", None, 409
 
                 order.rider_id = rider.id
                 order.rider = rider
                 current_rider = rider
 
+                # Automatically advance pending -> accepted upon rider assignment
+                if str(order.status or "").strip().lower() == "pending":
+                    order.status = "accepted"
+
+                rider.availability = "busy"
+
             self.order_repo.flush()
 
-            if previous_rider:
+            if previous_rider and (current_rider is None or previous_rider.id != current_rider.id):
                 refresh_rider_availability(previous_rider)
 
             if current_rider:

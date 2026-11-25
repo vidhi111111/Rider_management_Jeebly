@@ -45,7 +45,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
     'Pending',
     'Accepted',
     'Picked Up',
-    'On The Way',
+    'Out for Delivery',
     'Delivered',
     'Cancelled'
   ];
@@ -372,13 +372,17 @@ export class OrdersComponent implements OnInit, OnDestroy {
       assigned: 'Accepted',
       accept: 'Accepted',
       accepted: 'Accepted',
+      preparing: 'Preparing',
+      ready: 'Ready',
+      out_for_delivery: 'Out for Delivery',
+      'out for delivery': 'Out for Delivery',
       picked_up: 'Picked Up',
       'picked up': 'Picked Up',
-      dispatch: 'On The Way',
-      on_the_way: 'On The Way',
-      'on the way': 'On The Way',
-      in_transit: 'On The Way',
-      'in transit': 'On The Way',
+      dispatch: 'Out for Delivery',
+      on_the_way: 'Out for Delivery',
+      'on the way': 'Out for Delivery',
+      in_transit: 'Out for Delivery',
+      'in transit': 'Out for Delivery',
       delivered: 'Delivered',
       completed: 'Delivered',
       cancelled: 'Cancelled',
@@ -395,18 +399,25 @@ export class OrdersComponent implements OnInit, OnDestroy {
     const map: Record<string, string> = {
       Pending: 'pending',
       Accepted: 'accepted',
+      Preparing: 'preparing',
+      Ready: 'ready',
+      'Out for Delivery': 'out_for_delivery',
       'Picked Up': 'picked_up',
       'On The Way': 'in_transit',
       Delivered: 'delivered',
       Cancelled: 'cancelled'
     };
 
-    return map[status] ?? status.toLowerCase();
+    return map[status] ?? status.toLowerCase().replace(/\s+/g, '_');
   }
 
   private mapOrder(item: any): Order {
-    const rider = item?.rider ?? null;
-    const riderId = item?.rider_id ?? rider?.id ?? null;
+    const rawRiderId = item?.rider_id ?? item?.rider?.id ?? null;
+    const hasRider = rawRiderId != null && String(rawRiderId).trim() !== '' && Number(rawRiderId) > 0;
+    const riderId = hasRider ? String(rawRiderId) : '';
+    const riderName = hasRider
+      ? (item?.rider?.name ?? item?.rider_name ?? `Rider #${riderId}`)
+      : 'Unassigned';
 
     return {
       id: Number(item.id),
@@ -416,8 +427,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
       delivery: item.delivery ?? '',
       amount: Number(item.amount ?? 0),
       currency: item.currency ?? 'AED',
-      rider: rider?.name ?? item.rider_name ?? 'Unassigned',
-      riderId: riderId != null ? String(riderId) : '',
+      rider: riderName,
+      riderId: riderId,
       status: this.normalizeStatus(item.status),
       createdAt: item.created_at ?? item.createdAt ?? ''
     };
@@ -572,19 +583,56 @@ export class OrdersComponent implements OnInit, OnDestroy {
     return rider.id;
   }
 
-  onAssignRiderChange(order: Order, event: Event): void {
-    const target = event.target as HTMLSelectElement;
-    const newRiderId = target.value;
-    if (newRiderId === order.riderId) {
+  onAssignRiderChange(order: Order, newRiderId: string): void {
+    const currentRiderId = order.riderId || '';
+    if (newRiderId === currentRiderId) {
       return;
     }
     this.assignRider(order, newRiderId);
   }
 
-  getStatusOptionsForOrder(order: Order): string[] {
-    if (order.riderId) {
-      return this.orderStatuses.filter(s => s !== 'Cancelled');
+  isStatusOptionDisabled(order: Order, status: string): boolean {
+    if (!order) return true;
+    if (status === order.status) {
+      return false;
     }
+
+    const current = order.status;
+    const hasRider = !!(order.riderId && String(order.riderId).trim() !== '' && Number(order.riderId) > 0);
+
+    switch (current) {
+      case 'Pending':
+        if (status === 'Cancelled') {
+          return false;
+        }
+        if (status === 'Accepted' && hasRider) {
+          return false;
+        }
+        return true;
+
+      case 'Accepted':
+        return status !== 'Picked Up';
+
+      case 'Picked Up':
+        return status !== 'Out for Delivery';
+
+      case 'Out for Delivery':
+        return status !== 'Delivered';
+
+      case 'Preparing':
+        return status !== 'Picked Up' && status !== 'Out for Delivery';
+
+      case 'Ready':
+        return status !== 'Out for Delivery';
+
+      case 'Delivered':
+      case 'Cancelled':
+      default:
+        return true;
+    }
+  }
+
+  getStatusOptionsForOrder(order: Order): string[] {
     return this.orderStatuses;
   }
 
@@ -673,9 +721,14 @@ export class OrdersComponent implements OnInit, OnDestroy {
   }
 
   statusClass(status: string): string {
-    if (status === 'Pending') return 'status-pending';
-    if (status === 'Delivered') return 'status-delivered';
-    if (status === 'Cancelled') return 'status-cancelled';
+    const s = (status || '').toLowerCase().replace(/\s+/g, '-');
+    if (s === 'pending') return 'status-pending';
+    if (s === 'delivered') return 'status-delivered';
+    if (s === 'cancelled') return 'status-cancelled';
+    if (s === 'accepted') return 'status-accepted';
+    if (s === 'picked-up') return 'status-picked-up';
+    if (s === 'preparing') return 'status-preparing';
+    if (s === 'ready') return 'status-ready';
     return 'status-transit';
   }
 
@@ -689,10 +742,18 @@ export class OrdersComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (newStatus === 'Cancelled' && order.riderId) {
-      this.errorMessage = 'An order cannot be cancelled once a rider has been assigned.';
+    if (this.isStatusOptionDisabled(order, newStatus)) {
+      this.errorMessage = `Cannot transition order from '${order.status}' to '${newStatus}'. Transition is not permitted.`;
       this.showNotification(this.errorMessage, 'error', 3500);
       return;
+    }
+
+    if (newStatus === 'Cancelled') {
+      if (order.status !== 'Pending' || order.riderId) {
+        this.errorMessage = 'Orders can only be cancelled while in Pending status before rider assignment.';
+        this.showNotification(this.errorMessage, 'error', 3500);
+        return;
+      }
     }
 
     const previousStatus = order.status;
@@ -763,12 +824,18 @@ assignRider(order: Order, riderId: string): void {
         } else if (parsedRiderId === null) {
           order.riderId = '';
           order.rider = 'Unassigned';
+          if (order.status === 'Accepted') {
+            order.status = 'Pending';
+          }
         } else {
           const selected = [...this.allRiders, ...this.riders]
             .find(r => r.id === String(parsedRiderId));
 
           order.riderId = String(parsedRiderId);
-          order.rider = selected?.name ?? 'Assigned rider';
+          order.rider = selected?.name ?? `Rider #${parsedRiderId}`;
+          if (order.status === 'Pending') {
+            order.status = 'Accepted';
+          }
         }
 
         this.highlightOrder(order.id);
@@ -865,32 +932,25 @@ assignRider(order: Order, riderId: string): void {
       return step === 'placed' ? 'completed' : 'pending';
     }
 
-    const orderStages = ['Pending', 'Accepted', 'Picked Up', 'On The Way', 'Delivered'];
-    const currentIdx = orderStages.indexOf(status);
+    const orderStages = ['Pending', 'Accepted', 'Picked Up', 'Out for Delivery', 'Delivered'];
+    let currentIdx = orderStages.indexOf(status);
+    if (currentIdx === -1) {
+      if (status === 'Preparing') currentIdx = 1;
+      else if (status === 'Ready') currentIdx = 2;
+      else if (status === 'On The Way' || status === 'In Transit') currentIdx = 3;
+    }
 
     switch (step) {
       case 'placed':
         return currentIdx >= 0 ? 'completed' : 'active';
-      case 'assigned':
-        if (order.riderId && order.rider && order.rider !== 'Unassigned') {
-          return currentIdx >= 1 ? 'completed' : 'active';
-        }
-        return currentIdx >= 1 ? 'completed' : 'pending';
       case 'accepted':
-        if (currentIdx > 1) return 'completed';
-        if (currentIdx === 1) return 'active';
-        return 'pending';
+        return currentIdx >= 1 ? 'completed' : (currentIdx === 0 && order.riderId ? 'active' : 'pending');
       case 'picked_up':
-        if (currentIdx > 2) return 'completed';
-        if (currentIdx === 2) return 'active';
-        return 'pending';
-      case 'on_the_way':
-        if (currentIdx > 3) return 'completed';
-        if (currentIdx === 3) return 'active';
-        return 'pending';
+        return currentIdx >= 2 ? 'completed' : (currentIdx === 1 ? 'active' : 'pending');
+      case 'out_for_delivery':
+        return currentIdx >= 3 ? 'completed' : (currentIdx === 2 ? 'active' : 'pending');
       case 'delivered':
-        if (currentIdx === 4) return 'completed';
-        return 'pending';
+        return currentIdx >= 4 ? 'completed' : (currentIdx === 3 ? 'active' : 'pending');
       default:
         return 'pending';
     }
