@@ -9,13 +9,32 @@ MAX_IMAGE_SIZE = 5 * 1024 * 1024
 
 
 def cloudinary_enabled() -> bool:
-    return bool(
-        current_app.config.get("CLOUDINARY_CLOUD_NAME")
-        or os.getenv("CLOUDINARY_CLOUD_NAME")
-    )
+    cloud_name = current_app.config.get("CLOUDINARY_CLOUD_NAME") or os.getenv("CLOUDINARY_CLOUD_NAME")
+    api_key = current_app.config.get("CLOUDINARY_API_KEY") or os.getenv("CLOUDINARY_API_KEY")
+    api_secret = current_app.config.get("CLOUDINARY_API_SECRET") or os.getenv("CLOUDINARY_API_SECRET")
+    cloudinary_url = os.getenv("CLOUDINARY_URL")
+    return bool((cloud_name and api_key and api_secret) or cloudinary_url)
 
 
-def upload_rider_image(file):
+def _configure_cloudinary():
+    import cloudinary
+
+    cloud_name = current_app.config.get("CLOUDINARY_CLOUD_NAME") or os.getenv("CLOUDINARY_CLOUD_NAME")
+    api_key = current_app.config.get("CLOUDINARY_API_KEY") or os.getenv("CLOUDINARY_API_KEY")
+    api_secret = current_app.config.get("CLOUDINARY_API_SECRET") or os.getenv("CLOUDINARY_API_SECRET")
+
+    if cloud_name and api_key and api_secret:
+        cloudinary.config(
+            cloud_name=cloud_name,
+            api_key=api_key,
+            api_secret=api_secret,
+            secure=True
+        )
+    else:
+        cloudinary.config(secure=True)
+
+
+def upload_rider_image(file, folder_name: str = "jeebly/uploads"):
     if not file or not file.filename:
         return None, None
 
@@ -38,28 +57,12 @@ def upload_rider_image(file):
 
     if cloudinary_enabled():
         try:
-            import cloudinary
             import cloudinary.uploader
 
-            cloudinary.config(
-                cloud_name=(
-                    current_app.config.get("CLOUDINARY_CLOUD_NAME")
-                    or os.getenv("CLOUDINARY_CLOUD_NAME")
-                ),
-                api_key=(
-                    current_app.config.get("CLOUDINARY_API_KEY")
-                    or os.getenv("CLOUDINARY_API_KEY")
-                ),
-                api_secret=(
-                    current_app.config.get("CLOUDINARY_API_SECRET")
-                    or os.getenv("CLOUDINARY_API_SECRET")
-                ),
-                secure=True
-            )
-
+            _configure_cloudinary()
             result = cloudinary.uploader.upload(
                 file,
-                folder="jeebly/riders",
+                folder=folder_name,
                 resource_type="image"
             )
             return {
@@ -104,29 +107,18 @@ def delete_rider_image(image_value):
     value = str(image_value)
 
     if "res.cloudinary.com/" in value:
+        if not cloudinary_enabled():
+            return
         try:
-            import cloudinary
+            import re
             import cloudinary.uploader
 
-            cloudinary.config(
-                cloud_name=(
-                    current_app.config.get("CLOUDINARY_CLOUD_NAME")
-                    or os.getenv("CLOUDINARY_CLOUD_NAME")
-                ),
-                api_key=(
-                    current_app.config.get("CLOUDINARY_API_KEY")
-                    or os.getenv("CLOUDINARY_API_KEY")
-                ),
-                api_secret=(
-                    current_app.config.get("CLOUDINARY_API_SECRET")
-                    or os.getenv("CLOUDINARY_API_SECRET")
-                ),
-                secure=True
-            )
-
-            current_app.logger.info(
-                "Cloudinary image retained; store public_id to enable deletion."
-            )
+            _configure_cloudinary()
+            # Extract public_id from Cloudinary URL: .../upload/(v12345/)?<public_id>.<ext>
+            match = re.search(r"/upload/(?:v\d+/)?(.+)\.[a-zA-Z0-9]+$", value)
+            if match:
+                public_id = match.group(1)
+                cloudinary.uploader.destroy(public_id, resource_type="image")
         except Exception:
             current_app.logger.exception("Cloudinary cleanup failed.")
         return

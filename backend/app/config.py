@@ -34,6 +34,6 @@ class Config:
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:4200")
 
     # Cloudinary configs if provided
-    CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
-    CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
-    CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
+    CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "x2hjkkqy")
+    CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY", "799422549582278")
+    CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "Fo6cEHf6T5gZBJMH-j5uBwhAFfk")

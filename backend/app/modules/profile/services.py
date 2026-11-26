@@ -47,7 +47,7 @@ class ProfileService:
 
         # Handle profile image file upload
         if file:
-            img_data, img_err = upload_rider_image(file)
+            img_data, img_err = upload_rider_image(file, folder_name="jeebly/profiles")
             if img_err:
                 return False, img_err, None, 400
             if img_data and "url" in img_data:

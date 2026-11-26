@@ -114,7 +114,7 @@ class RiderService:
 
         uploaded = None
         if image_file and image_file.filename:
-            uploaded, image_error = upload_rider_image(image_file)
+            uploaded, image_error = upload_rider_image(image_file, folder_name="jeebly/riders")
             if image_error:
                 return False, image_error, None, 400
 
@@ -146,7 +146,7 @@ class RiderService:
 
         new_image = None
         if image_file and image_file.filename:
-            new_image, image_error = upload_rider_image(image_file)
+            new_image, image_error = upload_rider_image(image_file, folder_name="jeebly/riders")
             if image_error:
                 return False, image_error, None, 400
 
