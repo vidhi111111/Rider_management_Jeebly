@@ -451,11 +451,12 @@
 }
 
 .modern-orders-table thead tr {
-  background: #163758;
+  background-color: #163758;
 }
 
 .modern-orders-table th {
   padding: 14px 16px;
+  background-color: #163758;
   font-size: 12px;
   font-weight: 700;
   font-family: var(--font-header, 'Montserrat', sans-serif);
@@ -468,7 +469,7 @@
 }
 
 .modern-orders-table th:hover {
-  background: #1e466e;
+  background-color: #1e466e;
 }
 
 .modern-orders-table td {

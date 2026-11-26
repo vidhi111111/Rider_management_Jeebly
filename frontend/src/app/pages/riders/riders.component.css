@@ -388,17 +388,19 @@ button:disabled {
 .riders-table {
   width: 100%;
   min-width: 1000px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   text-align: left;
 }
 
 .riders-table thead,
 .riders-table thead tr {
-  background: #163758;
+  background-color: #163758;
 }
 
 .riders-table th {
   padding: 14px 16px;
+  background-color: #163758;
   color: #ffffff;
   font-size: 12px;
   font-weight: 700;
@@ -410,7 +412,7 @@ button:disabled {
 }
 
 .riders-table th:hover {
-  background: #1e466e;
+  background-color: #1e466e;
 }
 
 .riders-table td {
